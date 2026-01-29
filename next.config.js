@@ -1,0 +1,50 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Activer le mode strict React
+  reactStrictMode: true,
+
+  // Configuration des images
+  images: {
+    domains: [],
+  },
+
+  // Headers de securite
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Redirections
+  async redirects() {
+    return [
+      {
+        source: '/espace-membre/mon-profil/password',
+        destination: '/espace-membre/mon-profil?tab=securite',
+        permanent: true,
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;

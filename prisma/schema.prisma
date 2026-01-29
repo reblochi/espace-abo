@@ -1,0 +1,335 @@
+// prisma/schema.prisma
+// Schema de base de donnees pour l'espace abonnement MVP
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["espace_abo"]
+}
+
+// ============================================
+// UTILISATEURS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+
+  // Informations personnelles
+  gender        String?   // M, F, O
+  firstName     String
+  lastName      String
+  phone         String?
+  birthDate     DateTime?
+
+  // Adresse
+  address       String?
+  addressExtra  String?
+  zipCode       String?
+  city          String?
+  country       String    @default("FR")
+
+  // Tokens securises
+  resetPasswordToken    String?   @unique
+  resetPasswordExpires  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscription  Subscription?
+  processes     Process[]
+  invoices      Invoice[]
+
+  @@map("users")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// ABONNEMENTS
+// ============================================
+
+model Subscription {
+  id                  String   @id @default(cuid())
+  reference           String   @unique  // ex: "SUB-2026-000001"
+
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id])
+
+  status              SubscriptionStatus @default(ACTIVE)
+
+  // Montant mensuel en centimes
+  amountCents         Int      @default(990)  // 9.90 EUR
+  currency            String   @default("EUR")
+
+  // Dates importantes
+  startDate           DateTime @default(now())
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  canceledAt          DateTime?
+  endDate             DateTime?  // Date fin des droits (apres annulation)
+
+  // Integration PSP (Stripe par defaut, extensible via Multi-PSP)
+  pspProvider         String   @default("stripe")  // stripe, hipay, payzen, etc.
+  pspCustomerId       String?
+  pspSubscriptionId   String?
+
+  // Tokens securises
+  unsubscribeToken    String   @unique @default(cuid())
+  changeCardToken     String   @unique @default(cuid())
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  deadlines           SubscriptionDeadline[]
+
+  @@map("subscriptions")
+  @@schema("espace_abo")
+}
+
+enum SubscriptionStatus {
+  PENDING      // En attente premier paiement
+  ACTIVE       // Actif
+  PAST_DUE     // Paiement en retard
+  CANCELED     // Annule (peut avoir droits restants)
+  ENDED        // Termine
+
+  @@schema("espace_abo")
+}
+
+model SubscriptionDeadline {
+  id              String   @id @default(cuid())
+
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  deadlineNumber  Int      // Numero d'echeance (1, 2, 3...)
+  amountCents     Int
+  dueDate         DateTime
+
+  status          DeadlineStatus @default(UPCOMING)
+  paymentStatus   PaymentStatus  @default(PENDING)
+
+  paidAt          DateTime?
+  refundedAt      DateTime?
+  refundedAmount  Int?
+
+  pspInvoiceId    String?
+
+  invoice         Invoice?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("subscription_deadlines")
+  @@schema("espace_abo")
+}
+
+enum DeadlineStatus {
+  UPCOMING
+  PERFORMED
+  CANCELED
+
+  @@schema("espace_abo")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+
+  @@schema("espace_abo")
+}
+
+// ============================================
+// DEMARCHES (Process)
+// ============================================
+
+model Process {
+  id              String   @id @default(cuid())
+  reference       String   @unique  // ex: "DEM-2026-000001"
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  type            ProcessType
+  status          ProcessStatus @default(PENDING_PAYMENT)
+
+  // Prix
+  amountCents     Int
+  currency        String   @default("EUR")
+
+  // Paiement
+  paidAt          DateTime?
+  pspPaymentId    String?
+
+  // Si via abonnement (gratuit)
+  isFromSubscription Boolean @default(false)
+
+  // Donnees specifiques (JSON)
+  data            Json
+
+  // Reference Advercity (apres envoi)
+  advercityId     String?
+  advercityRef    String?
+
+  // Suivi
+  advercityStatus Int?     // Step Advercity
+  lastSyncAt      DateTime?
+
+  // Types de fichiers obligatoires pour cette demarche
+  mandatoryFileTypes String[] @default([])
+
+  invoice         Invoice?
+  files           ProcessFile[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("processes")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// FICHIERS / DOCUMENTS
+// ============================================
+
+model ProcessFile {
+  id              String   @id @default(cuid())
+
+  processId       String
+  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  userId          String
+
+  // Informations fichier
+  originalName    String            // Nom original du fichier
+  fileName        String            // Nom stocke (uuid.ext)
+  mimeType        String
+  size            Int               // Taille en bytes
+  fileType        FileType          // Type de document (CNI, PASSEPORT, etc.)
+
+  // Stockage
+  storageUrl      String            // URL complete vers le fichier
+  thumbnailUrl    String?           // URL miniature (pour images)
+
+  // Statut
+  deleted         Boolean  @default(false)
+  deletedAt       DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("process_files")
+  @@schema("espace_abo")
+}
+
+enum FileType {
+  CNI                   // Carte d'identite
+  PASSEPORT             // Passeport
+  PERMIS                // Permis de conduire
+  JUSTIFICATIF_DOMICILE // Justificatif de domicile
+  PHOTO_IDENTITE        // Photo d'identite
+  ACTE_NAISSANCE        // Acte de naissance
+  LIVRET_FAMILLE        // Livret de famille
+  AUTRE                 // Autre document
+
+  @@schema("espace_abo")
+}
+
+enum ProcessType {
+  CIVIL_STATUS_BIRTH      // Acte de naissance
+  CIVIL_STATUS_MARRIAGE   // Acte de mariage
+  CIVIL_STATUS_DEATH      // Acte de deces
+  // Types supplementaires (Phase 2+)
+  CRIMINAL_RECORD         // Casier judiciaire
+  REGISTRATION_CERT       // Carte grise
+  KBIS                    // Extrait Kbis
+  ADDRESS_CHANGE          // Changement d'adresse
+  NON_PLEDGE_CERT         // Certificat de non-gage
+  PASSPORT                // Passeport
+  IDENTITY_CARD           // Carte d'identite
+  CADASTRE                // Plan cadastral
+  CRITAIR                 // Vignette Crit'Air
+
+  @@schema("espace_abo")
+}
+
+enum ProcessStatus {
+  PENDING_PAYMENT   // En attente paiement
+  PAID              // Paye, a envoyer
+  SENT_TO_ADVERCITY // Envoye a Advercity
+  IN_PROGRESS       // En traitement
+  COMPLETED         // Termine
+  REFUNDED          // Rembourse
+  CANCELED          // Annule
+
+  @@schema("espace_abo")
+}
+
+// ============================================
+// FACTURATION
+// ============================================
+
+model Invoice {
+  id              String   @id @default(cuid())
+  number          String   @unique  // ex: "FAC-2026-000001"
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  type            InvoiceType
+
+  // Montants
+  subtotalCents   Int
+  taxCents        Int
+  totalCents      Int
+  currency        String   @default("EUR")
+
+  // TVA
+  taxRate         Float    @default(20.0)
+
+  // Statut
+  status          InvoiceStatus @default(DRAFT)
+  paidAt          DateTime?
+
+  // Liens
+  processId       String?  @unique
+  process         Process? @relation(fields: [processId], references: [id])
+
+  deadlineId      String?  @unique
+  deadline        SubscriptionDeadline? @relation(fields: [deadlineId], references: [id])
+
+  // Fichier PDF
+  pdfUrl          String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("invoices")
+  @@schema("espace_abo")
+}
+
+enum InvoiceType {
+  SUBSCRIPTION    // Facture abonnement
+  PROCESS         // Facture demarche unitaire
+  CREDIT_NOTE     // Avoir
+
+  @@schema("espace_abo")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+
+  @@schema("espace_abo")
+}
