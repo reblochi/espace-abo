@@ -3,17 +3,20 @@
 'use client';
 
 import { Badge } from '@/components/ui';
-import type { ProcessStatus } from '@/types';
-
 interface Props {
-  status: ProcessStatus;
+  status: string;
 }
 
-const statusConfig: Record<ProcessStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }> = {
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'info' }> = {
+  DRAFT: { label: 'Brouillon', variant: 'secondary' },
+  PENDING_DOCUMENTS: { label: 'Documents requis', variant: 'warning' },
   PENDING_PAYMENT: { label: 'En attente paiement', variant: 'warning' },
-  PAID: { label: 'Payee', variant: 'default' },
-  SENT_TO_ADVERCITY: { label: 'Envoyee', variant: 'default' },
+  PAYMENT_PROCESSING: { label: 'Paiement en cours', variant: 'info' },
+  PAYMENT_FAILED: { label: 'Paiement echoue', variant: 'destructive' },
+  PAID: { label: 'Payee', variant: 'info' },
+  SENT_TO_ADVERCITY: { label: 'En traitement', variant: 'info' },
   IN_PROGRESS: { label: 'En cours', variant: 'default' },
+  AWAITING_INFO: { label: 'Info requise', variant: 'warning' },
   COMPLETED: { label: 'Terminee', variant: 'success' },
   REFUNDED: { label: 'Remboursee', variant: 'secondary' },
   CANCELED: { label: 'Annulee', variant: 'destructive' },

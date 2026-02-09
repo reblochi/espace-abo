@@ -6,7 +6,19 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, Button, Alert, Spinner } from '@/components/ui';
+import { Card, CardContent, Button, Alert, Spinner, Badge } from '@/components/ui';
+import { getProcessTypeConfig, formatPrice } from '@/lib/process-types';
+import type { ProcessType } from '@/types';
+
+interface ProcessData {
+  reference: string;
+  type: ProcessType;
+  status: string;
+  isFromSubscription: boolean;
+  pricePaid: number | null;
+  data: Record<string, unknown>;
+  createdAt: string;
+}
 
 function ConfirmationDemarcheContent() {
   const { data: session } = useSession();
@@ -16,7 +28,7 @@ function ConfirmationDemarcheContent() {
   const sessionId = searchParams.get('session_id');
 
   const [isLoading, setIsLoading] = useState(true);
-  const [process, setProcess] = useState<any>(null);
+  const [process, setProcess] = useState<ProcessData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,7 +97,12 @@ function ConfirmationDemarcheContent() {
     );
   }
 
-  const processData = process?.data as any;
+  const processData = process?.data as Record<string, unknown>;
+  const processConfig = process ? getProcessTypeConfig(process.type) : null;
+
+  // Determine le type de demarche pour l'affichage
+  const isVehicleProcess = process?.type === 'REGISTRATION_CERT';
+  const isCivilStatusProcess = ['CIVIL_STATUS_BIRTH', 'CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(process?.type || '');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex flex-col items-center justify-center py-12 px-4">
@@ -126,64 +143,152 @@ function ConfirmationDemarcheContent() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Type</span>
                   <span className="font-medium">
-                    {process.type === 'CIVIL_STATUS_BIRTH' && 'Acte de naissance'}
-                    {process.type === 'CIVIL_STATUS_MARRIAGE' && 'Acte de mariage'}
-                    {process.type === 'CIVIL_STATUS_DEATH' && 'Acte de deces'}
+                    {processConfig?.label || process.type}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Beneficiaire</span>
-                  <span className="font-medium">
-                    {processData?.beneficiaryFirstName} {processData?.beneficiaryLastName}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Commune</span>
-                  <span className="font-medium">{processData?.eventCityName}</span>
-                </div>
+
+                {/* Informations specifiques selon le type */}
+                {isCivilStatusProcess && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Beneficiaire</span>
+                      <span className="font-medium">
+                        {processData?.beneficiaryFirstName as string} {processData?.beneficiaryLastName as string}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Commune</span>
+                      <span className="font-medium">{processData?.eventCityName as string}</span>
+                    </div>
+                  </>
+                )}
+
+                {isVehicleProcess && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Immatriculation</span>
+                      <span className="font-medium font-mono">
+                        {(processData?.vehicle as Record<string, unknown>)?.registrationNumber as string}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Vehicule</span>
+                      <span className="font-medium">
+                        {(processData?.vehicle as Record<string, unknown>)?.make as string} {(processData?.vehicle as Record<string, unknown>)?.model as string}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Titulaire</span>
+                      <span className="font-medium">
+                        {(processData?.holder as Record<string, unknown>)?.isCompany
+                          ? (processData?.holder as Record<string, unknown>)?.companyName as string
+                          : `${(processData?.holder as Record<string, unknown>)?.firstName} ${(processData?.holder as Record<string, unknown>)?.lastName}`}
+                      </span>
+                    </div>
+                  </>
+                )}
+
                 <div className="flex justify-between">
                   <span className="text-gray-500">Statut</span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    En traitement
-                  </span>
+                  <Badge
+                    variant={
+                      process.status === 'PAID' || process.status === 'SENT_TO_ADVERCITY'
+                        ? 'info'
+                        : process.status === 'IN_PROGRESS'
+                        ? 'warning'
+                        : process.status === 'COMPLETED'
+                        ? 'success'
+                        : 'default'
+                    }
+                  >
+                    {process.status === 'PENDING_PAYMENT' && 'En attente de paiement'}
+                    {process.status === 'PAID' && 'Paye'}
+                    {process.status === 'SENT_TO_ADVERCITY' && 'En traitement'}
+                    {process.status === 'IN_PROGRESS' && 'En cours'}
+                    {process.status === 'AWAITING_INFO' && 'Info manquante'}
+                    {process.status === 'COMPLETED' && 'Termine'}
+                    {process.status === 'CANCELLED' && 'Annule'}
+                    {process.status === 'REFUNDED' && 'Rembourse'}
+                  </Badge>
                 </div>
-                {process.isFromSubscription && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Montant</span>
+
+                {/* Montant paye */}
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="text-gray-500">Montant</span>
+                  {process.isFromSubscription ? (
                     <span className="text-green-600 font-medium">Inclus (abonnement)</span>
-                  </div>
-                )}
+                  ) : process.pricePaid ? (
+                    <span className="font-bold">{formatPrice(process.pricePaid)}</span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </div>
               </div>
             )}
 
             <div className="border-t pt-4">
               <h3 className="font-medium mb-3">Prochaines etapes</h3>
               <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">1</span>
-                  </div>
-                  <span>Votre demande est transmise a la mairie concernee</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">2</span>
-                  </div>
-                  <span>Vous recevrez un email a chaque mise a jour du statut</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">3</span>
-                  </div>
-                  <span>Le document sera envoye a l'adresse indiquee (delai moyen: 5-10 jours)</span>
-                </li>
+                {isVehicleProcess ? (
+                  <>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">1</span>
+                      </div>
+                      <span>Vos documents sont en cours de verification par nos equipes</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">2</span>
+                      </div>
+                      <span>Votre dossier est transmis a l'ANTS pour traitement</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">3</span>
+                      </div>
+                      <span>Vous recevrez votre certificat d'immatriculation par courrier sous 5 a 7 jours ouvres</span>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">1</span>
+                      </div>
+                      <span>Votre demande est transmise a la mairie concernee</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">2</span>
+                      </div>
+                      <span>Vous recevrez un email a chaque mise a jour du statut</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">3</span>
+                      </div>
+                      <span>Le document sera envoye a l'adresse indiquee (delai moyen: 5-10 jours)</span>
+                    </li>
+                  </>
+                )}
               </ul>
             </div>
+
+            {/* Alerte info supplementaire pour carte grise */}
+            {isVehicleProcess && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Important :</strong> Vous pouvez circuler avec votre certificat provisoire d'immatriculation (CPI)
+                  pendant 1 mois a compter de la validation de votre dossier.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <div className="mt-6 space-y-3">
-          <Link href="/espace-membre/demarches" className="block">
+          <Link href={`/espace-membre/mes-demarches/${process?.reference}`} className="block">
             <Button className="w-full" size="lg">
               Suivre ma demarche
             </Button>

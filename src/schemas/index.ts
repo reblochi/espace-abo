@@ -3,6 +3,7 @@
 export * from './subscription';
 export * from './process';
 export * from './auth';
+export * from './registration-certificate';
 
 // Schemas de pagination communs
 import { z } from 'zod';

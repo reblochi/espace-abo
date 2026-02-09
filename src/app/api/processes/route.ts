@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { createProcessSchema, paginationSchema } from '@/schemas';
+import { paginationSchema } from '@/schemas';
 import { generateReference } from '@/lib/utils';
 import {
   createAdvercityProcess,
@@ -12,7 +12,15 @@ import {
   mapProcessDataToAdvercity,
 } from '@/lib/advercity';
 import { sendEmail } from '@/lib/email';
-import type { ProcessStatus } from '@prisma/client';
+import {
+  PROCESS_TYPES_CONFIG,
+  getRequiredDocuments,
+  type ProcessTypeConfig,
+} from '@/lib/process-types';
+import { calculateRegistrationTaxes } from '@/lib/taxes/registration-certificate';
+import { checkProcessEligibility } from '@/lib/subscription/process-eligibility';
+import type { ProcessStatus, ProcessType } from '@prisma/client';
+import { z } from 'zod';
 
 // GET /api/processes - Liste des demarches
 export async function GET(request: NextRequest) {
@@ -68,7 +76,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/processes - Creer une demarche
+// Schema de creation flexible pour tous types de demarches
+const createProcessRequestSchema = z.object({
+  type: z.string(),
+  data: z.record(z.unknown()),
+  isFromSubscription: z.boolean().default(false),
+  asDraft: z.boolean().default(false), // Permet de creer un brouillon
+});
+
+// POST /api/processes - Creer une demarche (brouillon ou directe)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -77,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const result = createProcessSchema.safeParse(body);
+    const result = createProcessRequestSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
@@ -86,7 +102,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, data, isFromSubscription } = result.data;
+    const { type, data, isFromSubscription, asDraft } = result.data;
+
+    // Verifier que le type existe
+    const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
+    if (!processConfig) {
+      return NextResponse.json(
+        { error: 'Type de demarche invalide' },
+        { status: 400 }
+      );
+    }
 
     // Recuperer l'utilisateur
     const user = await prisma.user.findUnique({
@@ -97,22 +122,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouve' }, { status: 404 });
     }
 
-    // Si via abonnement, verifier qu'il est actif
+    // Si via abonnement, verifier l'eligibilite
+    let eligibility = null;
     if (isFromSubscription) {
-      const subscription = await prisma.subscription.findUnique({
-        where: { userId: session.user.id },
-      });
+      eligibility = await checkProcessEligibility(session.user.id, type as ProcessType);
 
-      const isActive = subscription && (
-        subscription.status === 'ACTIVE' ||
-        (subscription.status === 'CANCELED' &&
-         subscription.endDate &&
-         subscription.endDate > new Date())
-      );
-
-      if (!isActive) {
+      if (!eligibility.eligible) {
         return NextResponse.json(
-          { error: 'Abonnement non actif' },
+          {
+            error: 'Non eligible pour cette demarche via abonnement',
+            reason: eligibility.reason,
+          },
           { status: 400 }
         );
       }
@@ -122,39 +142,124 @@ export async function POST(request: NextRequest) {
     const count = await prisma.process.count();
     const reference = generateReference('DEM', count + 1);
 
-    // Prix selon type et abonnement
-    const amountCents = isFromSubscription ? 0 : 2990; // 29.90 EUR
+    // Calculer le prix
+    let amountCents = processConfig.basePrice;
+    let taxesCents = 0;
+    let serviceFeesCents = processConfig.basePrice;
 
-    // Determiner les fichiers obligatoires selon le type
-    const mandatoryFileTypes = getMandatoryFileTypes(type);
+    // Pour la carte grise, calculer les taxes
+    if (type === 'REGISTRATION_CERT' && data.vehicle && data.holder) {
+      const vehicleData = data.vehicle as {
+        fiscalPower: number;
+        co2?: number;
+        energyId: number;
+        state: number;
+        registrationNumber: string;
+        registrationDate: string;
+        make: string;
+        model: string;
+        typeId: number;
+      };
+      const holderData = data.holder as { departmentCode: string };
+
+      const taxes = calculateRegistrationTaxes(
+        {
+          vehicle: vehicleData,
+          departmentCode: holderData.departmentCode,
+        },
+        isFromSubscription ? 0 : processConfig.basePrice
+      );
+
+      taxesCents = taxes.taxeRegionale + taxes.taxeGestion + taxes.taxeAcheminement + taxes.malus;
+      serviceFeesCents = taxes.serviceFee;
+      amountCents = taxes.total;
+    }
+
+    // Si abonnement, frais de service = 0
+    if (isFromSubscription) {
+      serviceFeesCents = 0;
+      amountCents = taxesCents; // Seulement les taxes obligatoires
+    }
+
+    // Determiner les documents obligatoires
+    const requiredDocs = getRequiredDocuments(type as ProcessType, data as Record<string, unknown>);
+    const mandatoryFileTypes = requiredDocs
+      .filter(d => d.required)
+      .map(d => d.id);
+
+    // Determiner le statut initial
+    let initialStatus: ProcessStatus = 'DRAFT';
+    if (!asDraft) {
+      if (mandatoryFileTypes.length > 0) {
+        initialStatus = 'PENDING_DOCUMENTS';
+      } else if (isFromSubscription) {
+        initialStatus = 'PAID';
+      } else {
+        initialStatus = 'PENDING_PAYMENT';
+      }
+    }
 
     // Creer en BDD
     const newProcess = await prisma.process.create({
       data: {
         reference,
         userId: session.user.id,
-        type,
-        status: isFromSubscription ? 'PAID' : 'PENDING_PAYMENT',
+        type: type as ProcessType,
+        status: initialStatus,
         amountCents,
+        taxesCents,
+        serviceFeesCents,
         isFromSubscription,
         data,
-        paidAt: isFromSubscription ? new Date() : null,
         mandatoryFileTypes,
       },
     });
 
-    // Si deja paye (abonnement), envoyer a Advercity
-    if (isFromSubscription) {
+    // Creer l'historique de statut initial
+    await prisma.processStatusHistory.create({
+      data: {
+        processId: newProcess.id,
+        fromStatus: 'DRAFT',
+        toStatus: initialStatus,
+        reason: asDraft ? 'Creation du brouillon' : 'Creation de la demarche',
+        createdBy: session.user.id,
+      },
+    });
+
+    // Si deja paye (abonnement sans documents requis), envoyer a Advercity
+    if (initialStatus === 'PAID' && isFromSubscription) {
+      // Consommer un usage
+      const { consumeSubscriptionProcess } = await import('@/lib/subscription/process-eligibility');
+      await consumeSubscriptionProcess(
+        eligibility!.subscriptionId!,
+        newProcess.id,
+        type as ProcessType
+      );
+
       try {
         const advercityResponse = await createAdvercityProcess({
           type: mapProcessTypeToAdvercity(type),
           external_reference: reference,
           webhook_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/advercity/webhook`,
-          data: mapProcessDataToAdvercity(type, data, {
+          data: mapProcessDataToAdvercity(type, data as Record<string, unknown>, {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
           }),
+        });
+
+        await prisma.processStatusHistory.create({
+          data: {
+            processId: newProcess.id,
+            fromStatus: 'PAID',
+            toStatus: 'SENT_TO_ADVERCITY',
+            reason: 'Envoi automatique vers le back-office',
+            metadata: {
+              advercityId: advercityResponse.advercity_id,
+              advercityRef: advercityResponse.advercity_reference,
+            },
+            createdBy: 'system',
+          },
         });
 
         await prisma.process.update({
@@ -163,6 +268,8 @@ export async function POST(request: NextRequest) {
             status: 'SENT_TO_ADVERCITY',
             advercityId: advercityResponse.advercity_id,
             advercityRef: advercityResponse.advercity_reference,
+            paidAt: new Date(),
+            submittedAt: new Date(),
             lastSyncAt: new Date(),
           },
         });
@@ -185,7 +292,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ process: newProcess }, { status: 201 });
+    // Recuperer le process mis a jour
+    const finalProcess = await prisma.process.findUnique({
+      where: { id: newProcess.id },
+    });
+
+    return NextResponse.json({
+      process: finalProcess,
+      requiredDocuments: mandatoryFileTypes,
+      taxes: type === 'REGISTRATION_CERT' ? {
+        amount: taxesCents,
+        serviceFee: serviceFeesCents,
+        total: amountCents,
+      } : null,
+    }, { status: 201 });
   } catch (error) {
     console.error('Erreur creation demarche:', error);
     return NextResponse.json(
@@ -193,17 +313,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Helper pour determiner les fichiers obligatoires
-function getMandatoryFileTypes(type: string): string[] {
-  const mapping: Record<string, string[]> = {
-    CIVIL_STATUS_BIRTH: ['CNI'],
-    CIVIL_STATUS_MARRIAGE: ['CNI'],
-    CIVIL_STATUS_DEATH: ['CNI', 'ACTE_NAISSANCE'],
-    CRIMINAL_RECORD: ['CNI'],
-    PASSPORT: ['CNI', 'PHOTO_IDENTITE', 'JUSTIFICATIF_DOMICILE'],
-    IDENTITY_CARD: ['PHOTO_IDENTITE', 'JUSTIFICATIF_DOMICILE'],
-  };
-  return mapping[type] || [];
 }

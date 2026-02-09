@@ -8,8 +8,10 @@ import { useProcess } from '@/hooks';
 import { ProcessTimeline } from '@/components/processes';
 import { ProcessStatusBadge } from '@/components/processes/ProcessStatusBadge';
 import { DocumentCard } from '@/components/documents';
-import { Card, CardHeader, CardTitle, CardContent, Button, Spinner, Alert } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Spinner, Alert, Badge } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
+import { getProcessTypeConfig, formatPrice } from '@/lib/process-types';
+import type { ProcessType } from '@/types';
 
 export default function ProcessDetailPage() {
   const params = useParams();
@@ -19,6 +21,7 @@ export default function ProcessDetailPage() {
   const processItem = processData;
   const files = processData?.files || [];
   const timeline = processData?.timeline || [];
+  const statusHistory = processData?.statusHistory || [];
 
   if (isLoading) {
     return (
@@ -46,6 +49,11 @@ export default function ProcessDetailPage() {
     );
   }
 
+  const processConfig = getProcessTypeConfig(processItem.type as ProcessType);
+  const processDataContent = processItem.data as Record<string, unknown>;
+  const isVehicleProcess = processItem.type === 'REGISTRATION_CERT';
+  const isCivilStatus = ['CIVIL_STATUS_BIRTH', 'CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(processItem.type);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -61,7 +69,9 @@ export default function ProcessDetailPage() {
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{processItem.type}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {processConfig?.label || processItem.type}
+            </h1>
             <p className="text-gray-500 mt-1">Reference: {processItem.reference}</p>
           </div>
           <ProcessStatusBadge status={processItem.status} />
@@ -75,10 +85,18 @@ export default function ProcessDetailPage() {
         </Alert>
       )}
 
+      {/* Alerte si information manquante */}
+      {processItem.status === 'AWAITING_INFO' && (
+        <Alert variant="warning" title="Information requise">
+          Des informations supplementaires sont necessaires pour traiter votre dossier.
+          Veuillez verifier vos emails ou les documents ci-dessous.
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Informations principales */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Details */}
+          {/* Details generaux */}
           <Card>
             <CardHeader>
               <CardTitle>Details de la demarche</CardTitle>
@@ -87,7 +105,9 @@ export default function ProcessDetailPage() {
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm text-gray-500">Type de demarche</dt>
-                  <dd className="mt-1 font-medium text-gray-900">{processItem.type}</dd>
+                  <dd className="mt-1 font-medium text-gray-900">
+                    {processConfig?.label || processItem.type}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Date de creation</dt>
@@ -97,15 +117,237 @@ export default function ProcessDetailPage() {
                   <dt className="text-sm text-gray-500">Derniere mise a jour</dt>
                   <dd className="mt-1 font-medium text-gray-900">{formatDate(processItem.updatedAt)}</dd>
                 </div>
+                {processItem.completedAt && (
+                  <div>
+                    <dt className="text-sm text-gray-500">Date de completion</dt>
+                    <dd className="mt-1 font-medium text-gray-900">{formatDate(processItem.completedAt)}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm text-gray-500">Montant</dt>
+                  <dd className="mt-1 font-medium text-gray-900">
+                    {processItem.isFromSubscription ? (
+                      <span className="text-green-600">Inclus (abonnement)</span>
+                    ) : processItem.pricePaid ? (
+                      formatPrice(processItem.pricePaid)
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </dd>
+                </div>
                 {processItem.advercityRef && (
                   <div>
                     <dt className="text-sm text-gray-500">Reference Advercity</dt>
-                    <dd className="mt-1 font-medium text-gray-900">{processItem.advercityRef}</dd>
+                    <dd className="mt-1 font-medium text-gray-900 font-mono text-sm">
+                      {processItem.advercityRef}
+                    </dd>
                   </div>
                 )}
               </dl>
             </CardContent>
           </Card>
+
+          {/* Details specifiques selon le type */}
+          {isCivilStatus && processDataContent && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Informations de la demande</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm text-gray-500">Beneficiaire</dt>
+                    <dd className="mt-1 font-medium text-gray-900">
+                      {processDataContent.beneficiaryFirstName as string} {processDataContent.beneficiaryLastName as string}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Date de naissance</dt>
+                    <dd className="mt-1 font-medium text-gray-900">
+                      {processDataContent.beneficiaryBirthDate as string}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Commune</dt>
+                    <dd className="mt-1 font-medium text-gray-900">
+                      {processDataContent.eventCityName as string}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-gray-500">Date de l'evenement</dt>
+                    <dd className="mt-1 font-medium text-gray-900">
+                      {processDataContent.eventDate as string}
+                    </dd>
+                  </div>
+                  {processItem.type === 'CIVIL_STATUS_MARRIAGE' && processDataContent.spouseFirstName && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm text-gray-500">Conjoint</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {processDataContent.spouseFirstName as string} {processDataContent.spouseLastName as string}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </CardContent>
+            </Card>
+          )}
+
+          {isVehicleProcess && processDataContent && (
+            <>
+              {/* Informations vehicule */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations du vehicule</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-sm text-gray-500">Immatriculation</dt>
+                      <dd className="mt-1 font-medium text-gray-900 font-mono">
+                        {(processDataContent.vehicle as Record<string, unknown>)?.registrationNumber as string}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-gray-500">Marque / Modele</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {(processDataContent.vehicle as Record<string, unknown>)?.make as string}{' '}
+                        {(processDataContent.vehicle as Record<string, unknown>)?.model as string}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-gray-500">Puissance fiscale</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {(processDataContent.vehicle as Record<string, unknown>)?.fiscalPower as number} CV
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-gray-500">Etat</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {(processDataContent.vehicle as Record<string, unknown>)?.state === 1 ? 'Neuf' : 'Occasion'}
+                      </dd>
+                    </div>
+                    {(processDataContent.vehicle as Record<string, unknown>)?.co2 && (
+                      <div>
+                        <dt className="text-sm text-gray-500">Emissions CO2</dt>
+                        <dd className="mt-1 font-medium text-gray-900">
+                          {(processDataContent.vehicle as Record<string, unknown>)?.co2 as number} g/km
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </CardContent>
+              </Card>
+
+              {/* Informations titulaire */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Titulaire</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    {(processDataContent.holder as Record<string, unknown>)?.isCompany ? (
+                      <>
+                        <div>
+                          <dt className="text-sm text-gray-500">Raison sociale</dt>
+                          <dd className="mt-1 font-medium text-gray-900">
+                            {(processDataContent.holder as Record<string, unknown>)?.companyName as string}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm text-gray-500">SIRET</dt>
+                          <dd className="mt-1 font-medium text-gray-900 font-mono">
+                            {(processDataContent.holder as Record<string, unknown>)?.siret as string}
+                          </dd>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <dt className="text-sm text-gray-500">Nom complet</dt>
+                          <dd className="mt-1 font-medium text-gray-900">
+                            {(processDataContent.holder as Record<string, unknown>)?.civility === 1 ? 'M.' : 'Mme'}{' '}
+                            {(processDataContent.holder as Record<string, unknown>)?.firstName as string}{' '}
+                            {(processDataContent.holder as Record<string, unknown>)?.lastName as string}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm text-gray-500">Date de naissance</dt>
+                          <dd className="mt-1 font-medium text-gray-900">
+                            {(processDataContent.holder as Record<string, unknown>)?.birthDate as string}
+                          </dd>
+                        </div>
+                      </>
+                    )}
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm text-gray-500">Adresse</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {(processDataContent.holder as Record<string, unknown>)?.address as string}<br />
+                        {(processDataContent.holder as Record<string, unknown>)?.postalCode as string}{' '}
+                        {(processDataContent.holder as Record<string, unknown>)?.city as string}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {/* Co-titulaire */}
+                  {processDataContent.coOwner && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Co-titulaire</h4>
+                      <p className="font-medium text-gray-900">
+                        {(processDataContent.coOwner as Record<string, unknown>)?.civility === 1 ? 'M.' : 'Mme'}{' '}
+                        {(processDataContent.coOwner as Record<string, unknown>)?.firstName as string}{' '}
+                        {(processDataContent.coOwner as Record<string, unknown>)?.lastName as string}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Detail des couts si paye */}
+              {processItem.pricePaid && processDataContent.taxesBreakdown && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detail du cout</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {(processDataContent.taxesBreakdown as Record<string, number>).taxeRegionale > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Taxe regionale</span>
+                          <span>{formatPrice((processDataContent.taxesBreakdown as Record<string, number>).taxeRegionale)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Taxe de gestion</span>
+                        <span>{formatPrice((processDataContent.taxesBreakdown as Record<string, number>).taxeGestion)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Redevance d'acheminement</span>
+                        <span>{formatPrice((processDataContent.taxesBreakdown as Record<string, number>).taxeAcheminement)}</span>
+                      </div>
+                      {(processDataContent.taxesBreakdown as Record<string, number>).malus > 0 && (
+                        <div className="flex justify-between text-red-600">
+                          <span>Malus ecologique</span>
+                          <span>{formatPrice((processDataContent.taxesBreakdown as Record<string, number>).malus)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Frais de service</span>
+                        {processItem.isFromSubscription ? (
+                          <span className="text-green-600">Inclus</span>
+                        ) : (
+                          <span>{formatPrice((processDataContent.taxesBreakdown as Record<string, number>).serviceFee)}</span>
+                        )}
+                      </div>
+                      <div className="border-t pt-2 mt-2 flex justify-between font-medium">
+                        <span>Total paye</span>
+                        <span className="text-blue-600">{formatPrice(processItem.pricePaid)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
 
           {/* Documents */}
           <Card>
@@ -115,7 +357,7 @@ export default function ProcessDetailPage() {
             <CardContent>
               {files && files.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {files.map((file) => (
+                  {files.map((file: { id: string }) => (
                     <DocumentCard key={file.id} document={file} />
                   ))}
                 </div>
@@ -128,14 +370,48 @@ export default function ProcessDetailPage() {
           </Card>
         </div>
 
-        {/* Timeline */}
-        <div>
+        {/* Sidebar: Timeline et Actions */}
+        <div className="space-y-6">
+          {/* Timeline */}
           <Card>
             <CardHeader>
               <CardTitle>Suivi de la demarche</CardTitle>
             </CardHeader>
             <CardContent>
-              {timeline && timeline.length > 0 ? (
+              {statusHistory && statusHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {statusHistory.map((item: { id: string; status: string; notes: string | null; createdAt: string }, index: number) => (
+                    <div key={item.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-3 h-3 rounded-full ${
+                          index === 0 ? 'bg-blue-600' : 'bg-gray-300'
+                        }`} />
+                        {index < statusHistory.length - 1 && (
+                          <div className="w-0.5 h-full bg-gray-200 mt-1" />
+                        )}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.status === 'PENDING_PAYMENT' && 'En attente de paiement'}
+                          {item.status === 'PAID' && 'Paiement recu'}
+                          {item.status === 'SENT_TO_ADVERCITY' && 'Envoye pour traitement'}
+                          {item.status === 'IN_PROGRESS' && 'Dossier en cours'}
+                          {item.status === 'AWAITING_INFO' && 'Information requise'}
+                          {item.status === 'COMPLETED' && 'Demarche terminee'}
+                          {item.status === 'CANCELLED' && 'Demarche annulee'}
+                          {item.status === 'REFUNDED' && 'Remboursement effectue'}
+                        </p>
+                        {item.notes && (
+                          <p className="text-sm text-gray-500 mt-1">{item.notes}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDate(item.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : timeline && timeline.length > 0 ? (
                 <ProcessTimeline timeline={timeline} />
               ) : (
                 <p className="text-gray-500 text-center py-4">
@@ -147,7 +423,7 @@ export default function ProcessDetailPage() {
 
           {/* Actions */}
           {processItem.status === 'PENDING_PAYMENT' && (
-            <Card className="mt-6">
+            <Card>
               <CardHeader>
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
@@ -158,6 +434,39 @@ export default function ProcessDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Information delai */}
+          {processItem.status === 'IN_PROGRESS' && (
+            <Card>
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Delai estime</p>
+                    <p className="text-sm text-gray-500">
+                      {processConfig?.estimatedDelay || '5-10 jours ouvres'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact support */}
+          <Card>
+            <CardContent className="py-4">
+              <p className="text-sm text-gray-500 mb-3">
+                Une question sur votre demarche ?
+              </p>
+              <Link href="/contact">
+                <Button variant="outline" className="w-full" size="sm">
+                  Contacter le support
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

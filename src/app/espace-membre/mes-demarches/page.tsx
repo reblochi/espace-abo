@@ -2,15 +2,28 @@
 
 'use client';
 
+import { useState } from 'react';
 import { ProcessList } from '@/components/processes';
-import { Button } from '@/components/ui';
+import { Button, Card, CardContent } from '@/components/ui';
+import { useProcessStats } from '@/hooks/useProcesses';
 import Link from 'next/link';
 
+const statusFilters = [
+  { value: '', label: 'Toutes' },
+  { value: 'IN_PROGRESS', label: 'En cours' },
+  { value: 'PENDING_PAYMENT', label: 'A payer' },
+  { value: 'AWAITING_INFO', label: 'Info requise' },
+  { value: 'COMPLETED', label: 'Terminees' },
+];
+
 export default function MesDemarchesPage() {
+  const [statusFilter, setStatusFilter] = useState('');
+  const { data: stats } = useProcessStats();
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mes demarches</h1>
           <p className="text-gray-500 mt-1">
@@ -27,8 +40,55 @@ export default function MesDemarchesPage() {
         </Link>
       </div>
 
+      {/* Statistiques rapides */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="py-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">{stats.total || 0}</p>
+              <p className="text-sm text-gray-500">Total</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-4 text-center">
+              <p className="text-2xl font-bold text-orange-500">{stats.inProgress || 0}</p>
+              <p className="text-sm text-gray-500">En cours</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-4 text-center">
+              <p className="text-2xl font-bold text-yellow-500">{stats.awaitingInfo || 0}</p>
+              <p className="text-sm text-gray-500">Info requise</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-4 text-center">
+              <p className="text-2xl font-bold text-green-600">{stats.completed || 0}</p>
+              <p className="text-sm text-gray-500">Terminees</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filtres */}
+      <div className="flex flex-wrap gap-2">
+        {statusFilters.map((filter) => (
+          <button
+            key={filter.value}
+            onClick={() => setStatusFilter(filter.value)}
+            className={`px-4 py-2 text-sm rounded-full border transition-colors ${
+              statusFilter === filter.value
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
       {/* Liste des demarches */}
-      <ProcessList />
+      <ProcessList status={statusFilter || undefined} />
     </div>
   );
 }

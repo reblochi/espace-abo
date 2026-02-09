@@ -36,6 +36,16 @@ export async function GET(
             status: true,
           },
         },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            fromStatus: true,
+            toStatus: true,
+            reason: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -46,10 +56,19 @@ export async function GET(
     // Construire la timeline
     const timeline = buildProcessTimeline(process);
 
+    // Transformer le statusHistory pour la page de detail
+    const statusHistory = process.statusHistory.map((h) => ({
+      id: h.id,
+      status: h.toStatus,
+      notes: h.reason,
+      createdAt: h.createdAt.toISOString(),
+    }));
+
     return NextResponse.json({
       ...process,
       statusLabel: processStatusLabels[process.status as keyof typeof processStatusLabels] || process.status,
       timeline,
+      statusHistory,
     });
   } catch (error) {
     console.error('Erreur detail demarche:', error);

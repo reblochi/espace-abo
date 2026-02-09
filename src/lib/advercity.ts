@@ -1,26 +1,55 @@
 // Client API Advercity
 
 import axios, { type AxiosInstance } from 'axios';
+import type { ProcessStatus, ProcessType, RegistrationCertificateProcessData } from '@/types';
+import { PROCESS_TYPE_MAPPING, AdvercityStep } from './process-types';
+import { mapToAdvercityPayload, type RegistrationCertificateInput } from '@/schemas/registration-certificate';
 
 // Types pour l'API Advercity
-interface AdvercityProcessInput {
+export interface AdvercityProcessInput {
   type: string;
   external_reference: string;
   webhook_url: string;
   data: Record<string, unknown>;
+  documents?: { type: string; url: string }[];
+  customer_data?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  };
 }
 
-interface AdvercityProcessResponse {
+export interface AdvercityProcessResponse {
   advercity_id: string;
   advercity_reference: string;
-  status: string;
+  status: number;
 }
 
-interface AdvercityCitySearchResult {
+export interface AdvercityCitySearchResult {
   id: number;
   name: string;
   postal_code: string;
   department_code: string;
+}
+
+export interface AdvercityDepartmentTax {
+  id: number;
+  code: string;
+  name: string;
+  tax_rate: number;
+}
+
+export interface AdvercityVehicleType {
+  id: number;
+  label: string;
+  code: string;
+}
+
+export interface AdvercityVehicleEnergy {
+  id: number;
+  label: string;
+  code: string;
 }
 
 // Client Axios configure
@@ -37,6 +66,10 @@ const createAdvercityClient = (): AxiosInstance => {
 
 export const advercityClient = createAdvercityClient();
 
+// ============================================================
+// CREATION DE DEMARCHES
+// ============================================================
+
 // Creer une demarche dans Advercity
 export async function createAdvercityProcess(
   input: AdvercityProcessInput
@@ -47,6 +80,10 @@ export async function createAdvercityProcess(
   );
   return response.data;
 }
+
+// ============================================================
+// RECHERCHE COMMUNES / REFERENTIELS
+// ============================================================
 
 // Rechercher des communes
 export async function searchCities(query: string, limit: number = 10): Promise<AdvercityCitySearchResult[]> {
@@ -71,24 +108,56 @@ export async function getCityById(id: number): Promise<AdvercityCitySearchResult
   }
 }
 
+// Recuperer les departements avec taux de taxe
+export async function getDepartmentTaxes(): Promise<AdvercityDepartmentTax[]> {
+  try {
+    const response = await advercityClient.get<AdvercityDepartmentTax[]>(
+      '/api/reference/department-taxes'
+    );
+    return response.data;
+  } catch {
+    return [];
+  }
+}
+
+// Recuperer les types de vehicules
+export async function getVehicleTypes(): Promise<AdvercityVehicleType[]> {
+  try {
+    const response = await advercityClient.get<AdvercityVehicleType[]>(
+      '/api/reference/vehicle-types'
+    );
+    return response.data;
+  } catch {
+    return [];
+  }
+}
+
+// Recuperer les energies
+export async function getVehicleEnergies(): Promise<AdvercityVehicleEnergy[]> {
+  try {
+    const response = await advercityClient.get<AdvercityVehicleEnergy[]>(
+      '/api/reference/vehicle-energies'
+    );
+    return response.data;
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
+// MAPPING TYPES / DONNEES
+// ============================================================
+
 // Mapper les types de demarche vers Advercity
-export function mapProcessTypeToAdvercity(type: string): string {
-  const mapping: Record<string, string> = {
-    CIVIL_STATUS_BIRTH: 'civil_status_record',
-    CIVIL_STATUS_MARRIAGE: 'civil_status_record',
-    CIVIL_STATUS_DEATH: 'civil_status_record',
-    CRIMINAL_RECORD: 'criminal_record',
-    REGISTRATION_CERT: 'registration_certificate',
-    KBIS: 'kbis',
-  };
-  return mapping[type] || 'civil_status_record';
+export function mapProcessTypeToAdvercity(type: ProcessType | string): string {
+  return PROCESS_TYPE_MAPPING[type as ProcessType] || 'civil_status_record';
 }
 
 // Mapper les donnees d'une demarche vers le format Advercity
 export function mapProcessDataToAdvercity(
-  type: string,
+  type: ProcessType | string,
   data: Record<string, unknown>,
-  user: { email: string; firstName: string; lastName: string }
+  user: { email: string; firstName: string; lastName: string; phone?: string }
 ): Record<string, unknown> {
   // Mapping specifique selon le type
   switch (type) {
@@ -103,6 +172,7 @@ export function mapProcessDataToAdvercity(
           firstName: user.firstName,
           lastName: user.lastName,
           mail: user.email,
+          phone: user.phone,
         },
         deliveryAddress: data.deliveryAddress,
       };
@@ -118,6 +188,7 @@ export function mapProcessDataToAdvercity(
           firstName: user.firstName,
           lastName: user.lastName,
           mail: user.email,
+          phone: user.phone,
         },
         deliveryAddress: data.deliveryAddress,
       };
@@ -133,27 +204,172 @@ export function mapProcessDataToAdvercity(
           firstName: user.firstName,
           lastName: user.lastName,
           mail: user.email,
+          phone: user.phone,
         },
         deliveryAddress: data.deliveryAddress,
       };
 
+    case 'REGISTRATION_CERT':
+      // Utiliser le mapper specifique pour carte grise
+      return mapToAdvercityPayload(data as unknown as RegistrationCertificateInput);
+
+    case 'NON_PLEDGE_CERT':
+      return {
+        vehicleRegistrationNumber: (data as RegistrationCertificateProcessData).vehicle?.registrationNumber,
+        customer: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mail: user.email,
+          phone: user.phone,
+        },
+      };
+
+    case 'CRITAIR':
+      return {
+        vehicleRegistrationNumber: (data as RegistrationCertificateProcessData).vehicle?.registrationNumber,
+        deliveryAddress: data.deliveryAddress,
+        customer: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mail: user.email,
+          phone: user.phone,
+        },
+      };
+
+    case 'CRIMINAL_RECORD':
+      return {
+        bulletinType: 3, // Bulletin n3
+        customer: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mail: user.email,
+          phone: user.phone,
+          birthDate: data.birthDate,
+          birthCity: data.birthCity,
+        },
+      };
+
+    case 'KBIS':
+      return {
+        siret: data.siret,
+        customer: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mail: user.email,
+          phone: user.phone,
+        },
+      };
+
     default:
-      return data;
+      return {
+        ...data,
+        customer: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mail: user.email,
+          phone: user.phone,
+        },
+      };
   }
 }
+
+// ============================================================
+// MAPPING STATUTS
+// ============================================================
 
 // Mapper les statuts Advercity vers nos statuts
 export function mapAdvercityStatusToProcessStatus(step: number): ProcessStatus {
   const mapping: Record<number, ProcessStatus> = {
-    0: 'PENDING_PAYMENT',
-    1: 'PAID',
-    2: 'SENT_TO_ADVERCITY',
-    3: 'IN_PROGRESS',
-    4: 'COMPLETED',
-    5: 'REFUNDED',
-    6: 'COMPLETED',
+    [AdvercityStep.STEP_WAITING]: 'AWAITING_INFO',
+    [AdvercityStep.STEP_UNPAID]: 'PAYMENT_FAILED',
+    [AdvercityStep.STEP_PAYED]: 'SENT_TO_ADVERCITY',
+    [AdvercityStep.STEP_VALIDATED]: 'IN_PROGRESS',
+    [AdvercityStep.STEP_SENDED_POST]: 'COMPLETED',
+    [AdvercityStep.STEP_SENDED_ONLINE]: 'COMPLETED',
+    [AdvercityStep.STEP_NON_PAYED]: 'PENDING_PAYMENT',
+    [AdvercityStep.STEP_REFUNDED]: 'REFUNDED',
+    [AdvercityStep.STEP_ARCHIVED]: 'COMPLETED',
+    [AdvercityStep.STEP_REGULARIZATION]: 'AWAITING_INFO',
+    [AdvercityStep.STEP_PENDING_PAYMENT]: 'PAYMENT_PROCESSING',
+    [AdvercityStep.STEP_WAITING_FOR_FEEDBACK]: 'IN_PROGRESS',
   };
   return mapping[step] || 'IN_PROGRESS';
 }
 
-type ProcessStatus = 'PENDING_PAYMENT' | 'PAID' | 'SENT_TO_ADVERCITY' | 'IN_PROGRESS' | 'COMPLETED' | 'REFUNDED' | 'CANCELED';
+// Mapper nos statuts vers un label lisible
+export function getAdvercityStepLabel(step: number): string {
+  const labels: Record<number, string> = {
+    [AdvercityStep.STEP_WAITING]: 'En attente d\'informations',
+    [AdvercityStep.STEP_UNPAID]: 'Paiement refuse',
+    [AdvercityStep.STEP_PAYED]: 'Paye - En attente de traitement',
+    [AdvercityStep.STEP_VALIDATED]: 'Valide - En cours d\'envoi',
+    [AdvercityStep.STEP_SENDED_POST]: 'Envoye par courrier',
+    [AdvercityStep.STEP_SENDED_ONLINE]: 'Envoye en ligne',
+    [AdvercityStep.STEP_NON_PAYED]: 'En attente de paiement',
+    [AdvercityStep.STEP_REFUNDED]: 'Rembourse',
+    [AdvercityStep.STEP_ARCHIVED]: 'Archive',
+    [AdvercityStep.STEP_REGULARIZATION]: 'Regularisation requise',
+    [AdvercityStep.STEP_PENDING_PAYMENT]: 'Paiement en cours de validation',
+    [AdvercityStep.STEP_WAITING_FOR_FEEDBACK]: 'En attente de retour',
+  };
+  return labels[step] || `Etape ${step}`;
+}
+
+// ============================================================
+// WEBHOOKS
+// ============================================================
+
+export interface AdvercityWebhookPayload {
+  event: string;
+  external_reference: string;
+  advercity_reference: string;
+  advercity_id: string | number;
+  timestamp: string;
+}
+
+export interface ProcessStepChangedWebhook extends AdvercityWebhookPayload {
+  event: 'process.step_changed';
+  old_step: number;
+  new_step: number;
+  step_label: string;
+}
+
+export interface ProcessCompletedWebhook extends AdvercityWebhookPayload {
+  event: 'process.completed';
+  completion_type: 'sent_post' | 'sent_online';
+  tracking_number?: string;
+}
+
+export interface ProcessErrorWebhook extends AdvercityWebhookPayload {
+  event: 'process.error';
+  error_code: string;
+  error_message: string;
+  requires_action: boolean;
+}
+
+export interface ProcessAwaitingInfoWebhook extends AdvercityWebhookPayload {
+  event: 'process.awaiting_info';
+  required_documents: string[];
+  message: string;
+}
+
+export type AdvercityWebhookEvent =
+  | ProcessStepChangedWebhook
+  | ProcessCompletedWebhook
+  | ProcessErrorWebhook
+  | ProcessAwaitingInfoWebhook;
+
+// Verifier la signature du webhook
+export function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  const crypto = require('crypto');
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return signature === expectedSignature;
+}

@@ -1,24 +1,36 @@
 // Types pour les demarches (processes)
 
 export type ProcessType =
+  // Etat civil
   | 'CIVIL_STATUS_BIRTH'
   | 'CIVIL_STATUS_MARRIAGE'
   | 'CIVIL_STATUS_DEATH'
-  | 'CRIMINAL_RECORD'
+  // Vehicule
   | 'REGISTRATION_CERT'
-  | 'KBIS'
-  | 'ADDRESS_CHANGE'
   | 'NON_PLEDGE_CERT'
-  | 'PASSPORT'
+  | 'CRITAIR'
+  // Identite
   | 'IDENTITY_CARD'
+  | 'PASSPORT'
+  | 'DRIVING_LICENCE'
+  // Entreprise
+  | 'KBIS'
+  // Logement
+  | 'ADDRESS_CHANGE'
   | 'CADASTRE'
-  | 'CRITAIR';
+  // Justice
+  | 'CRIMINAL_RECORD';
 
 export type ProcessStatus =
+  | 'DRAFT'
+  | 'PENDING_DOCUMENTS'
   | 'PENDING_PAYMENT'
+  | 'PAYMENT_PROCESSING'
+  | 'PAYMENT_FAILED'
   | 'PAID'
   | 'SENT_TO_ADVERCITY'
   | 'IN_PROGRESS'
+  | 'AWAITING_INFO'
   | 'COMPLETED'
   | 'REFUNDED'
   | 'CANCELED';
@@ -35,18 +47,83 @@ export interface Process {
   type: ProcessType;
   status: ProcessStatus;
   amountCents: number;
+  taxesCents: number;
+  serviceFeesCents: number;
   currency: string;
   paidAt: string | null;
   pspPaymentId: string | null;
+  stripePaymentIntent: string | null;
   isFromSubscription: boolean;
-  data: ProcessData;
+  data: ProcessData | RegistrationCertificateProcessData | Record<string, unknown>;
   advercityId: string | null;
   advercityRef: string | null;
   advercityStatus: number | null;
   lastSyncAt: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
   mandatoryFileTypes: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Donnees specifiques carte grise (stockees dans Process.data)
+export interface RegistrationCertificateProcessData {
+  claimer: {
+    civility: 'M' | 'MME';
+    lastName: string;
+    firstName: string;
+    email: string;
+    phone: string;
+    alternativePhone?: string;
+    address: string;
+    additionalAddress?: string;
+    zipCode: string;
+    city: string;
+    company?: string;
+    siren?: string;
+  };
+  holder: {
+    sameAsClaimer: boolean;
+    civility?: 'M' | 'MME';
+    lastName?: string;
+    firstName?: string;
+    birthDate: string;
+    birthCity: string;
+    birthCountryId: number;
+    address?: string;
+    additionalAddress?: string;
+    zipCode?: string;
+    city?: string;
+    company?: string;
+    siren?: string;
+  };
+  coOwner?: {
+    hasCoOwner: boolean;
+    firstName?: string;
+    lastName?: string;
+  };
+  vehicle: {
+    registrationNumber: string;
+    registrationType: 'SIV' | 'FNI';
+    vin?: string;
+    certificateNumber?: string;
+    firstRegistrationDate: string;
+    currentRegistrationDate?: string;
+    vehicleTypeId: number;
+    energyId: number;
+    fiscalPower: number;
+    co2?: number;
+    state: number;
+    isCollection: boolean;
+    technicalControlDate?: string;
+    departmentTaxId: number;
+  };
+  operation: {
+    typeId: number;
+    formerHolder?: string;
+    duplicateReason?: number;
+    maxAddressChangeReached: boolean;
+  };
 }
 
 export interface ProcessData {
@@ -88,12 +165,27 @@ export interface ProcessFile {
   mimeType: string;
   size: number;
   fileType: FileType;
+  storageKey: string;
   storageUrl: string;
   thumbnailUrl: string | null;
+  validationStatus: DocumentValidationStatus;
+  validationNote: string | null;
+  validatedAt: string | null;
   deleted: boolean;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProcessStatusHistory {
+  id: string;
+  processId: string;
+  fromStatus: ProcessStatus;
+  toStatus: ProcessStatus;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+  createdBy: string | null;
+  createdAt: string;
 }
 
 export type FileType =
@@ -104,7 +196,15 @@ export type FileType =
   | 'PHOTO_IDENTITE'
   | 'ACTE_NAISSANCE'
   | 'LIVRET_FAMILLE'
+  | 'CARTE_GRISE'
+  | 'CERTIFICAT_CESSION'
+  | 'CERTIFICAT_NON_GAGE'
+  | 'CONTROLE_TECHNIQUE'
+  | 'MANDAT'
+  | 'DECLARATION_PERTE'
   | 'AUTRE';
+
+export type DocumentValidationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface ProcessInvoice {
   id: string;
@@ -153,25 +253,37 @@ export interface Pagination {
 
 // Labels et mappings
 export const processTypeLabels: Record<ProcessType, string> = {
+  // Etat civil
   CIVIL_STATUS_BIRTH: 'Acte de naissance',
   CIVIL_STATUS_MARRIAGE: 'Acte de mariage',
   CIVIL_STATUS_DEATH: 'Acte de deces',
-  CRIMINAL_RECORD: 'Casier judiciaire',
-  REGISTRATION_CERT: 'Carte grise',
-  KBIS: 'Extrait Kbis',
-  ADDRESS_CHANGE: 'Changement d\'adresse',
+  // Vehicule
+  REGISTRATION_CERT: 'Certificat d\'immatriculation',
   NON_PLEDGE_CERT: 'Certificat de non-gage',
-  PASSPORT: 'Passeport',
-  IDENTITY_CARD: 'Carte d\'identite',
-  CADASTRE: 'Plan cadastral',
   CRITAIR: 'Vignette Crit\'Air',
+  // Identite
+  IDENTITY_CARD: 'Carte d\'identite',
+  PASSPORT: 'Passeport',
+  DRIVING_LICENCE: 'Permis de conduire',
+  // Entreprise
+  KBIS: 'Extrait Kbis',
+  // Logement
+  ADDRESS_CHANGE: 'Changement d\'adresse',
+  CADASTRE: 'Plan cadastral',
+  // Justice
+  CRIMINAL_RECORD: 'Casier judiciaire',
 };
 
 export const processStatusLabels: Record<ProcessStatus, string> = {
+  DRAFT: 'Brouillon',
+  PENDING_DOCUMENTS: 'En attente de documents',
   PENDING_PAYMENT: 'En attente de paiement',
+  PAYMENT_PROCESSING: 'Paiement en cours',
+  PAYMENT_FAILED: 'Echec du paiement',
   PAID: 'Payee',
   SENT_TO_ADVERCITY: 'Envoyee',
   IN_PROGRESS: 'En cours de traitement',
+  AWAITING_INFO: 'En attente d\'informations',
   COMPLETED: 'Terminee',
   REFUNDED: 'Remboursee',
   CANCELED: 'Annulee',
@@ -185,5 +297,11 @@ export const fileTypeLabels: Record<FileType, string> = {
   PHOTO_IDENTITE: 'Photo d\'identite',
   ACTE_NAISSANCE: 'Acte de naissance',
   LIVRET_FAMILLE: 'Livret de famille',
+  CARTE_GRISE: 'Ancienne carte grise',
+  CERTIFICAT_CESSION: 'Certificat de cession',
+  CERTIFICAT_NON_GAGE: 'Certificat de non-gage',
+  CONTROLE_TECHNIQUE: 'Controle technique',
+  MANDAT: 'Mandat',
+  DECLARATION_PERTE: 'Declaration de perte/vol',
   AUTRE: 'Autre document',
 };

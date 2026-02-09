@@ -75,6 +75,11 @@ model Subscription {
   canceledAt          DateTime?
   endDate             DateTime?  // Date fin des droits (apres annulation)
 
+  // Compteur de demarches incluses
+  includedProcessCount Int     @default(0) // Nombre utilise ce mois
+  maxProcessPerMonth   Int?    // null = illimite, ou quota
+  processCountResetAt  DateTime @default(now())
+
   // Integration PSP (Stripe par defaut, extensible via Multi-PSP)
   pspProvider         String   @default("stripe")  // stripe, hipay, payzen, etc.
   pspCustomerId       String?
@@ -88,6 +93,7 @@ model Subscription {
   updatedAt           DateTime @updatedAt
 
   deadlines           SubscriptionDeadline[]
+  processUsages       SubscriptionProcessUsage[]
 
   @@map("subscriptions")
   @@schema("espace_abo")
@@ -160,15 +166,18 @@ model Process {
   user            User     @relation(fields: [userId], references: [id])
 
   type            ProcessType
-  status          ProcessStatus @default(PENDING_PAYMENT)
+  status          ProcessStatus @default(DRAFT)
 
   // Prix
-  amountCents     Int
+  amountCents     Int              // Montant total en centimes
+  taxesCents      Int      @default(0) // Taxes specifiques (ex: taxe regionale carte grise)
+  serviceFeesCents Int     @default(0) // Frais de service
   currency        String   @default("EUR")
 
   // Paiement
   paidAt          DateTime?
   pspPaymentId    String?
+  stripePaymentIntent String?
 
   // Si via abonnement (gratuit)
   isFromSubscription Boolean @default(false)
@@ -177,23 +186,48 @@ model Process {
   data            Json
 
   // Reference Advercity (apres envoi)
-  advercityId     String?
+  advercityId     String?  @unique
   advercityRef    String?
 
   // Suivi
   advercityStatus Int?     // Step Advercity
   lastSyncAt      DateTime?
+  submittedAt     DateTime? // Date envoi a Advercity
+  completedAt     DateTime? // Date fin traitement
 
   // Types de fichiers obligatoires pour cette demarche
   mandatoryFileTypes String[] @default([])
 
   invoice         Invoice?
   files           ProcessFile[]
+  statusHistory   ProcessStatusHistory[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@map("processes")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// HISTORIQUE DES STATUTS
+// ============================================
+
+model ProcessStatusHistory {
+  id              String   @id @default(cuid())
+
+  processId       String
+  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  fromStatus      ProcessStatus
+  toStatus        ProcessStatus
+  reason          String?
+  metadata        Json?
+
+  createdBy       String?  // 'system', 'webhook', userId
+  createdAt       DateTime @default(now())
+
+  @@map("process_status_history")
   @@schema("espace_abo")
 }
 
@@ -217,8 +251,14 @@ model ProcessFile {
   fileType        FileType          // Type de document (CNI, PASSEPORT, etc.)
 
   // Stockage
+  storageKey      String            // Cle S3/R2
   storageUrl      String            // URL complete vers le fichier
   thumbnailUrl    String?           // URL miniature (pour images)
+
+  // Validation
+  validationStatus DocumentValidationStatus @default(PENDING)
+  validationNote   String?
+  validatedAt      DateTime?
 
   // Statut
   deleted         Boolean  @default(false)
@@ -232,41 +272,71 @@ model ProcessFile {
 }
 
 enum FileType {
-  CNI                   // Carte d'identite
-  PASSEPORT             // Passeport
-  PERMIS                // Permis de conduire
-  JUSTIFICATIF_DOMICILE // Justificatif de domicile
-  PHOTO_IDENTITE        // Photo d'identite
-  ACTE_NAISSANCE        // Acte de naissance
-  LIVRET_FAMILLE        // Livret de famille
-  AUTRE                 // Autre document
+  CNI                     // Carte d'identite
+  PASSEPORT               // Passeport
+  PERMIS                  // Permis de conduire
+  JUSTIFICATIF_DOMICILE   // Justificatif de domicile
+  PHOTO_IDENTITE          // Photo d'identite
+  ACTE_NAISSANCE          // Acte de naissance
+  LIVRET_FAMILLE          // Livret de famille
+  CARTE_GRISE             // Ancienne carte grise
+  CERTIFICAT_CESSION      // Certificat de cession
+  CERTIFICAT_NON_GAGE     // Certificat de non-gage
+  CONTROLE_TECHNIQUE      // Controle technique
+  MANDAT                  // Mandat (si mandataire)
+  DECLARATION_PERTE       // Declaration de perte/vol
+  AUTRE                   // Autre document
+
+  @@schema("espace_abo")
+}
+
+enum DocumentValidationStatus {
+  PENDING   // En attente de validation
+  APPROVED  // Approuve
+  REJECTED  // Rejete
 
   @@schema("espace_abo")
 }
 
 enum ProcessType {
+  // Etat civil
   CIVIL_STATUS_BIRTH      // Acte de naissance
   CIVIL_STATUS_MARRIAGE   // Acte de mariage
   CIVIL_STATUS_DEATH      // Acte de deces
-  // Types supplementaires (Phase 2+)
-  CRIMINAL_RECORD         // Casier judiciaire
-  REGISTRATION_CERT       // Carte grise
-  KBIS                    // Extrait Kbis
-  ADDRESS_CHANGE          // Changement d'adresse
+
+  // Vehicule
+  REGISTRATION_CERT       // Certificat d'immatriculation (carte grise)
   NON_PLEDGE_CERT         // Certificat de non-gage
-  PASSPORT                // Passeport
-  IDENTITY_CARD           // Carte d'identite
-  CADASTRE                // Plan cadastral
   CRITAIR                 // Vignette Crit'Air
+
+  // Identite
+  IDENTITY_CARD           // Carte d'identite
+  PASSPORT                // Passeport
+  DRIVING_LICENCE         // Permis de conduire
+
+  // Entreprise
+  KBIS                    // Extrait Kbis
+
+  // Logement
+  ADDRESS_CHANGE          // Changement d'adresse
+  CADASTRE                // Plan cadastral
+
+  // Justice
+  CRIMINAL_RECORD         // Casier judiciaire
 
   @@schema("espace_abo")
 }
 
 enum ProcessStatus {
+  DRAFT             // Brouillon, formulaire en cours
+  PENDING_DOCUMENTS // En attente de documents
   PENDING_PAYMENT   // En attente paiement
+  PAYMENT_PROCESSING // Paiement en cours
+  PAYMENT_FAILED    // Echec paiement
   PAID              // Paye, a envoyer
   SENT_TO_ADVERCITY // Envoye a Advercity
   IN_PROGRESS       // En traitement
+  AWAITING_INFO     // Advercity attend des infos
   COMPLETED         // Termine
   REFUNDED          // Rembourse
   CANCELED          // Annule
@@ -331,5 +401,26 @@ enum InvoiceStatus {
   PAID
   VOID
 
+  @@schema("espace_abo")
+}
+
+// ============================================
+// UTILISATION DEMARCHES VIA ABONNEMENT
+// ============================================
+
+model SubscriptionProcessUsage {
+  id              String   @id @default(cuid())
+
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  processId       String   @unique
+  processType     ProcessType
+
+  usedAt          DateTime @default(now())
+  periodStart     DateTime // Debut de la periode d'abonnement
+  periodEnd       DateTime // Fin de la periode d'abonnement
+
+  @@map("subscription_process_usages")
   @@schema("espace_abo")
 }

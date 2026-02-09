@@ -9,12 +9,12 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Alert, Spinner } from '@/components/ui';
 import { CityAutocomplete, type City } from '@/components/forms';
 import {
-  PROCESS_TYPES,
-  type ProcessTypeCode,
-  type ActTypeCode,
   getProcessTypeConfig,
+  getProcessTypeFromSlug,
+  type ActTypeCode,
   formatPrice,
 } from '@/lib/process-types';
+import { RegistrationCertificateForm } from '@/components/processes/registration-certificate';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
@@ -23,8 +23,8 @@ export default function FormulaireDemarchePage() {
 
   // Convertir le type URL vers le code
   const typeSlug = routeParams.type;
-  const processConfig = getProcessTypeConfig(typeSlug);
-  const typeCode = processConfig?.code;
+  const typeCode = getProcessTypeFromSlug(typeSlug);
+  const processConfig = typeCode ? getProcessTypeConfig(typeCode) : undefined;
 
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function FormulaireDemarchePage() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
 
-  // Donnees du formulaire
+  // Donnees du formulaire pour demarches simples (etat civil)
   const [formData, setFormData] = useState({
     actType: 'FULL_COPY' as ActTypeCode,
     beneficiaryFirstName: '',
@@ -81,7 +81,7 @@ export default function FormulaireDemarchePage() {
   }, [session]);
 
   // Verifier si le type existe
-  if (!processConfig) {
+  if (!processConfig || !typeCode) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="max-w-md w-full">
@@ -107,6 +107,60 @@ export default function FormulaireDemarchePage() {
     );
   }
 
+  // ================================================
+  // Formulaires speciaux (carte grise, etc.)
+  // ================================================
+  if (typeCode === 'REGISTRATION_CERT') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Link href="/" className="text-2xl font-bold text-blue-600">
+                Espace Abo
+              </Link>
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Breadcrumb */}
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li>
+                <Link href="/nouvelle-demarche" className="hover:text-blue-600">
+                  Demarches
+                </Link>
+              </li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+
+        {/* Formulaire carte grise avance */}
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <RegistrationCertificateForm
+            isSubscriber={hasActiveSubscription}
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
+  // Formulaire generique (etat civil et autres)
+  // ================================================
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
@@ -193,6 +247,61 @@ export default function FormulaireDemarchePage() {
   };
 
   const isMarriage = typeCode === 'CIVIL_STATUS_MARRIAGE';
+  const isCivilStatus = ['CIVIL_STATUS_BIRTH', 'CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(typeCode);
+
+  // Si ce n'est pas un type etat civil, afficher un message generique
+  if (!isCivilStatus) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Link href="/" className="text-2xl font-bold text-blue-600">
+                Espace Abo
+              </Link>
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Contenu */}
+        <main className="max-w-2xl mx-auto px-4 py-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>{processConfig.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Formulaire en cours de developpement
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Le formulaire pour "{processConfig.label}" sera bientot disponible.
+                  En attendant, vous pouvez nous contacter pour effectuer cette demarche.
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Link href="/nouvelle-demarche">
+                    <Button variant="outline">Retour aux demarches</Button>
+                  </Link>
+                  <Link href="/contact">
+                    <Button>Nous contacter</Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -267,20 +376,22 @@ export default function FormulaireDemarchePage() {
             {/* Etape 1: Informations beneficiaire */}
             {step === 1 && (
               <div className="space-y-4">
-                <Select
-                  label="Type d'acte"
-                  value={formData.actType}
-                  onChange={(e) =>
-                    setFormData({ ...formData, actType: e.target.value as ActTypeCode })
-                  }
-                  required
-                >
-                  {processConfig.actTypes.map((actType) => (
-                    <option key={actType.code} value={actType.code}>
-                      {actType.label}
-                    </option>
-                  ))}
-                </Select>
+                {processConfig.subtypes && processConfig.subtypes.length > 0 && (
+                  <Select
+                    label="Type d'acte"
+                    value={formData.actType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, actType: e.target.value as ActTypeCode })
+                    }
+                    required
+                  >
+                    {processConfig.subtypes.map((subtype) => (
+                      <option key={subtype.code} value={subtype.code}>
+                        {subtype.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <Input
@@ -435,7 +546,7 @@ export default function FormulaireDemarchePage() {
                     {hasActiveSubscription ? (
                       <span className="text-green-600 font-bold">Inclus dans l'abonnement</span>
                     ) : (
-                      <span className="text-xl font-bold">{formatPrice(processConfig.price)}</span>
+                      <span className="text-xl font-bold">{formatPrice(processConfig.basePrice)}</span>
                     )}
                   </div>
                 </div>

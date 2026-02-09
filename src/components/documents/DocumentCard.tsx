@@ -11,11 +11,29 @@ interface Props {
 }
 
 const typeLabels: Record<string, string> = {
+  // Types generaux
   CERFA: 'Cerfa',
   GENERATED_DOC: 'Document genere',
   PROOF: 'Justificatif',
   ATTACHMENT: 'Piece jointe',
   RESULT: 'Resultat',
+  // Types d'identite
+  CNI: 'Carte d\'identite',
+  PASSEPORT: 'Passeport',
+  PERMIS: 'Permis de conduire',
+  PHOTO_IDENTITE: 'Photo d\'identite',
+  // Types vehicule
+  CARTE_GRISE: 'Carte grise',
+  CERTIFICAT_CESSION: 'Certificat de cession',
+  CERTIFICAT_NON_GAGE: 'Certificat de non-gage',
+  CONTROLE_TECHNIQUE: 'Controle technique',
+  // Autres
+  JUSTIFICATIF_DOMICILE: 'Justificatif de domicile',
+  ACTE_NAISSANCE: 'Acte de naissance',
+  LIVRET_FAMILLE: 'Livret de famille',
+  MANDAT: 'Mandat',
+  DECLARATION_PERTE: 'Declaration de perte/vol',
+  AUTRE: 'Autre document',
 };
 
 const typeIcons: Record<string, React.ReactNode> = {

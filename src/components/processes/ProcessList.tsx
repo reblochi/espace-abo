@@ -2,16 +2,19 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useProcesses } from '@/hooks';
 import { ProcessCard } from './ProcessCard';
 import { Button } from '@/components/ui';
 
 interface Props {
   initialPage?: number;
+  status?: string;
 }
 
-export function ProcessList({ initialPage = 1 }: Props) {
-  const { processes, pagination, isLoading, error, refetch } = useProcesses({ page: initialPage });
+export function ProcessList({ initialPage = 1, status }: Props) {
+  const [page, setPage] = useState(initialPage);
+  const { processes, pagination, isLoading, error, refetch } = useProcesses({ page, status });
 
   if (isLoading) {
     return (
@@ -58,15 +61,25 @@ export function ProcessList({ initialPage = 1 }: Props) {
 
       {pagination && pagination.totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-2">
-          {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === pagination.page ? 'default' : 'outline'}
-              size="sm"
-            >
-              {page}
-            </Button>
-          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Precedent
+          </Button>
+          <span className="px-4 py-2 text-sm text-gray-600">
+            Page {pagination.page} sur {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+            disabled={page === pagination.totalPages}
+          >
+            Suivant
+          </Button>
         </div>
       )}
     </div>

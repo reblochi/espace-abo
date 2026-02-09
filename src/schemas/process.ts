@@ -4,18 +4,41 @@ import { z } from 'zod';
 
 // Types de demarches
 export const processTypeSchema = z.enum([
+  // Etat civil
   'CIVIL_STATUS_BIRTH',
   'CIVIL_STATUS_MARRIAGE',
   'CIVIL_STATUS_DEATH',
-  'CRIMINAL_RECORD',
+  // Vehicule
   'REGISTRATION_CERT',
-  'KBIS',
-  'ADDRESS_CHANGE',
   'NON_PLEDGE_CERT',
-  'PASSPORT',
-  'IDENTITY_CARD',
-  'CADASTRE',
   'CRITAIR',
+  // Identite
+  'IDENTITY_CARD',
+  'PASSPORT',
+  'DRIVING_LICENCE',
+  // Entreprise
+  'KBIS',
+  // Logement
+  'ADDRESS_CHANGE',
+  'CADASTRE',
+  // Justice
+  'CRIMINAL_RECORD',
+]);
+
+// Statuts de demarches
+export const processStatusSchema = z.enum([
+  'DRAFT',
+  'PENDING_DOCUMENTS',
+  'PENDING_PAYMENT',
+  'PAYMENT_PROCESSING',
+  'PAYMENT_FAILED',
+  'PAID',
+  'SENT_TO_ADVERCITY',
+  'IN_PROGRESS',
+  'AWAITING_INFO',
+  'COMPLETED',
+  'REFUNDED',
+  'CANCELED',
 ]);
 
 // Types d'actes
@@ -73,7 +96,20 @@ export const fileTypeSchema = z.enum([
   'PHOTO_IDENTITE',
   'ACTE_NAISSANCE',
   'LIVRET_FAMILLE',
+  'CARTE_GRISE',
+  'CERTIFICAT_CESSION',
+  'CERTIFICAT_NON_GAGE',
+  'CONTROLE_TECHNIQUE',
+  'MANDAT',
+  'DECLARATION_PERTE',
   'AUTRE',
+]);
+
+// Statut validation document
+export const documentValidationStatusSchema = z.enum([
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
 ]);
 
 // Schema upload fichier
