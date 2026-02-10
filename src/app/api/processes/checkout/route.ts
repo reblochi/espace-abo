@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference } = body;
+    const { type, data, processReference, paymentMode = 'one_time' } = body;
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -237,22 +237,78 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const typeSlug = getProcessTypeSlug(type as ProcessType);
 
-    // Creer la session Checkout
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      customer_email: user.email,
-      line_items: lineItems,
-      success_url: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
-      metadata: {
-        userId: user.id,
-        processId: newProcess.id,
-        processReference: reference,
-        processType: type,
-      },
-      locale: 'fr',
-    });
+    const sessionMetadata = {
+      userId: user.id,
+      processId: newProcess.id,
+      processReference: reference,
+      processType: type,
+    };
+
+    let checkoutSession: Stripe.Checkout.Session;
+
+    if (paymentMode === 'subscription') {
+      // Mode abonnement : prix recurrent + taxes en one-time si applicable
+      const subscriptionPriceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID;
+      if (!subscriptionPriceId) {
+        return NextResponse.json(
+          { error: 'Configuration abonnement manquante' },
+          { status: 500 }
+        );
+      }
+
+      // Lignes pour le checkout subscription
+      const subLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+        { price: subscriptionPriceId, quantity: 1 },
+      ];
+
+      // Si carte grise, ajouter les taxes en paiement unique
+      if (type === 'REGISTRATION_CERT' && taxesCents > 0) {
+        // Regrouper toutes les taxes en une seule ligne one-time
+        subLineItems.push({
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Taxes et redevances obligatoires',
+              description: 'Taxe regionale, gestion et acheminement',
+            },
+            unit_amount: taxesCents,
+          },
+          quantity: 1,
+        });
+      }
+
+      checkoutSession = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        customer_email: user.email,
+        line_items: subLineItems,
+        subscription_data: {
+          metadata: sessionMetadata,
+        },
+        success_url: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
+        metadata: sessionMetadata,
+        locale: 'fr',
+      });
+    } else {
+      // Mode paiement unique (comportement existant)
+      checkoutSession = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: user.email,
+        line_items: lineItems,
+        success_url: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
+        metadata: sessionMetadata,
+        payment_intent_data: {
+          metadata: {
+            ...sessionMetadata,
+            external_reference: reference,
+          },
+        },
+        locale: 'fr',
+      });
+    }
 
     // Stocker l'ID de session Stripe
     await prisma.process.update({
@@ -272,8 +328,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur creation session Checkout:', error);
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
     return NextResponse.json(
-      { error: 'Erreur lors de la creation de la session' },
+      { error: 'Erreur lors de la creation de la session', details: message },
       { status: 500 }
     );
   }

@@ -60,6 +60,9 @@ export interface WebhookEvent {
     status?: string;
     failureReason?: string;
     externalReference?: string;
+    checkoutSessionId?: string;
+    checkoutMode?: 'payment' | 'subscription' | 'setup';
+    metadata?: Record<string, string>;
   };
   rawEvent: unknown;
 }
@@ -75,6 +78,7 @@ export type WebhookEventType =
   | 'payment.succeeded'
   | 'payment.failed'
   | 'payment.refunded'
+  | 'checkout.completed'
   | 'customer.created'
   | 'customer.updated';
 

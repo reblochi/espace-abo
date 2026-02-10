@@ -23,11 +23,11 @@ import { StepClaimer } from './steps/StepClaimer';
 import { StepHolder } from './steps/StepHolder';
 import { StepVehicle } from './steps/StepVehicle';
 import { StepDocuments } from './steps/StepDocuments';
-import { StepSummary } from './steps/StepSummary';
+import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface RegistrationCertificateFormProps {
   isSubscriber?: boolean;
-  onSubmit: (data: RegistrationCertificateInput) => Promise<void>;
+  onSubmit: (data: RegistrationCertificateInput, paymentMode?: PaymentMode) => Promise<void>;
   onTaxCalculation?: (taxes: RegistrationCertificateTaxes | null) => void;
   initialData?: Partial<RegistrationCertificateInput>;
   processReference?: string;
@@ -92,6 +92,8 @@ export function RegistrationCertificateForm({
   const [isCalculatingTaxes, setIsCalculatingTaxes] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>('subscription');
+  const [subscriptionConsent, setSubscriptionConsent] = React.useState(false);
 
   const methods = useForm<RegistrationCertificateInput>({
     resolver: zodResolver(registrationCertificateSchema),
@@ -207,7 +209,13 @@ export function RegistrationCertificateForm({
     setError(null);
 
     try {
-      await onSubmit(data);
+      if (!isSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
+        setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      await onSubmit(data, paymentMode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
@@ -232,6 +240,10 @@ export function RegistrationCertificateForm({
           <StepSummary
             taxes={taxes}
             isSubscriber={isSubscriber}
+            paymentMode={paymentMode}
+            onPaymentModeChange={setPaymentMode}
+            subscriptionConsent={subscriptionConsent}
+            onSubscriptionConsentChange={setSubscriptionConsent}
           />
         );
       default:
@@ -320,7 +332,12 @@ export function RegistrationCertificateForm({
             </Button>
           ) : (
             <Button type="submit" isLoading={isSubmitting}>
-              {isSubscriber ? 'Valider ma demande' : 'Proceder au paiement'}
+              {isSubscriber
+                ? 'Valider ma demande'
+                : paymentMode === 'subscription'
+                  ? 'Souscrire et valider ma demande'
+                  : 'Proceder au paiement'
+              }
             </Button>
           )}
         </div>

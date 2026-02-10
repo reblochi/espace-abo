@@ -1,109 +1,105 @@
-// Etape 6: Recapitulatif et validation
+// Etape 5: Recapitulatif et validation
 
 'use client';
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { cn } from '@/lib/utils';
-import { OperationType, VehicleState } from '@/types/registration-certificate';
-import type { RegistrationCertificateInput } from '@/schemas/registration-certificate';
-import type { RegistrationCertificateTaxes } from '@/lib/taxes/registration-certificate';
+import {
+  recordTypeLabels,
+  claimerTypeLabels,
+  genderLabels,
+  RecordType,
+  FRANCE_COUNTRY_ID,
+} from '@/types/birth-certificate';
+import { formatPrice } from '@/lib/process-types';
+import type { BirthCertificateInput } from '@/schemas/birth-certificate';
 
 export type PaymentMode = 'subscription' | 'one_time';
 
 const SUBSCRIPTION_MONTHLY_PRICE = 990; // 9,90 EUR en centimes
 
 interface StepSummaryProps {
-  taxes: RegistrationCertificateTaxes | null;
   isSubscriber: boolean;
+  basePrice: number; // en centimes
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
   subscriptionConsent: boolean;
   onSubscriptionConsentChange: (checked: boolean) => void;
 }
 
-const OPERATION_LABELS: Record<number, string> = {
-  [OperationType.CHANGEMENT_TITULAIRE]: 'Changement de titulaire',
-  [OperationType.CHANGEMENT_ADRESSE]: 'Changement d\'adresse',
-  [OperationType.DUPLICATA]: 'Duplicata',
-};
-
-function formatPrice(cents: number): string {
-  return (cents / 100).toFixed(2).replace('.', ',') + ' EUR';
-}
-
 export function StepSummary({
-  taxes,
   isSubscriber,
+  basePrice,
   paymentMode,
   onPaymentModeChange,
   subscriptionConsent,
   onSubscriptionConsentChange,
 }: StepSummaryProps) {
-  const { watch, setValue, formState: { errors } } = useFormContext<RegistrationCertificateInput>();
+  const { watch, setValue, formState: { errors } } = useFormContext<BirthCertificateInput>();
   const formData = watch();
-  const { claimer, holder, vehicle, operation, coOwner } = formData;
 
-  const allConsentsAccepted = watch('consents.termsAccepted')
-    && watch('consents.dataProcessingAccepted');
+  const showParents = formData.recordType === RecordType.COPIE_INTEGRALE
+    || formData.recordType === RecordType.EXTRAIT_FILIATION;
+
+  const savings = basePrice - SUBSCRIPTION_MONTHLY_PRICE;
+
+  const allConsentsAccepted = watch('consents.acceptTerms')
+    && watch('consents.acceptDataProcessing')
+    && watch('consents.certifyAccuracy');
 
   const handleAllConsents = (checked: boolean) => {
     const val = checked as unknown as true;
-    setValue('consents.termsAccepted', val, { shouldValidate: true });
-    setValue('consents.dataProcessingAccepted', val, { shouldValidate: true });
+    setValue('consents.acceptTerms', val, { shouldValidate: true });
+    setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
+    setValue('consents.certifyAccuracy', val, { shouldValidate: true });
   };
-
-  const serviceFee = taxes?.serviceFee ?? 7990;
-  const taxesOnly = taxes ? taxes.total - taxes.serviceFee : 0;
-  const savings = serviceFee - SUBSCRIPTION_MONTHLY_PRICE;
 
   return (
     <div className="space-y-5">
       {/* Recapitulatif */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <SummaryCard title="Operation">
-          <p className="font-medium">{OPERATION_LABELS[operation.typeId] || 'Demarche carte grise'}</p>
+        <SummaryCard title="Type d'acte">
+          <p className="font-medium">{recordTypeLabels[formData.recordType]}</p>
+          <p className="text-sm text-gray-500">{formData.recordCount} copie(s)</p>
         </SummaryCard>
 
-        <SummaryCard title="Demandeur">
+        <SummaryCard title="Beneficiaire">
           <p className="font-medium">
-            {claimer.civility === 'M' ? 'M.' : 'Mme'} {claimer.firstName} {claimer.lastName}
-          </p>
-          <p className="text-sm text-gray-500">{claimer.email}</p>
-        </SummaryCard>
-
-        <SummaryCard title="Titulaire">
-          <p className="font-medium">
-            {holder.siren
-              ? <>{holder.company} <span className="text-xs text-gray-400">({holder.siren})</span></>
-              : <>{holder.civility === 'M' ? 'M.' : 'Mme'} {holder.firstName} {holder.lastName}</>
-            }
+            {genderLabels[formData.gender]} {formData.firstName} {formData.lastName}
           </p>
           <p className="text-sm text-gray-500">
-            {holder.address}, {holder.zipCode} {holder.city}
+            Ne(e) le {formatDate(formData.birthDate)} a {formData.birthCityName}
+            {formData.birthCountryId === FRANCE_COUNTRY_ID ? '' : ' (etranger)'}
           </p>
         </SummaryCard>
 
-        {coOwner?.firstName && (
-          <SummaryCard title="Co-titulaire">
-            <p className="font-medium">{coOwner.firstName} {coOwner.lastName}</p>
+        <SummaryCard title="Lien avec le beneficiaire">
+          <p className="font-medium">{claimerTypeLabels[formData.claimerType]}</p>
+        </SummaryCard>
+
+        {showParents && (
+          <SummaryCard title="Filiation">
+            <p className="text-sm">
+              Pere : {formData.fatherUnknown ? <span className="italic text-gray-400">Inconnu</span> : `${formData.fatherFirstName} ${formData.fatherLastName}`}
+            </p>
+            <p className="text-sm">
+              Mere : {formData.motherUnknown ? <span className="italic text-gray-400">Inconnue</span> : `${formData.motherFirstName} ${formData.motherLastName}`}
+            </p>
           </SummaryCard>
         )}
 
-        <SummaryCard title="Vehicule" className="lg:col-span-2">
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <span><span className="text-gray-500">Immat.</span> <strong>{vehicle.registrationNumber}</strong></span>
-            <span><span className="text-gray-500">Etat</span> {vehicle.state === VehicleState.NEUF ? 'Neuf' : 'Occasion'}</span>
-            <span><span className="text-gray-500">Puissance</span> {vehicle.fiscalPower} CV</span>
-            {vehicle.co2 ? <span><span className="text-gray-500">CO2</span> {vehicle.co2} g/km</span> : null}
-          </div>
+        <SummaryCard title="Adresse de livraison" className={showParents ? '' : 'lg:col-span-2'}>
+          <p className="text-sm">
+            {formData.deliveryAddress.street}, {formData.deliveryAddress.zipCode} {formData.deliveryAddress.city}
+          </p>
         </SummaryCard>
       </div>
 
       {/* Choix formule - non-abonnes */}
       {!isSubscriber && (
         <div>
-          <h3 className="font-medium text-gray-900 mb-2">Frais de service</h3>
+          <h3 className="font-medium text-gray-900 mb-2">Formule de traitement</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Abonnement */}
             <button
@@ -128,7 +124,7 @@ export function StepSummary({
               <p className="text-xl font-bold text-gray-900 ml-7">
                 9,90 EUR<span className="text-sm font-normal text-gray-500">/mois</span>
               </p>
-              <p className="text-xs text-gray-500 ml-7 mt-0.5">Frais de service inclus - Sans engagement</p>
+              <p className="text-xs text-gray-500 ml-7 mt-0.5">Demarche incluse - Sans engagement</p>
               {savings > 0 && (
                 <p className="text-xs font-medium text-green-700 ml-7 mt-1">
                   Economie de {formatPrice(savings)}
@@ -151,78 +147,42 @@ export function StepSummary({
                 <RadioDot selected={paymentMode === 'one_time'} />
                 <span className="font-medium text-gray-900">Paiement unique</span>
               </div>
-              <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(serviceFee)}</p>
+              <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(basePrice)}</p>
               <p className="text-xs text-gray-500 ml-7 mt-0.5">Cette demarche uniquement</p>
             </button>
           </div>
         </div>
       )}
 
-      {/* Detail des couts */}
-      {taxes && (
-        <div className="bg-gray-50 rounded-lg px-5 py-4">
-          <div className="space-y-1.5 text-sm">
-            {taxes.taxeRegionale > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Taxe regionale</span>
-                <span>{formatPrice(taxes.taxeRegionale)}</span>
-              </div>
+      {/* Total */}
+      <div className="bg-gray-50 rounded-lg px-5 py-3 flex justify-between items-center">
+        <span className="font-medium text-gray-900">Total a payer</span>
+        <div className="text-right">
+          <span className="text-lg font-bold text-blue-600">
+            {isSubscriber ? (
+              <span className="text-green-600">Inclus</span>
+            ) : paymentMode === 'subscription' ? (
+              formatPrice(SUBSCRIPTION_MONTHLY_PRICE)
+            ) : (
+              formatPrice(basePrice)
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">Taxe de gestion</span>
-              <span>{formatPrice(taxes.taxeGestion)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Acheminement</span>
-              <span>{formatPrice(taxes.taxeAcheminement)}</span>
-            </div>
-            {taxes.malus > 0 && (
-              <div className="flex justify-between text-red-600">
-                <span>Malus ecologique</span>
-                <span>{formatPrice(taxes.malus)}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">Frais de service</span>
-              {isSubscriber || paymentMode === 'subscription' ? (
-                <span className="text-green-600">
-                  <span className="line-through text-gray-400 mr-1 text-xs">{formatPrice(taxes.serviceFee)}</span>
-                  Inclus
-                </span>
-              ) : (
-                <span>{formatPrice(taxes.serviceFee)}</span>
-              )}
-            </div>
-            {!isSubscriber && paymentMode === 'subscription' && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Abonnement mensuel</span>
-                <span>{formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois</span>
-              </div>
-            )}
-            <div className="border-t pt-2 mt-2 flex justify-between font-medium text-base">
-              <span>Total a payer</span>
-              <div className="text-right">
-                <span className="text-blue-600">
-                  {isSubscriber
-                    ? formatPrice(taxesOnly)
-                    : paymentMode === 'subscription'
-                      ? formatPrice(taxesOnly + SUBSCRIPTION_MONTHLY_PRICE)
-                      : formatPrice(taxes.total)
-                  }
-                </span>
-                {(isSubscriber || (!isSubscriber && paymentMode === 'subscription')) && savings > 0 && (
-                  <span className="block text-xs text-green-600">
-                    Economie de {formatPrice(isSubscriber ? serviceFee : savings)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          </span>
+          {!isSubscriber && paymentMode === 'subscription' && (
+            <span className="block text-xs text-green-600">
+              au lieu de {formatPrice(basePrice)}
+            </span>
+          )}
+          {isSubscriber && (
+            <span className="block text-xs text-green-600">
+              Economie de {formatPrice(basePrice)}
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Validation */}
       <div className="space-y-3">
+        {/* Consentement global */}
         <label className={cn(
           'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
           allConsentsAccepted
@@ -247,10 +207,11 @@ export function StepSummary({
             {' '}et le traitement de mes donnees (RGPD). Je certifie l'exactitude des informations fournies. *
           </span>
         </label>
-        {(errors.consents?.termsAccepted || errors.consents?.dataProcessingAccepted) && (
+        {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
           <p className="text-sm text-red-600">Vous devez accepter les conditions pour continuer.</p>
         )}
 
+        {/* Consentement abonnement */}
         {!isSubscriber && paymentMode === 'subscription' && (
           <label className={cn(
             'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
@@ -274,7 +235,7 @@ export function StepSummary({
 
       {/* Delai */}
       <p className="text-xs text-gray-500">
-        Traitement sous 5 a 7 jours ouvres apres validation. Envoi du certificat par courrier a l'adresse indiquee.
+        Traitement sous 3 a 5 jours ouvres apres validation. Envoi par courrier a l'adresse indiquee.
       </p>
     </div>
   );
@@ -306,6 +267,20 @@ function SummaryCard({
       {children}
     </div>
   );
+}
+
+function formatDate(dateString: string): string {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return dateString;
+  }
 }
 
 export default StepSummary;

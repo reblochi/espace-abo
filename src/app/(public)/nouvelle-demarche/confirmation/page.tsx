@@ -60,7 +60,8 @@ function ConfirmationDemarcheContent() {
           return;
         }
 
-        setProcess(data.process);
+        // L'API retourne l'objet directement (pas dans .process)
+        setProcess(data.process || data);
       } catch (err) {
         setError('Une erreur est survenue');
       } finally {
@@ -288,7 +289,7 @@ function ConfirmationDemarcheContent() {
         </Card>
 
         <div className="mt-6 space-y-3">
-          <Link href={`/espace-membre/mes-demarches/${process?.reference}`} className="block">
+          <Link href={`/espace-membre/mes-demarches/${process?.reference || reference}`} className="block">
             <Button className="w-full" size="lg">
               Suivre ma demarche
             </Button>

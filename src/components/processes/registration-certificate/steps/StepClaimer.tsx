@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils';
 import type { RegistrationCertificateInput } from '@/schemas/registration-certificate';
 
 const CIVILITIES = [
-  { value: 1, label: 'Monsieur' },
-  { value: 2, label: 'Madame' },
+  { value: 'M', label: 'Monsieur' },
+  { value: 'MME', label: 'Madame' },
 ];
 
 export function StepClaimer() {
@@ -70,7 +70,7 @@ export function StepClaimer() {
             Civilite *
           </label>
           <Select
-            {...register('claimer.civility', { valueAsNumber: true })}
+            {...register('claimer.civility')}
             error={errors.claimer?.civility?.message}
           >
             <option value="">Selectionnez</option>

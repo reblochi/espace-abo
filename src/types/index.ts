@@ -6,6 +6,7 @@ export * from './document';
 export * from './invoice';
 export * from './user';
 export * from './registration-certificate';
+export * from './birth-certificate';
 
 // Types utilitaires communs
 export interface ApiError {

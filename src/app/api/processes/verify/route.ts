@@ -55,20 +55,72 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Process non trouve' }, { status: 404 });
     }
 
-    // Si deja paye, retourner
+    // Si deja paye, retourner (le webhook a deja traite)
     if (demarche.status !== 'PENDING_PAYMENT') {
       return NextResponse.json({ process: demarche });
     }
 
-    // Mettre a jour le statut
+    // Determiner si c'est un mode subscription
+    const isSubscriptionMode = checkoutSession.mode === 'subscription';
+    const subscriptionId = checkoutSession.subscription as string | null;
+    const customerId = checkoutSession.customer as string | null;
+
+    // Mettre a jour le statut du process
     const updatedProcess = await prisma.process.update({
       where: { id: processId },
       data: {
         status: 'PAID',
         paidAt: new Date(),
         pspPaymentId: checkoutSession.payment_intent as string,
+        isFromSubscription: isSubscriptionMode,
+        ...(isSubscriptionMode ? { serviceFeesCents: 0, amountCents: demarche.taxesCents } : {}),
       },
     });
+
+    // Creer l'historique de statut
+    await prisma.processStatusHistory.create({
+      data: {
+        processId,
+        fromStatus: 'PENDING_PAYMENT',
+        toStatus: 'PAID',
+        reason: isSubscriptionMode
+          ? 'Paiement valide via abonnement (verification)'
+          : 'Paiement valide via Stripe Checkout (verification)',
+        createdBy: 'system',
+      },
+    });
+
+    // Si mode subscription, creer l'abonnement en BDD si pas deja fait
+    if (isSubscriptionMode && subscriptionId && customerId) {
+      const existingSub = await prisma.subscription.findFirst({
+        where: { pspSubscriptionId: subscriptionId },
+      });
+
+      if (!existingSub) {
+        const { generateReference } = await import('@/lib/utils');
+        const count = await prisma.subscription.count();
+        const subReference = generateReference('SUB', count + 1);
+        const now = new Date();
+        const periodEnd = new Date(now);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+        await prisma.subscription.create({
+          data: {
+            reference: subReference,
+            userId: session.user.id,
+            status: 'ACTIVE',
+            amountCents: 990,
+            currency: 'EUR',
+            pspProvider: 'stripe',
+            pspSubscriptionId: subscriptionId,
+            pspCustomerId: customerId,
+            startDate: now,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+          },
+        });
+      }
+    }
 
     // Envoyer vers Advercity
     try {
@@ -96,7 +148,22 @@ export async function GET(request: NextRequest) {
           status: 'SENT_TO_ADVERCITY',
           advercityId: advercityResult.advercity_id,
           advercityRef: advercityResult.advercity_reference,
+          submittedAt: new Date(),
           lastSyncAt: new Date(),
+        },
+      });
+
+      await prisma.processStatusHistory.create({
+        data: {
+          processId,
+          fromStatus: 'PAID',
+          toStatus: 'SENT_TO_ADVERCITY',
+          reason: 'Envoi automatique vers le back-office (verification)',
+          metadata: {
+            advercityId: advercityResult.advercity_id,
+            advercityRef: advercityResult.advercity_reference,
+          },
+          createdBy: 'system',
         },
       });
     } catch (advercityError) {
@@ -104,8 +171,8 @@ export async function GET(request: NextRequest) {
       // Le process reste en PAID pour retry ulterieur
     }
 
-    // Envoyer email de confirmation
-    await sendEmail({
+    // Envoyer email de confirmation (non-bloquant)
+    sendEmail({
       to: demarche.user.email,
       subject: `Confirmation de votre demarche ${demarche.reference}`,
       template: 'process-confirmation',
@@ -113,10 +180,10 @@ export async function GET(request: NextRequest) {
         firstName: demarche.user.firstName,
         reference: demarche.reference,
         type: demarche.type,
-        isFromSubscription: false,
-        amount: `${(demarche.amountCents / 100).toFixed(2).replace('.', ',')} EUR`,
+        isFromSubscription: isSubscriptionMode,
+        amount: isSubscriptionMode ? undefined : `${(demarche.amountCents / 100).toFixed(2).replace('.', ',')} EUR`,
       },
-    });
+    }).catch((err) => console.error('Erreur envoi email confirmation:', err));
 
     return NextResponse.json({ process: updatedProcess });
   } catch (error) {

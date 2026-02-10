@@ -15,6 +15,7 @@ import {
   formatPrice,
 } from '@/lib/process-types';
 import { RegistrationCertificateForm } from '@/components/processes/registration-certificate';
+import { BirthCertificateForm } from '@/components/processes/birth-certificate';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
@@ -159,6 +160,58 @@ export default function FormulaireDemarchePage() {
   }
 
   // ================================================
+  // Formulaire acte de naissance
+  // ================================================
+  if (typeCode === 'CIVIL_STATUS_BIRTH') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Link href="/" className="text-2xl font-bold text-blue-600">
+                Espace Abo
+              </Link>
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Breadcrumb */}
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li>
+                <Link href="/nouvelle-demarche" className="hover:text-blue-600">
+                  Demarches
+                </Link>
+              </li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+
+        {/* Formulaire acte de naissance */}
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <BirthCertificateForm
+            isSubscriber={hasActiveSubscription}
+            basePrice={processConfig.basePrice}
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
   // Formulaire generique (etat civil et autres)
   // ================================================
   const handleSubmit = async () => {
@@ -247,7 +300,7 @@ export default function FormulaireDemarchePage() {
   };
 
   const isMarriage = typeCode === 'CIVIL_STATUS_MARRIAGE';
-  const isCivilStatus = ['CIVIL_STATUS_BIRTH', 'CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(typeCode);
+  const isCivilStatus = ['CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(typeCode);
 
   // Si ce n'est pas un type etat civil, afficher un message generique
   if (!isCivilStatus) {

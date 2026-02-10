@@ -5,7 +5,13 @@ import type { PSPProvider, WebhookEvent } from './types';
 import { getPSPAdapter } from './index';
 import { prisma } from '../db';
 import { sendEmail } from '../email';
-import { formatCurrency } from '../utils';
+import { formatCurrency, generateReference } from '../utils';
+import {
+  createAdvercityProcess,
+  mapProcessTypeToAdvercity,
+  mapProcessDataToAdvercity,
+} from '../advercity';
+import type { ProcessType } from '@prisma/client';
 
 // Handler principal
 export async function handlePSPWebhook(
@@ -51,6 +57,10 @@ export async function handlePSPWebhook(
 
     case 'payment.succeeded':
       await handlePaymentSucceeded(event);
+      break;
+
+    case 'checkout.completed':
+      await handleCheckoutCompleted(event);
       break;
 
     case 'payment.refunded':
@@ -229,6 +239,19 @@ async function handlePaymentSucceeded(event: WebhookEvent): Promise<void> {
       },
     });
 
+    await prisma.processStatusHistory.create({
+      data: {
+        processId: process.id,
+        fromStatus: 'PENDING_PAYMENT',
+        toStatus: 'PAID',
+        reason: 'Paiement recu via webhook',
+        createdBy: 'system',
+      },
+    });
+
+    // Envoyer a Advercity
+    await sendProcessToAdvercity(process.id);
+
     // Email de confirmation
     await sendEmail({
       to: process.user.email,
@@ -274,6 +297,173 @@ async function handlePaymentRefunded(event: WebhookEvent): Promise<void> {
         refundedAmount: amountCents,
       },
     });
+  }
+}
+
+// Handler checkout.session.completed (mode subscription ou payment)
+async function handleCheckoutCompleted(event: WebhookEvent): Promise<void> {
+  const { checkoutMode, subscriptionId, customerId, metadata } = event.data;
+
+  const processReference = metadata?.processReference;
+  const userId = metadata?.userId;
+  const processType = metadata?.processType;
+
+  if (!processReference || !userId) return;
+
+  // Recuperer la demarche
+  const existingProcess = await prisma.process.findFirst({
+    where: { reference: processReference, userId },
+    include: { user: true },
+  });
+
+  if (!existingProcess) return;
+
+  if (checkoutMode === 'subscription' && subscriptionId && customerId) {
+    // Creer l'abonnement en BDD
+    const count = await prisma.subscription.count();
+    const subReference = generateReference('SUB', count + 1);
+
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const subscription = await prisma.subscription.create({
+      data: {
+        reference: subReference,
+        userId,
+        status: 'ACTIVE',
+        amountCents: 990,
+        currency: 'EUR',
+        pspProvider: 'stripe',
+        pspSubscriptionId: subscriptionId,
+        pspCustomerId: customerId,
+        startDate: now,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      },
+    });
+
+    // Creer la premiere echeance
+    await prisma.subscriptionDeadline.create({
+      data: {
+        subscriptionId: subscription.id,
+        deadlineNumber: 1,
+        amountCents: 990,
+        dueDate: now,
+        paymentStatus: 'PAID',
+        status: 'PERFORMED',
+        paidAt: now,
+      },
+    });
+
+    // Marquer la demarche comme payee (frais de service = 0 car abonnement)
+    await prisma.process.update({
+      where: { id: existingProcess.id },
+      data: {
+        status: 'PAID',
+        paidAt: now,
+        isFromSubscription: true,
+        serviceFeesCents: 0,
+        amountCents: existingProcess.taxesCents, // Seulement les taxes
+      },
+    });
+
+    await prisma.processStatusHistory.create({
+      data: {
+        processId: existingProcess.id,
+        fromStatus: 'PENDING_PAYMENT',
+        toStatus: 'PAID',
+        reason: 'Souscription abonnement validee via Stripe Checkout',
+        createdBy: 'system',
+      },
+    });
+
+    // Consommer un usage sur l'abonnement (non-bloquant)
+    if (processType) {
+      try {
+        const { consumeSubscriptionProcess } = await import('@/lib/subscription/process-eligibility');
+        await consumeSubscriptionProcess(
+          subscription.id,
+          existingProcess.id,
+          processType as ProcessType
+        );
+      } catch (err) {
+        console.error('[Webhook] Erreur consommation usage abonnement:', err);
+      }
+    }
+
+    // Envoyer a Advercity
+    await sendProcessToAdvercity(existingProcess.id);
+
+    // Email de confirmation (non-bloquant)
+    sendEmail({
+      to: existingProcess.user.email,
+      subject: `Confirmation de votre abonnement et demarche ${processReference}`,
+      template: 'process-confirmation',
+      data: {
+        firstName: existingProcess.user.firstName,
+        reference: processReference,
+        isFromSubscription: true,
+      },
+    }).catch((err) => console.error('[Webhook] Erreur envoi email confirmation:', err));
+  }
+  // Le mode 'payment' est gere par handlePaymentSucceeded via payment_intent.succeeded
+}
+
+// Envoyer une demarche payee a Advercity
+async function sendProcessToAdvercity(processId: string): Promise<void> {
+  const appUrl = globalThis.process?.env?.NEXT_PUBLIC_APP_URL || '';
+
+  const paidProcess = await prisma.process.findUnique({
+    where: { id: processId },
+    include: { user: true },
+  });
+
+  if (!paidProcess || paidProcess.status !== 'PAID') return;
+
+  try {
+    const advercityResponse = await createAdvercityProcess({
+      type: mapProcessTypeToAdvercity(paidProcess.type),
+      external_reference: paidProcess.reference,
+      webhook_url: `${appUrl}/api/advercity/webhook`,
+      data: mapProcessDataToAdvercity(
+        paidProcess.type,
+        paidProcess.data as Record<string, unknown>,
+        {
+          email: paidProcess.user.email,
+          firstName: paidProcess.user.firstName,
+          lastName: paidProcess.user.lastName,
+        }
+      ),
+    });
+
+    await prisma.process.update({
+      where: { id: processId },
+      data: {
+        status: 'SENT_TO_ADVERCITY',
+        advercityId: advercityResponse.advercity_id,
+        advercityRef: advercityResponse.advercity_reference,
+        submittedAt: new Date(),
+        lastSyncAt: new Date(),
+      },
+    });
+
+    await prisma.processStatusHistory.create({
+      data: {
+        processId,
+        fromStatus: 'PAID',
+        toStatus: 'SENT_TO_ADVERCITY',
+        reason: 'Envoi automatique vers le back-office',
+        metadata: {
+          advercityId: advercityResponse.advercity_id,
+          advercityRef: advercityResponse.advercity_reference,
+        },
+        createdBy: 'system',
+      },
+    });
+  } catch (error) {
+    console.error(`[Webhook] Erreur envoi Advercity pour ${paidProcess.reference}:`, error);
+    // La demarche reste en PAID, retry ulterieur possible
   }
 }
 

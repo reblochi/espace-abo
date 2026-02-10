@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils';
 import type { RegistrationCertificateInput } from '@/schemas/registration-certificate';
 
 const CIVILITIES = [
-  { value: 1, label: 'Monsieur' },
-  { value: 2, label: 'Madame' },
+  { value: 'M', label: 'Monsieur' },
+  { value: 'MME', label: 'Madame' },
 ];
 
 const DEPARTMENTS = [
@@ -212,7 +212,7 @@ export function StepHolder() {
                 Civilite *
               </label>
               <Select
-                {...register('holder.civility', { valueAsNumber: true })}
+                {...register('holder.civility')}
                 error={errors.holder?.civility?.message}
                 disabled={isClaimerHolder}
               >
@@ -338,7 +338,7 @@ export function StepHolder() {
               if (hasCoOwner) {
                 setValue('coOwner', undefined);
               } else {
-                setValue('coOwner', { civility: 1 });
+                setValue('coOwner', { civility: 'M' });
               }
             }}
             className={cn(
@@ -358,7 +358,7 @@ export function StepHolder() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Civilite
               </label>
-              <Select {...register('coOwner.civility', { valueAsNumber: true })}>
+              <Select {...register('coOwner.civility')}>
                 <option value="">Selectionnez</option>
                 {CIVILITIES.map((c) => (
                   <option key={c.value} value={c.value}>

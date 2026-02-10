@@ -277,6 +277,7 @@ export class StripeAdapter extends BasePSPAdapter {
       'payment_intent.succeeded': 'payment.succeeded',
       'payment_intent.payment_failed': 'payment.failed',
       'charge.refunded': 'payment.refunded',
+      'checkout.session.completed': 'checkout.completed',
       'customer.created': 'customer.created',
       'customer.updated': 'customer.updated',
     };
@@ -285,14 +286,18 @@ export class StripeAdapter extends BasePSPAdapter {
 
   private extractEventData(event: Stripe.Event): WebhookEvent['data'] {
     const obj = event.data.object as Record<string, unknown>;
+    const metadata = obj.metadata as Record<string, string> | undefined;
     return {
       subscriptionId: obj.subscription as string,
       customerId: obj.customer as string,
       paymentId: obj.payment_intent as string || obj.id as string,
       invoiceId: obj.id as string,
-      amountCents: obj.amount as number || obj.amount_paid as number,
+      amountCents: obj.amount as number || obj.amount_paid as number || obj.amount_total as number,
       status: obj.status as string,
-      externalReference: (obj.metadata as Record<string, string>)?.external_reference,
+      externalReference: metadata?.external_reference,
+      checkoutSessionId: event.type === 'checkout.session.completed' ? obj.id as string : undefined,
+      checkoutMode: obj.mode as 'payment' | 'subscription' | 'setup' | undefined,
+      metadata,
     };
   }
 }

@@ -4,6 +4,7 @@ import axios, { type AxiosInstance } from 'axios';
 import type { ProcessStatus, ProcessType, RegistrationCertificateProcessData } from '@/types';
 import { PROCESS_TYPE_MAPPING, AdvercityStep } from './process-types';
 import { mapToAdvercityPayload, type RegistrationCertificateInput } from '@/schemas/registration-certificate';
+import { mapBirthCertificateToAdvercity, type BirthCertificateInput } from '@/schemas/birth-certificate';
 
 // Types pour l'API Advercity
 export interface AdvercityProcessInput {
@@ -66,6 +67,23 @@ const createAdvercityClient = (): AxiosInstance => {
 
 export const advercityClient = createAdvercityClient();
 
+// Helper pour les requetes GraphQL
+interface GraphQLResponse<T> {
+  data: T;
+  errors?: { message: string }[];
+}
+
+async function graphqlQuery<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  const response = await advercityClient.post<GraphQLResponse<T>>(
+    '/api/v1/',
+    { query, variables }
+  );
+  if (response.data.errors?.length) {
+    throw new Error(response.data.errors[0].message);
+  }
+  return response.data.data;
+}
+
 // ============================================================
 // CREATION DE DEMARCHES
 // ============================================================
@@ -82,27 +100,30 @@ export async function createAdvercityProcess(
 }
 
 // ============================================================
-// RECHERCHE COMMUNES / REFERENTIELS
+// RECHERCHE COMMUNES / REFERENTIELS (GraphQL)
 // ============================================================
 
-// Rechercher des communes
+// Rechercher des communes via l'API Advercity (table city interne)
 export async function searchCities(query: string, limit: number = 10): Promise<AdvercityCitySearchResult[]> {
-  const response = await advercityClient.get<AdvercityCitySearchResult[]>(
-    '/api/cities/search',
-    {
-      params: { q: query, limit },
-    }
-  );
-  return response.data;
+  try {
+    const response = await advercityClient.get<AdvercityCitySearchResult[]>(
+      '/api/external/cities',
+      { params: { q: query.trim(), limit } }
+    );
+    return response.data || [];
+  } catch {
+    return [];
+  }
 }
 
-// Recuperer une commune par ID
+// Recuperer une commune par ID Advercity
 export async function getCityById(id: number): Promise<AdvercityCitySearchResult | null> {
   try {
-    const response = await advercityClient.get<AdvercityCitySearchResult>(
-      `/api/cities/${id}`
+    const response = await advercityClient.get<AdvercityCitySearchResult[]>(
+      '/api/external/cities',
+      { params: { id } }
     );
-    return response.data;
+    return response.data?.[0] || null;
   } catch {
     return null;
   }
@@ -162,20 +183,7 @@ export function mapProcessDataToAdvercity(
   // Mapping specifique selon le type
   switch (type) {
     case 'CIVIL_STATUS_BIRTH':
-      return {
-        civilStatusRecordType: 1, // TYPE_BIRTH
-        birthCity: { id: data.eventCityId },
-        birthDate: data.eventDate,
-        firstName: data.beneficiaryFirstName,
-        lastName: data.beneficiaryLastName,
-        customer: {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          mail: user.email,
-          phone: user.phone,
-        },
-        deliveryAddress: data.deliveryAddress,
-      };
+      return mapBirthCertificateToAdvercity(data as unknown as BirthCertificateInput, user);
 
     case 'CIVIL_STATUS_MARRIAGE':
       return {
