@@ -1,0 +1,101 @@
+// API Route publique - Soumission acte de naissance via widget embed
+// Pas d'authentification requise, les coordonnees sont collectees dans le formulaire
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { z } from 'zod';
+import { birthCertificateSchema } from '@/schemas/birth-certificate';
+import { generateReference } from '@/lib/utils';
+import bcrypt from 'bcryptjs';
+
+const embedSubmitSchema = z.object({
+  partner: z.string(),
+  paymentMode: z.enum(['subscription', 'one_time']),
+  subscriptionConsent: z.boolean().optional(),
+  data: birthCertificateSchema,
+});
+
+// POST /api/embed/acte-naissance
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const parsed = embedSubmitSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Donnees invalides', details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { partner, paymentMode, data } = parsed.data;
+
+    // Les coordonnees sont obligatoires en mode embed
+    if (!data.contact) {
+      return NextResponse.json(
+        { error: 'Coordonnees requises' },
+        { status: 400 }
+      );
+    }
+
+    const { email, firstName, lastName, phone } = data.contact;
+
+    // Trouver ou creer l'utilisateur par email
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      // Creer un compte avec un mot de passe temporaire aleatoire
+      const tempPassword = Math.random().toString(36).slice(-12);
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      user = await prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          phone: phone || null,
+          passwordHash,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Generer la reference de la demarche
+    const count = await prisma.process.count();
+    const reference = generateReference('DEM', count + 1);
+
+    // Calculer le prix
+    const basePrice = 1490; // 14,90 EUR en centimes
+
+    // Creer la demarche
+    const process = await prisma.process.create({
+      data: {
+        reference,
+        userId: user.id,
+        type: 'CIVIL_STATUS_BIRTH',
+        status: 'PENDING_PAYMENT',
+        amountCents: basePrice,
+        data: data as any,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Creer la session de paiement Stripe
+    // Pour le PoC, on retourne l'URL de checkout de l'espace-abo
+    const checkoutUrl = new URL('/checkout', request.nextUrl.origin);
+    checkoutUrl.searchParams.set('ref', process.reference);
+    checkoutUrl.searchParams.set('mode', paymentMode);
+    checkoutUrl.searchParams.set('partner', partner);
+
+    return NextResponse.json({
+      reference: process.reference,
+      url: checkoutUrl.toString(),
+    });
+  } catch (error) {
+    console.error('Erreur embed acte-naissance:', error);
+    return NextResponse.json(
+      { error: 'Erreur lors de la creation de la demarche' },
+      { status: 500 }
+    );
+  }
+}

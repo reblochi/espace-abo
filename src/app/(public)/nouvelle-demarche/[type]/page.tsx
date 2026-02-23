@@ -147,11 +147,23 @@ export default function FormulaireDemarchePage() {
         <main className="max-w-4xl mx-auto px-4 pb-12">
           <RegistrationCertificateForm
             isSubscriber={hasActiveSubscription}
-            onComplete={(reference) => {
-              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
-            }}
-            onCheckout={(checkoutUrl) => {
-              window.location.href = checkoutUrl;
+            onSubmit={async (data, paymentMode) => {
+              const response = await fetch('/api/processes/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'REGISTRATION_CERT',
+                  paymentMode,
+                  data,
+                }),
+              });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || 'Erreur');
+              if (result.url) {
+                window.location.href = result.url;
+              } else if (result.process?.reference) {
+                router.push(`/nouvelle-demarche/confirmation?ref=${result.process.reference}`);
+              }
             }}
           />
         </main>
@@ -506,9 +518,7 @@ export default function FormulaireDemarchePage() {
               <div className="space-y-4">
                 <Input
                   label={
-                    typeCode === 'CIVIL_STATUS_BIRTH'
-                      ? 'Date de naissance'
-                      : typeCode === 'CIVIL_STATUS_MARRIAGE'
+                    typeCode === 'CIVIL_STATUS_MARRIAGE'
                       ? 'Date du mariage'
                       : 'Date du deces'
                   }
@@ -522,9 +532,7 @@ export default function FormulaireDemarchePage() {
 
                 <CityAutocomplete
                   label={
-                    typeCode === 'CIVIL_STATUS_BIRTH'
-                      ? 'Commune de naissance'
-                      : typeCode === 'CIVIL_STATUS_MARRIAGE'
+                    typeCode === 'CIVIL_STATUS_MARRIAGE'
                       ? 'Commune du mariage'
                       : 'Commune du deces'
                   }

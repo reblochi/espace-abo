@@ -21,11 +21,13 @@ import { StepActType } from './steps/StepActType';
 import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepFiliation } from './steps/StepFiliation';
 import { StepDelivery } from './steps/StepDelivery';
+import { StepContact } from './steps/StepContact';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface BirthCertificateFormProps {
   isSubscriber?: boolean;
   basePrice: number; // en centimes
+  embedPartner?: string; // Si defini, mode embed sans auth
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -36,7 +38,7 @@ type Step = {
   description: string;
 };
 
-const STEPS: Step[] = [
+const BASE_STEPS: Step[] = [
   {
     id: 'actType',
     title: 'Type d\'acte',
@@ -57,19 +59,36 @@ const STEPS: Step[] = [
     title: 'Livraison',
     description: 'Adresse de reception de l\'acte',
   },
-  {
-    id: 'summary',
-    title: 'Recapitulatif',
-    description: 'Verification et validation de votre demande',
-  },
 ];
+
+const CONTACT_STEP: Step = {
+  id: 'contact',
+  title: 'Coordonnees',
+  description: 'Vos informations de contact pour le suivi',
+};
+
+const SUMMARY_STEP: Step = {
+  id: 'summary',
+  title: 'Recapitulatif',
+  description: 'Verification et validation de votre demande',
+};
 
 export function BirthCertificateForm({
   isSubscriber = false,
   basePrice,
+  embedPartner,
   onComplete,
   onCheckout,
 }: BirthCertificateFormProps) {
+  const isEmbed = !!embedPartner;
+
+  // Construire les etapes: en mode embed, ajouter l'etape Coordonnees avant le recap
+  const STEPS = React.useMemo(() => {
+    const steps = [...BASE_STEPS];
+    if (isEmbed) steps.push(CONTACT_STEP);
+    steps.push(SUMMARY_STEP);
+    return steps;
+  }, [isEmbed]);
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -101,6 +120,12 @@ export function BirthCertificateForm({
         city: '',
         country: 'FR',
       },
+      contact: isEmbed ? {
+        email: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+      } : undefined,
       consents: {
         acceptTerms: false as unknown as true,
         acceptDataProcessing: false as unknown as true,
@@ -112,9 +137,20 @@ export function BirthCertificateForm({
 
   const { handleSubmit, trigger } = methods;
 
+  // Champs a valider par etape (dynamique selon mode embed)
+  const stepFieldsMap: Record<string, (keyof BirthCertificateInput)[]> = {
+    actType: ['recordType', 'recordCount'],
+    beneficiary: ['gender', 'firstName', 'lastName', 'birthDate', 'birthCountryId', 'birthCityName'],
+    filiation: ['claimerType'],
+    delivery: ['deliveryAddress'],
+    contact: ['contact'],
+    summary: ['consents'],
+  };
+
   // Validation de l'etape courante
   const validateCurrentStep = async (): Promise<boolean> => {
-    const fieldsToValidate = STEP_FIELDS[currentStep];
+    const stepId = STEPS[currentStep]?.id;
+    const fieldsToValidate = stepFieldsMap[stepId];
     if (!fieldsToValidate || fieldsToValidate.length === 0) return true;
     return await trigger(fieldsToValidate);
   };
@@ -139,6 +175,35 @@ export function BirthCertificateForm({
     setError(null);
 
     try {
+      // Mode embed: endpoint public sans authentification
+      if (isEmbed) {
+        const response = await fetch('/api/embed/acte-naissance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            partner: embedPartner,
+            paymentMode,
+            subscriptionConsent,
+            data,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || 'Une erreur est survenue');
+          return;
+        }
+
+        if (result.url) {
+          onCheckout(result.url);
+        } else if (result.reference) {
+          onComplete(result.reference);
+        }
+        return;
+      }
+
+      // Mode connecte standard
       // Validation du consentement abonnement si mode subscription
       if (!isSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
         setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
@@ -206,6 +271,8 @@ export function BirthCertificateForm({
         return <StepFiliation />;
       case 'delivery':
         return <StepDelivery />;
+      case 'contact':
+        return <StepContact />;
       case 'summary':
         return (
           <StepSummary

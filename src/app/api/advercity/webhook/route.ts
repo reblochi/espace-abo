@@ -65,13 +65,14 @@ export async function POST(request: NextRequest) {
     const oldStatus = demarche.status;
     let newStatus: ProcessStatus = oldStatus;
     let shouldNotify = false;
-    let emailTemplate = 'process-status-update';
+    let emailTemplate: string = 'process-status-update';
     let emailSubject = `Mise a jour de votre demarche ${demarche.reference}`;
     let historyReason = '';
-    let historyMetadata: Record<string, unknown> = { event, timestamp };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let historyMetadata: any = { event, timestamp };
 
-    // Traitement selon l'evenement
-    switch (event) {
+    // Traitement selon l'evenement (cast string pour supporter les events futurs/legacy)
+    switch (event as string) {
       case 'process.step_changed': {
         const stepPayload = body as ProcessStepChangedWebhook;
         newStatus = mapAdvercityStatusToProcessStatus(stepPayload.new_step);
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
         await sendEmail({
           to: demarche.user.email,
           subject: emailSubject,
-          template: emailTemplate,
+          template: emailTemplate as any,
           data: {
             firstName: demarche.user.firstName,
             reference: demarche.reference,

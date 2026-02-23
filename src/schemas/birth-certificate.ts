@@ -67,6 +67,14 @@ export const consentsStepSchema = z.object({
   certifyAccuracy: z.literal(true, { errorMap: () => ({ message: 'Vous devez certifier l\'exactitude des informations' }) }),
 });
 
+// Contact (mode embed sans authentification)
+export const contactSchema = z.object({
+  email: z.string().email('Email invalide'),
+  firstName: z.string().min(2, 'Prenom requis'),
+  lastName: z.string().min(2, 'Nom requis'),
+  phone: z.string().optional(),
+});
+
 // Schema complet
 export const birthCertificateSchema = z.object({
   // Etape 1
@@ -90,6 +98,8 @@ export const birthCertificateSchema = z.object({
   motherLastName: z.string().optional(),
   // Etape 4
   deliveryAddress: deliveryAddressSchema,
+  // Contact (optionnel, mode embed)
+  contact: contactSchema.optional(),
   // Consentements
   consents: consentsStepSchema,
 });
