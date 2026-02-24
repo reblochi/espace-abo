@@ -199,9 +199,61 @@ Pour ajouter un nouveau PSP, creer un adapter dans `src/lib/psp/` implementant `
 - Les webhooks Advercity (`/api/advercity/webhook`) mettent a jour le statut des demarches
 - La reference Advercity est stockee dans `Process.advercityId` et `Process.advercityRef`
 
+## Deploiement
+
+### Production (Vercel + Supabase)
+
+- **Hebergement**: Vercel, projet `espace-abo` (ID: `prj_5FlTofrDSh1zNDNsCxVu3AM95lsh`)
+- **Domaine**: `espace-abo.mesdemarchesapp.fr` (DNS Cloudflare)
+- **Region serverless**: `cdg1` (Paris)
+- **Base de donnees**: Supabase PostgreSQL (projet `znlzxlafmtqbwaicjfjg`, region eu-west)
+- **Auto-deploy**: branche `main` = production, `develop` = preview. Push sur GitHub declenche le deploy automatiquement
+- **Repo GitHub**: `reversing2002/espace-abo`
+
+### Widget embed
+
+Le formulaire de demarche peut etre integre sur des sites tiers via un widget iframe :
+
+- **URL embed**: `https://espace-abo.mesdemarchesapp.fr/embed/acte-naissance?partner=<nom>`
+- **Script widget**: `https://espace-abo.mesdemarchesapp.fr/widget/advercity-widget.js`
+- **API publique**: `POST /api/embed/acte-naissance` (sans authentification, collecte email/nom dans le formulaire)
+- **Detection abonne**: a la soumission, l'API cherche le user par email et verifie via `checkProcessEligibility` s'il a un abonnement actif. Si oui, la demarche est creee directement sans paiement.
+
+Integration cote site tiers (exemple) :
+```html
+<script>
+  window.ADVERCITY_CONFIG = {
+    baseUrl: 'https://espace-abo.mesdemarchesapp.fr',
+    partner: 'nom-partenaire',
+  };
+</script>
+<script src="https://espace-abo.mesdemarchesapp.fr/widget/advercity-widget.js"></script>
+<button data-advercity="acte-naissance" data-advercity-partner="nom-partenaire">
+  Demander un acte
+</button>
+```
+
+### Site de test : mairiedefridefont.fr
+
+- **Hebergement**: Netlify (site `fridefont-commune`)
+- **Repo GitHub**: `reversing2002/fridefont` (Astro, build statique)
+- **Deploy**: manuel via `netlify deploy --prod --dir=dist` (auto-deploy GitHub non connecte)
+- **Page avec widget**: `https://mairiedefridefont.fr/vie-pratique/`
+- **Fichiers modifies**: `src/layouts/Layout.astro` (config + script widget), `src/pages/vie-pratique.astro` (bouton acte de naissance)
+
+### Variables d'environnement Vercel
+
+En plus des variables locales, Vercel necessite `RESEND_API_KEY` meme si non utilise (le module Resend s'initialise au build). Mettre une valeur placeholder si pas encore configure.
+
+### Fonctionnalites a implementer
+
+- **Desabonnement simplifie** : page publique sur espace-abo (`/desabonnement`) accessible sans connexion. L'utilisateur saisit son email, recoit un lien de confirmation par email, clic = desactivation de l'abonnement. Lien vers cette page visible depuis la home de l'espace-abo.
+- **Acces factures** : donner acces aux factures depuis l'espace membre (`/espace-membre/mes-factures`) et potentiellement via un lien direct envoye par email apres chaque paiement (token signe, sans auth requise).
+
 ## Notes importantes
 
 - Le schema Prisma utilise un schema PostgreSQL dedie: `espace_abo`
 - Les migrations Prisma ne doivent jamais etre appliquees directement - fournir le SQL a executer manuellement
 - Les fichiers sont stockes sur Cloudflare R2 avec URLs pre-signees pour le telechargement
 - Les references sont generees automatiquement: `SUB-YYYY-XXXXXX`, `DEM-YYYY-XXXXXX`, `FAC-YYYY-XXXXXX`
+- Supabase free-tier : connexion directe en IPv6 uniquement (fonctionne depuis Vercel, pas forcement en local). Pour les operations DB manuelles, utiliser le SQL Editor de Supabase ou l'API management

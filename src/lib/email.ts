@@ -22,7 +22,8 @@ type EmailTemplate =
   | 'process-completed'
   | 'invoice'
   | 'password-reset'
-  | 'password-changed';
+  | 'password-changed'
+  | 'unsubscribe-request';
 
 // Templates HTML (simplifie - en production, utiliser React Email ou MJML)
 const templates: Record<EmailTemplate, (data: Record<string, unknown>) => { subject: string; html: string }> = {
@@ -105,6 +106,18 @@ const templates: Record<EmailTemplate, (data: Record<string, unknown>) => { subj
       <h1>Mot de passe modifie</h1>
       <p>Votre mot de passe a ete modifie avec succes.</p>
       <p>Si vous n'etes pas a l'origine de cette modification, contactez-nous immediatement.</p>
+    `,
+  }),
+
+  'unsubscribe-request': (data) => ({
+    subject: 'Demande de resiliation de votre abonnement',
+    html: `
+      <h1>Resiliation de votre abonnement</h1>
+      <p>Bonjour ${data.firstName},</p>
+      <p>Vous avez demande la resiliation de votre abonnement <strong>${data.reference}</strong>.</p>
+      <p>Cliquez sur le lien ci-dessous pour confirmer votre demande:</p>
+      <p><a href="${data.unsubscribeUrl}">${data.unsubscribeUrl}</a></p>
+      <p>Si vous n'avez pas fait cette demande, ignorez simplement cet email.</p>
     `,
   }),
 };

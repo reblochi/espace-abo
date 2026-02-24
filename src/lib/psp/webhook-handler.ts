@@ -182,8 +182,19 @@ async function handleInvoicePaid(event: WebhookEvent): Promise<void> {
       },
     });
 
-    // Email de confirmation avec facture
-    // TODO: Generer et attacher la facture
+    // Creer la facture pour cette echeance (non-bloquant)
+    try {
+      const { createInvoiceRecord } = await import('@/lib/invoice-creation');
+      await createInvoiceRecord({
+        userId: subscription.userId,
+        type: 'SUBSCRIPTION',
+        totalCents: amountCents || subscription.amountCents,
+        paidAt: new Date(),
+        deadlineId: deadline.id,
+      });
+    } catch (err) {
+      console.error('[Webhook] Erreur creation facture abonnement:', err);
+    }
   }
 }
 
@@ -251,6 +262,20 @@ async function handlePaymentSucceeded(event: WebhookEvent): Promise<void> {
 
     // Envoyer a Advercity
     await sendProcessToAdvercity(process.id);
+
+    // Creer la facture pour cette demarche (non-bloquant)
+    try {
+      const { createInvoiceRecord } = await import('@/lib/invoice-creation');
+      await createInvoiceRecord({
+        userId: process.userId,
+        type: 'PROCESS',
+        totalCents: amountCents || process.amountCents,
+        paidAt: new Date(),
+        processId: process.id,
+      });
+    } catch (err) {
+      console.error('[Webhook] Erreur creation facture demarche:', err);
+    }
 
     // Email de confirmation
     await sendEmail({
@@ -377,6 +402,23 @@ async function handleCheckoutCompleted(event: WebhookEvent): Promise<void> {
         createdBy: 'system',
       },
     });
+
+    // Creer la facture pour la premiere echeance (non-bloquant)
+    try {
+      const { createInvoiceRecord } = await import('@/lib/invoice-creation');
+      const firstDeadline = await prisma.subscriptionDeadline.findFirst({
+        where: { subscriptionId: subscription.id, deadlineNumber: 1 },
+      });
+      await createInvoiceRecord({
+        userId: userId,
+        type: 'SUBSCRIPTION',
+        totalCents: 990,
+        paidAt: now,
+        deadlineId: firstDeadline?.id,
+      });
+    } catch (err) {
+      console.error('[Webhook] Erreur creation facture 1ere echeance:', err);
+    }
 
     // Consommer un usage sur l'abonnement (non-bloquant)
     if (processType) {

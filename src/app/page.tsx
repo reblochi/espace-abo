@@ -168,6 +168,9 @@ export default function HomePage() {
               <Link href="/mentions-legales" className="text-gray-500 hover:text-gray-700 text-sm">
                 Mentions legales
               </Link>
+              <Link href="/desabonnement" className="text-gray-500 hover:text-gray-700 text-sm">
+                Se desabonner
+              </Link>
             </div>
           </div>
         </div>
