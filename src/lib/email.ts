@@ -2,7 +2,13 @@
 
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@example.com';
 const FROM_NAME = process.env.FROM_NAME || 'Espace Abonnement';
@@ -131,7 +137,7 @@ export async function sendEmail({ to, subject, template, data }: EmailOptions): 
 
   const { subject: templateSubject, html } = templateFn(data);
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to,
     subject: subject || templateSubject,
@@ -145,7 +151,7 @@ export async function sendRawEmail(
   subject: string,
   html: string
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to,
     subject,
