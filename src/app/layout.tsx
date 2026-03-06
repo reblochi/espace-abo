@@ -8,8 +8,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Espace Abo - Gestion des abonnements',
-  description: 'Gerez vos abonnements et demarches administratives',
+  title: 'SAF - Service d\'Aide aux Formalites',
+  description: 'Simplifiez vos demarches administratives avec SAF Service',
 };
 
 export default function RootLayout({

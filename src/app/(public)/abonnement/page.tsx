@@ -6,7 +6,7 @@ import { Suspense, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, Button, Alert, Spinner } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Alert, Spinner, Logo } from '@/components/ui';
 
 // Configuration des plans (a mettre dans env ou DB en production)
 const PLANS = [
@@ -77,9 +77,7 @@ function AbonnementContent() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              Espace Abo
-            </Link>
+            <Logo size="md" />
             <div className="flex items-center gap-4">
               {session ? (
                 <Link href="/espace-membre">
@@ -314,7 +312,7 @@ function AbonnementContent() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p>&copy; {new Date().getFullYear()} Espace Abo. Tous droits reserves.</p>
+          <p>&copy; {new Date().getFullYear()} SAF - Service d'Aide aux Formalites. Tous droits reserves.</p>
         </div>
       </footer>
     </div>

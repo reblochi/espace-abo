@@ -11,7 +11,7 @@ function getResend(): Resend {
 }
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@example.com';
-const FROM_NAME = process.env.FROM_NAME || 'Espace Abonnement';
+const FROM_NAME = process.env.FROM_NAME || 'SAF Service';
 
 interface EmailOptions {
   to: string;

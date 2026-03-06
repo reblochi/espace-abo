@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, Button, Alert, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
+import { Card, CardContent, Button, Alert, Badge, Tabs, TabsList, TabsTrigger, TabsContent, Logo } from '@/components/ui';
 import {
   PROCESS_TYPES_CONFIG,
   PROCESS_CATEGORIES,
@@ -156,9 +156,7 @@ export default function NouvelleDemarchePage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              Espace Abo
-            </Link>
+            <Logo size="md" />
             <div className="flex items-center gap-4">
               {session ? (
                 <Link href="/espace-membre">

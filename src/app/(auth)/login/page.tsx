@@ -6,7 +6,7 @@ import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Alert, Spinner } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Alert, Spinner, Logo } from '@/components/ui';
 
 function LoginForm() {
   const router = useRouter();
@@ -45,9 +45,9 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link href="/" className="flex justify-center">
-          <span className="text-2xl font-bold text-blue-600">Espace Abo</span>
-        </Link>
+        <div className="flex justify-center">
+          <Logo size="lg" />
+        </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Connexion
         </h2>
@@ -105,6 +105,40 @@ function LoginForm() {
                 {isLoading ? 'Connexion...' : 'Se connecter'}
               </Button>
             </form>
+
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <p className="text-xs text-gray-400 text-center mb-3">Acces rapide (dev)</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    setIsLoading(true);
+                    setError(null);
+                    try {
+                      const result = await signIn('credentials', {
+                        email: 'marie.martin@test.com',
+                        password: 'SecurePass123!',
+                        redirect: false,
+                      });
+                      if (result?.error) {
+                        setError('Compte test introuvable');
+                      } else {
+                        router.push(callbackUrl);
+                      }
+                    } catch {
+                      setError('Erreur de connexion');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                >
+                  Connexion Marie Martin (test)
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

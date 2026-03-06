@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Alert, Spinner } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Alert, Spinner, Logo } from '@/components/ui';
 import { CityAutocomplete, type City } from '@/components/forms';
 import {
   getProcessTypeConfig,
@@ -118,9 +118,7 @@ export default function FormulaireDemarchePage() {
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                Espace Abo
-              </Link>
+              <Logo size="md" />
               <Link href="/espace-membre">
                 <Button variant="outline">Mon espace</Button>
               </Link>
@@ -181,9 +179,7 @@ export default function FormulaireDemarchePage() {
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                Espace Abo
-              </Link>
+              <Logo size="md" />
               <Link href="/espace-membre">
                 <Button variant="outline">Mon espace</Button>
               </Link>
@@ -322,9 +318,7 @@ export default function FormulaireDemarchePage() {
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                Espace Abo
-              </Link>
+              <Logo size="md" />
               <Link href="/espace-membre">
                 <Button variant="outline">Mon espace</Button>
               </Link>
@@ -374,9 +368,7 @@ export default function FormulaireDemarchePage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              Espace Abo
-            </Link>
+            <Logo size="md" />
             <Link href="/espace-membre">
               <Button variant="outline">Mon espace</Button>
             </Link>

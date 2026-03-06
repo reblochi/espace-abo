@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, Button, Input, Alert } from '@/components/ui';
+import { Card, CardContent, Button, Input, Alert, Logo } from '@/components/ui';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -43,9 +43,9 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <Link href="/" className="flex justify-center">
-            <span className="text-2xl font-bold text-blue-600">Espace Abo</span>
-          </Link>
+          <div className="flex justify-center">
+            <Logo size="lg" />
+          </div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
             Email envoye
           </h2>
@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center">
-          <span className="text-2xl font-bold text-blue-600">Espace Abo</span>
+          <Logo size="lg" linked={false} />
         </Link>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Mot de passe oublie
