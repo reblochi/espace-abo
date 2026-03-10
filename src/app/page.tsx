@@ -92,7 +92,7 @@ export default function HomePage() {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-[4/3]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&h=600&fit=crop&q=80"
+                  src="/hero-documents.jpg"
                   alt="Documents administratifs"
                   className="w-full h-full object-cover"
                 />
@@ -204,7 +204,7 @@ export default function HomePage() {
             <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://images.unsplash.com/photo-1450101499163-c8848e66ad76?w=800&h=600&fit=crop&q=80"
+                src="/hero-family.jpg"
                 alt="Famille heureuse"
                 className="w-full h-full object-cover"
               />
