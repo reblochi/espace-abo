@@ -2,13 +2,15 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useProcess } from '@/hooks';
-import { ProcessTimeline } from '@/components/processes';
+import { ProcessTimeline, ContactSupportModal } from '@/components/processes';
 import { ProcessStatusBadge } from '@/components/processes/ProcessStatusBadge';
 import { DocumentCard } from '@/components/documents';
-import { Card, CardHeader, CardTitle, CardContent, Button, Spinner, Alert, Badge } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Alert, Badge } from '@/components/ui';
+import { SkeletonCard, Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 import { getProcessTypeConfig, formatPrice } from '@/lib/process-types';
 import type { ProcessType } from '@/types';
@@ -17,6 +19,7 @@ export default function ProcessDetailPage() {
   const params = useParams();
   const reference = params.reference as string;
   const { data: processData, isLoading, error } = useProcess(reference);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const processItem = processData;
   const files = processData?.files || [];
@@ -25,8 +28,16 @@ export default function ProcessDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Spinner size="lg" />
+      <div className="space-y-6">
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-8 w-64" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -194,7 +205,6 @@ export default function ProcessDetailPage() {
 
           {isVehicleProcess && processDataContent && (
             <>
-              {/* Informations vehicule */}
               <Card>
                 <CardHeader>
                   <CardTitle>Informations du vehicule</CardTitle>
@@ -238,7 +248,6 @@ export default function ProcessDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Informations titulaire */}
               <Card>
                 <CardHeader>
                   <CardTitle>Titulaire</CardTitle>
@@ -288,7 +297,6 @@ export default function ProcessDetailPage() {
                     </div>
                   </dl>
 
-                  {/* Co-titulaire */}
                   {processDataContent.coOwner && (
                     <div className="mt-4 pt-4 border-t">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Co-titulaire</h4>
@@ -302,7 +310,6 @@ export default function ProcessDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Detail des couts si paye */}
               {processItem.pricePaid && processDataContent.taxesBreakdown && (
                 <Card>
                   <CardHeader>
@@ -460,15 +467,25 @@ export default function ProcessDetailPage() {
               <p className="text-sm text-gray-500 mb-3">
                 Une question sur votre demarche ?
               </p>
-              <Link href="/contact">
-                <Button variant="outline" className="w-full" size="sm">
-                  Contacter le support
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="w-full"
+                size="sm"
+                onClick={() => setShowContactModal(true)}
+              >
+                Contacter le support
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Modal contact support */}
+      <ContactSupportModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        processReference={reference}
+      />
     </div>
   );
 }

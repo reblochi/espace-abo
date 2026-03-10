@@ -3,9 +3,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ProcessList } from '@/components/processes';
+import { ProcessList, QuotaGauge } from '@/components/processes';
 import { Button, Card, CardContent } from '@/components/ui';
 import { useProcessStats } from '@/hooks/useProcesses';
+import { useSubscription } from '@/hooks';
 import Link from 'next/link';
 
 const statusFilters = [
@@ -19,6 +20,7 @@ const statusFilters = [
 export default function MesDemarchesPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const { data: stats } = useProcessStats();
+  const { isActive } = useSubscription();
 
   return (
     <div className="space-y-6">
@@ -39,6 +41,15 @@ export default function MesDemarchesPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Jauge quota mensuel */}
+      {isActive && (
+        <Card>
+          <CardContent className="py-4">
+            <QuotaGauge used={stats?.total || 0} max={10} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistiques rapides */}
       {stats && (

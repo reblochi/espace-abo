@@ -12,9 +12,11 @@ import {
   Button,
   Badge,
   Alert,
-  Modal,
   Spinner,
 } from '@/components/ui';
+import { showComingSoonToast } from '@/components/ui/coming-soon';
+import { AdvantagesList } from '@/components/subscription/AdvantagesList';
+import { CancellationFlow } from '@/components/subscription/CancellationFlow';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
 export default function MonAbonnementPage() {
@@ -28,15 +30,14 @@ export default function MonAbonnementPage() {
   } = useSubscription();
 
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleCancel = async () => {
-    setCancelError(null);
     try {
       cancel(undefined);
       setShowCancelModal(false);
-    } catch (error) {
-      setCancelError('Une erreur est survenue lors de la resiliation.');
+    } catch {
+      // handled by mutation
     }
   };
 
@@ -144,6 +145,30 @@ export default function MonAbonnementPage() {
         </CardContent>
       </Card>
 
+      {/* Pourquoi ce montant */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pourquoi ce montant ?</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm text-gray-600">
+            <p>
+              Votre abonnement a <strong>{formatCurrency(subscription.amountCents)}/mois</strong> vous donne un acces illimite a toutes nos demarches administratives et services associes.
+            </p>
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="font-medium text-blue-800 mb-2">Le debit apparait sur votre releve sous :</p>
+              <p className="font-mono text-blue-900">MES DEMARCHES APP</p>
+            </div>
+            <p className="text-xs text-gray-400">
+              Le prelevement est effectue automatiquement chaque mois a la date anniversaire de votre souscription.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Avantages inclus */}
+      <AdvantagesList />
+
       {/* Moyen de paiement */}
       <Card>
         <CardHeader>
@@ -210,50 +235,66 @@ export default function MonAbonnementPage() {
         </Card>
       )}
 
-      {/* Modal de confirmation resiliation */}
-      <Modal
+      {/* Supprimer mon compte (RGPD) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Donnees personnelles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500 mb-4">
+            Conformement au RGPD, vous pouvez demander la suppression de votre compte et de toutes vos donnees personnelles.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Supprimer mon compte
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Parcours de retention */}
+      <CancellationFlow
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        title="Resilier mon abonnement"
-        size="md"
-      >
-        <div className="space-y-4">
-          {cancelError && (
-            <Alert variant="error">{cancelError}</Alert>
-          )}
+        onConfirm={handleCancel}
+        isCanceling={isCanceling}
+        endDate={subscription.currentPeriodEnd ? formatDate(subscription.currentPeriodEnd) : undefined}
+      />
 
-          <p className="text-gray-600">
-            Etes-vous sur de vouloir resilier votre abonnement ? Vous pourrez toujours utiliser nos services jusqu'a la fin de votre periode en cours ({formatDate(subscription.currentPeriodEnd)}).
-          </p>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-medium text-yellow-800 mb-2">Ce que vous perdez :</h4>
-            <ul className="text-sm text-yellow-700 space-y-1">
-              <li>• Acces aux demarches illimitees</li>
-              <li>• Suivi personnalise de vos procedures</li>
-              <li>• Assistance prioritaire</li>
-            </ul>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setShowCancelModal(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={handleCancel}
-              disabled={isCanceling}
-            >
-              {isCanceling ? 'Resiliation...' : 'Confirmer la resiliation'}
-            </Button>
+      {/* Modal RGPD (coming soon) */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowDeleteModal(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl">
+              <div className="px-6 py-4 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Supprimer mon compte</h3>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800 font-medium mb-2">Attention, cette action est irreversible :</p>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    <li>- Suppression de toutes vos donnees personnelles</li>
+                    <li>- Annulation de votre abonnement</li>
+                    <li>- Perte de l'historique de vos demarches</li>
+                    <li>- Suppression de vos documents</li>
+                  </ul>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>
+                    Annuler
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => { setShowDeleteModal(false); showComingSoonToast(); }}>
+                    Confirmer la suppression
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
     </div>
   );
 }

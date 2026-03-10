@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { birthCertificateSchema } from '@/schemas/birth-certificate';
 import { generateReference } from '@/lib/utils';
+import { checkProcessEligibility, consumeSubscriptionProcess } from '@/lib/subscription/process-eligibility';
 import bcrypt from 'bcryptjs';
 
 const embedSubmitSchema = z.object({
@@ -60,14 +61,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Verifier si l'utilisateur a un abonnement actif
+    const eligibility = await checkProcessEligibility(user.id, 'CIVIL_STATUS_BIRTH');
+
     // Generer la reference de la demarche
     const count = await prisma.process.count();
     const reference = generateReference('DEM', count + 1);
 
-    // Calculer le prix
     const basePrice = 1490; // 14,90 EUR en centimes
 
-    // Creer la demarche
+    if (eligibility.eligible && eligibility.subscriptionId) {
+      // Abonne actif : creer la demarche directement en PAID et consommer un credit
+      const process = await prisma.process.create({
+        data: {
+          reference,
+          userId: user.id,
+          type: 'CIVIL_STATUS_BIRTH',
+          status: 'PAID',
+          amountCents: 0, // Inclus dans l'abonnement
+          isFromSubscription: true,
+          data: data as any,
+          updatedAt: new Date(),
+        },
+      });
+
+      await consumeSubscriptionProcess(
+        eligibility.subscriptionId,
+        process.id,
+        'CIVIL_STATUS_BIRTH'
+      );
+
+      return NextResponse.json({
+        reference: process.reference,
+        isSubscriber: true,
+      });
+    }
+
+    // Non abonne : creer la demarche en attente de paiement
     const process = await prisma.process.create({
       data: {
         reference,
@@ -80,8 +110,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Creer la session de paiement Stripe
-    // Pour le PoC, on retourne l'URL de checkout de l'espace-abo
+    // Rediriger vers le checkout
     const checkoutUrl = new URL('/checkout', request.nextUrl.origin);
     checkoutUrl.searchParams.set('ref', process.reference);
     checkoutUrl.searchParams.set('mode', paymentMode);
@@ -89,6 +118,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       reference: process.reference,
+      isSubscriber: false,
       url: checkoutUrl.toString(),
     });
   } catch (error) {
