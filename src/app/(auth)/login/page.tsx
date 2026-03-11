@@ -36,7 +36,7 @@ function LoginForm() {
         router.push(callbackUrl);
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +54,7 @@ function LoginForm() {
         <p className="mt-2 text-center text-sm text-gray-600">
           Pas encore de compte ?{' '}
           <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-            Creer un compte
+            Créer un compte
           </Link>
         </p>
       </div>
@@ -92,7 +92,7 @@ function LoginForm() {
                     href="/forgot-password"
                     className="text-sm text-blue-600 hover:text-blue-500"
                   >
-                    Mot de passe oublie ?
+                    Mot de passe oublié ?
                   </Link>
                 </div>
               </div>
@@ -106,39 +106,6 @@ function LoginForm() {
               </Button>
             </form>
 
-            {(
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-xs text-gray-400 text-center mb-3">Acces rapide (dev)</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isLoading}
-                  onClick={async () => {
-                    setIsLoading(true);
-                    setError(null);
-                    try {
-                      const result = await signIn('credentials', {
-                        email: 'marie.martin@test.com',
-                        password: 'SecurePass123!',
-                        redirect: false,
-                      });
-                      if (result?.error) {
-                        setError('Compte test introuvable');
-                      } else {
-                        router.push(callbackUrl);
-                      }
-                    } catch {
-                      setError('Erreur de connexion');
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
-                >
-                  Connexion Marie Martin (test)
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
