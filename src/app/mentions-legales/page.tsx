@@ -44,7 +44,6 @@ export default function MentionsLegalesPage() {
               <p><span className="font-medium text-gray-900">Siège social :</span> Amsterdam, Pays-Bas</p>
               <p><span className="font-medium text-gray-900">Adresse :</span> Willem Fenengastraat 16 E, 1096BN Amsterdam</p>
               <p><span className="font-medium text-gray-900">Date de création :</span> 3 mars 2026</p>
-              <p><span className="font-medium text-gray-900">Capital social :</span> 1,00 EUR</p>
             </div>
           </section>
 
