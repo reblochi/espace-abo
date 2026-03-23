@@ -18,15 +18,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email et mot de passe requis');
         }
 
-        let user;
-        try {
-          user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-        } catch (dbError) {
-          console.error('DB connection error in authorize:', dbError);
-          throw new Error('Erreur de connexion a la base de donnees');
-        }
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
 
         if (!user || !user.passwordHash) {
           throw new Error('Email ou mot de passe incorrect');
