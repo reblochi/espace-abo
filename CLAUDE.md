@@ -204,18 +204,18 @@ Pour ajouter un nouveau PSP, creer un adapter dans `src/lib/psp/` implementant `
 ### Production (Vercel + Supabase)
 
 - **Hebergement**: Vercel, projet `espace-abo` (ID: `prj_5FlTofrDSh1zNDNsCxVu3AM95lsh`)
-- **Domaine**: `espace-abo.mesdemarchesapp.fr` (DNS Cloudflare)
+- **Domaine**: `franceguichet.fr` (DNS Cloudflare)
 - **Region serverless**: `cdg1` (Paris)
 - **Base de donnees**: Supabase PostgreSQL (projet `znlzxlafmtqbwaicjfjg`, region eu-west)
 - **Auto-deploy**: branche `main` = production, `develop` = preview. Push sur GitHub declenche le deploy automatiquement
-- **Repo GitHub**: `reversing2002/espace-abo`
+- **Repo GitHub**: `reblochi/espace-abo`
 
 ### Widget embed
 
 Le formulaire de demarche peut etre integre sur des sites tiers via un widget iframe :
 
-- **URL embed**: `https://espace-abo.mesdemarchesapp.fr/embed/acte-naissance?partner=<nom>`
-- **Script widget**: `https://espace-abo.mesdemarchesapp.fr/widget/advercity-widget.js`
+- **URL embed**: `https://franceguichet.fr/embed/acte-naissance?partner=<nom>`
+- **Script widget**: `https://franceguichet.fr/widget/advercity-widget.js`
 - **API publique**: `POST /api/embed/acte-naissance` (sans authentification, collecte email/nom dans le formulaire)
 - **Detection abonne**: a la soumission, l'API cherche le user par email et verifie via `checkProcessEligibility` s'il a un abonnement actif. Si oui, la demarche est creee directement sans paiement.
 
@@ -223,11 +223,11 @@ Integration cote site tiers (exemple) :
 ```html
 <script>
   window.ADVERCITY_CONFIG = {
-    baseUrl: 'https://espace-abo.mesdemarchesapp.fr',
+    baseUrl: 'https://franceguichet.fr',
     partner: 'nom-partenaire',
   };
 </script>
-<script src="https://espace-abo.mesdemarchesapp.fr/widget/advercity-widget.js"></script>
+<script src="https://franceguichet.fr/widget/advercity-widget.js"></script>
 <button data-advercity="acte-naissance" data-advercity-partner="nom-partenaire">
   Demander un acte
 </button>

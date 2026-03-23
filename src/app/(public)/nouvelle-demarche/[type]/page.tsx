@@ -51,18 +51,16 @@ export default function FormulaireDemarchePage() {
     },
   });
 
-  // Verifier authentification
+  const isAuthenticated = status === 'authenticated';
+
+  // Verifier l'abonnement (seulement si connecte)
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push(`/login?callbackUrl=/nouvelle-demarche/${routeParams.type}`);
+    if (!isAuthenticated) {
+      setIsLoadingSubscription(false);
+      return;
     }
-  }, [status, router, routeParams.type]);
 
-  // Verifier l'abonnement
-  useEffect(() => {
     const checkSubscription = async () => {
-      if (!session?.user) return;
-
       try {
         const response = await fetch('/api/subscriptions/check');
         if (response.ok) {
@@ -76,10 +74,8 @@ export default function FormulaireDemarchePage() {
       }
     };
 
-    if (session?.user) {
-      checkSubscription();
-    }
-  }, [session]);
+    checkSubscription();
+  }, [isAuthenticated]);
 
   // Verifier si le type existe
   if (!processConfig || !typeCode) {
@@ -104,6 +100,48 @@ export default function FormulaireDemarchePage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Spinner className="w-8 h-8" />
+      </div>
+    );
+  }
+
+  // ================================================
+  // Pour les formulaires qui necessitent une session (carte grise, mariage, deces),
+  // afficher un message de connexion si non authentifie
+  // ================================================
+  const needsAuth = typeCode !== 'CIVIL_STATUS_BIRTH';
+  if (needsAuth && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Logo size="md" />
+              <Link href={`/login?callbackUrl=/nouvelle-demarche/${routeParams.type}`}>
+                <Button>Se connecter</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-4 py-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>{processConfig.label}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-600 mb-6">
+                Connectez-vous ou creez un compte pour effectuer cette demarche.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Link href={`/login?callbackUrl=/nouvelle-demarche/${routeParams.type}`}>
+                  <Button>Se connecter</Button>
+                </Link>
+                <Link href={`/register?callbackUrl=/nouvelle-demarche/${routeParams.type}`}>
+                  <Button variant="outline">Creer un compte</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
@@ -207,6 +245,7 @@ export default function FormulaireDemarchePage() {
           <BirthCertificateForm
             isSubscriber={hasActiveSubscription}
             basePrice={processConfig.basePrice}
+            embedPartner={!isAuthenticated ? 'direct' : undefined}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}

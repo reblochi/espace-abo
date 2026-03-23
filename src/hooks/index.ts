@@ -12,3 +12,4 @@ export {
   useForgotPassword,
   useResetPassword,
 } from './useAuth';
+export { useServicesPublics } from './useServicesPublics';
