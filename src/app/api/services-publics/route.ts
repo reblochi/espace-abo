@@ -87,8 +87,31 @@ export async function GET(request: NextRequest) {
     // Prendre tous les codes INSEE (un code postal peut couvrir plusieurs communes)
     const codeInsee = communes.map((c) => c.code);
 
+    // Pour Paris/Lyon/Marseille, les services sont enregistres par arrondissement
+    // Le code postal permet de deduire le code INSEE arrondissement
+    const zipCode = user.zipCode;
+    if (zipCode.startsWith('750') && zipCode.length === 5) {
+      // Paris: 75001->75101, 75011->75111, 75020->75120
+      const arr = parseInt(zipCode.slice(3), 10);
+      if (arr >= 1 && arr <= 20) {
+        codeInsee.push(`751${arr.toString().padStart(2, '0')}`);
+      }
+    } else if (zipCode.startsWith('6900') && zipCode.length === 5) {
+      // Lyon: 69001->69381, 69002->69382, etc.
+      const arr = parseInt(zipCode.slice(4), 10);
+      if (arr >= 1 && arr <= 9) {
+        codeInsee.push(`6938${arr}`);
+      }
+    } else if (zipCode.startsWith('130') && zipCode.length === 5) {
+      // Marseille: 13001->13201, 13002->13202, etc.
+      const arr = parseInt(zipCode.slice(3), 10);
+      if (arr >= 1 && arr <= 16) {
+        codeInsee.push(`132${arr.toString().padStart(2, '0')}`);
+      }
+    }
+
     // 2. Interroger l'annuaire pour chaque type de service
-    const whereInsee = codeInsee.map((c) => `code_insee_commune='${c}'`).join(' or ');
+    const whereInsee = [...new Set(codeInsee)].map((c) => `code_insee_commune='${c}'`).join(' or ');
     const wherePivot = SERVICE_TYPES.map((t) => `search(pivot,'${t}')`).join(' or ');
     const where = `(${whereInsee}) and (${wherePivot})`;
 
