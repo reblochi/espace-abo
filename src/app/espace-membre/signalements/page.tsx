@@ -1,146 +1,203 @@
-// Page Signalements
+// Page Signalements citoyens
 
 'use client';
 
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Input, Textarea } from '@/components/ui';
-import { showComingSoonToast } from '@/components/ui/coming-soon';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Textarea, Alert } from '@/components/ui';
 
-const categories = [
-  'Voirie et trottoirs',
-  'Eclairage public',
-  'Proprete et dechets',
-  'Espaces verts',
-  'Stationnement',
-  'Bruit et nuisances',
-  'Securite',
-  'Autre',
+const CATEGORIES = [
+  { value: 'voirie', label: 'Voirie et trottoirs', icon: '🚧' },
+  { value: 'eclairage', label: 'Eclairage public', icon: '💡' },
+  { value: 'proprete', label: 'Proprete et dechets', icon: '🗑️' },
+  { value: 'espaces_verts', label: 'Espaces verts', icon: '🌳' },
+  { value: 'stationnement', label: 'Stationnement', icon: '🅿️' },
+  { value: 'nuisances', label: 'Bruit et nuisances', icon: '🔊' },
+  { value: 'securite', label: 'Securite', icon: '⚠️' },
+  { value: 'autre', label: 'Autre', icon: '📋' },
 ];
 
-const mockSignalements = [
-  {
-    id: 's1',
-    category: 'Eclairage public',
-    description: 'Lampadaire en panne devant le 12 rue de la Mairie',
-    date: '2026-02-28',
-    status: 'en_cours',
-  },
-  {
-    id: 's2',
-    category: 'Voirie et trottoirs',
-    description: 'Nid-de-poule dangereux angle rue des Lilas / avenue Gambetta',
-    date: '2026-02-15',
-    status: 'traite',
-  },
-  {
-    id: 's3',
-    category: 'Proprete et dechets',
-    description: 'Depot sauvage de dechets pres du parking du stade',
-    date: '2026-01-20',
-    status: 'traite',
-  },
-];
+interface MairieInfo {
+  mairieEmail: string | null;
+  mairieName: string | null;
+  zipCode: string | null;
+}
 
-const statusConfig = {
-  en_cours: { label: 'En cours', variant: 'warning' as const },
-  traite: { label: 'Traite', variant: 'success' as const },
-  nouveau: { label: 'Nouveau', variant: 'default' as const },
-};
+interface SignalementResult {
+  success: boolean;
+  sentToMairie: boolean;
+  mairieName: string | null;
+}
 
 export default function SignalementsPage() {
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [adresse, setAdresse] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<SignalementResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [mairieInfo, setMairieInfo] = useState<MairieInfo | null>(null);
+
+  // Charger les infos mairie au montage
+  useEffect(() => {
+    fetch('/api/signalements')
+      .then((r) => r.json())
+      .then(setMairieInfo)
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setResult(null);
+
+    if (!category) {
+      setError('Veuillez selectionner une categorie');
+      return;
+    }
+    if (description.length < 10) {
+      setError('La description doit contenir au moins 10 caracteres');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const categoryLabel = CATEGORIES.find((c) => c.value === category)?.label || category;
+      const res = await fetch('/api/signalements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: categoryLabel,
+          description,
+          adresse,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Erreur lors de l\'envoi');
+        return;
+      }
+
+      setResult(data);
+      setCategory('');
+      setDescription('');
+      setAdresse('');
+    } catch {
+      setError('Erreur de connexion. Veuillez reessayer.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Signalements</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Signalement citoyen</h1>
         <p className="text-gray-500 mt-1">
-          Signalez un probleme dans votre commune
+          Signalez un probleme dans votre commune : trou dans la chaussee, eclairage defaillant, depot sauvage...
         </p>
       </div>
 
-      {/* Formulaire de signalement */}
+      {/* Info mairie */}
+      {mairieInfo && (
+        <div className="flex items-center gap-2 text-sm">
+          <div className={`w-2 h-2 rounded-full ${mairieInfo.mairieEmail ? 'bg-green-500' : 'bg-orange-400'}`} />
+          {mairieInfo.mairieEmail ? (
+            <span className="text-gray-600">
+              Votre signalement sera envoye a <strong>{mairieInfo.mairieName || 'votre mairie'}</strong>
+            </span>
+          ) : (
+            <span className="text-gray-500">
+              {mairieInfo.mairieName
+                ? `Email de ${mairieInfo.mairieName} non disponible — vous recevrez une copie de votre signalement`
+                : 'Renseignez votre code postal dans votre profil pour activer les signalements'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Message de succes */}
+      {result && (
+        <Alert variant="success">
+          {result.sentToMairie ? (
+            <>Votre signalement a ete transmis a <strong>{result.mairieName || 'votre mairie'}</strong>. Une copie vous a ete envoyee par email.</>
+          ) : (
+            <>Votre signalement a ete enregistre. Une copie vous a ete envoyee par email.</>
+          )}
+        </Alert>
+      )}
+
+      {/* Formulaire */}
       <Card>
         <CardHeader>
           <CardTitle>Nouveau signalement</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); showComingSoonToast(); }} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <Alert variant="error">{error}</Alert>
+            )}
+
+            {/* Categories en grille */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
-              <select className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Selectionnez une categorie</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Que souhaitez-vous signaler ?
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategory(cat.value)}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      category === cat.value
+                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-lg">{cat.icon}</span>
+                    <p className="text-xs font-medium text-gray-700 mt-1 leading-tight">{cat.label}</p>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
+            {/* Adresse */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <Textarea
-                placeholder="Decrivez le probleme de maniere precise..."
-                rows={4}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ou se situe le probleme ?
+              </label>
+              <input
+                type="text"
+                value={adresse}
+                onChange={(e) => setAdresse(e.target.value)}
+                placeholder="Ex: 12 rue de la Mairie, devant le n°24..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Photo (optionnel)</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <svg className="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <p className="text-sm text-gray-500">Cliquez pour ajouter une photo</p>
-                <p className="text-xs text-gray-400 mt-1">JPG, PNG - Max 10 Mo</p>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description du probleme
+              </label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Decrivez le probleme de maniere precise : quoi, ou exactement, depuis quand, niveau de gravite..."
+                rows={4}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {description.length}/10 caracteres minimum
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
-              <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center border border-gray-200">
-                <div className="text-center">
-                  <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <p className="text-sm text-gray-500">Carte interactive</p>
-                  <p className="text-xs text-gray-400">Cliquez pour placer un marqueur</p>
-                </div>
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full">
-              Envoyer le signalement
+            <Button type="submit" className="w-full" disabled={isSubmitting || !mairieInfo?.zipCode}>
+              {isSubmitting ? 'Envoi en cours...' : 'Envoyer le signalement'}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Historique */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Mes signalements</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {mockSignalements.map(sig => {
-              const status = statusConfig[sig.status as keyof typeof statusConfig];
-              return (
-                <div key={sig.id} className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                  <svg className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="secondary">{sig.category}</Badge>
-                      <Badge variant={status.variant}>{status.label}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-700">{sig.description}</p>
-                    <p className="text-xs text-gray-400 mt-1">{sig.date}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </CardContent>
       </Card>
     </div>
