@@ -13,3 +13,4 @@ export {
   useResetPassword,
 } from './useAuth';
 export { useServicesPublics } from './useServicesPublics';
+export { useCarburants } from './useCarburants';

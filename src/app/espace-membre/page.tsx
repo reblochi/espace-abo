@@ -3,7 +3,7 @@
 'use client';
 
 import { useAuth, useSubscription, useProcesses } from '@/hooks';
-import { DashboardStats, SubscriptionCard, NewsTips, ServicesPublics } from '@/components/dashboard';
+import { DashboardStats, SubscriptionCard, NewsTips, ServicesPublics, CarburantsPrix } from '@/components/dashboard';
 import { ProcessStatusBadge, QuotaGauge } from '@/components/processes';
 import { Card, CardHeader, CardTitle, CardContent, Button, SkeletonDashboard, ComingSoonBadge } from '@/components/ui';
 import { showComingSoonToast } from '@/components/ui/coming-soon';
@@ -277,8 +277,11 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Services publics proches */}
-      <ServicesPublics />
+      {/* Services publics proches + Prix carburants */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ServicesPublics />
+        <CarburantsPrix />
+      </div>
 
       {/* Conseils & Actualites */}
       <NewsTips />
