@@ -27,7 +27,7 @@ export function CarburantsPrix() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Prix des carburants</CardTitle>
+          <CardTitle>Essence la moins chere</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -56,7 +56,7 @@ export function CarburantsPrix() {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Prix des carburants</CardTitle>
+          <CardTitle>Essence la moins chere</CardTitle>
           <span className="text-xs text-gray-400">{data.codePostal}</span>
         </div>
       </CardHeader>
@@ -79,11 +79,11 @@ export function CarburantsPrix() {
                 }`}
               >
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
-                  {best.station ? fuel.toUpperCase() : fuel.toUpperCase()}
+                  {fuel.toUpperCase()}
                 </p>
                 <p className="text-lg font-bold mt-0.5">{formatPrix(best.prix)}</p>
-                <p className="text-xs opacity-60 truncate mt-0.5" title={best.adresse}>
-                  {best.adresse}
+                <p className="text-xs opacity-60 mt-0.5 leading-tight" title={`${best.adresse}, ${best.station}`}>
+                  {best.adresse}, {best.station}
                 </p>
               </button>
             );
@@ -110,11 +110,10 @@ export function CarburantsPrix() {
                   }`}
                 >
                   <div className="min-w-0 flex-1 mr-2">
-                    <p className="font-medium text-gray-900 truncate text-xs">
-                      {station.adresse}
+                    <p className="font-medium text-gray-900 text-xs">
+                      {station.adresse}, {station.cp} {station.ville}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {station.cp} {station.ville}
                       {station.automate24h && (
                         <span className="ml-1 text-blue-500">24h/24</span>
                       )}
