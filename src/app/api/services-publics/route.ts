@@ -7,7 +7,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 
-const SERVICE_TYPES = ['mairie', 'france_services', 'caf', 'cpam'] as const;
+const SERVICE_TYPES = ['mairie', 'france_services', 'caf', 'cpam', 'point_accueil_numerique'] as const;
 
 type ServiceType = (typeof SERVICE_TYPES)[number];
 
@@ -16,6 +16,7 @@ const SERVICE_LABELS: Record<ServiceType, string> = {
   france_services: 'Maison France Services',
   caf: 'CAF',
   cpam: 'CPAM',
+  point_accueil_numerique: 'Point numerique',
 };
 
 export interface ServicePublic {
