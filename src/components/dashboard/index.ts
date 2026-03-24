@@ -4,3 +4,4 @@ export { SubscriptionCard } from './SubscriptionCard';
 export { NewsTips } from './NewsTips';
 export { ServicesPublics } from './ServicesPublics';
 export { CarburantsPrix } from './CarburantsPrix';
+export { LaPoste } from './LaPoste';

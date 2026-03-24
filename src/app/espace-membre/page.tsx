@@ -3,7 +3,7 @@
 'use client';
 
 import { useAuth, useSubscription, useProcesses } from '@/hooks';
-import { DashboardStats, SubscriptionCard, NewsTips, ServicesPublics, CarburantsPrix } from '@/components/dashboard';
+import { DashboardStats, SubscriptionCard, NewsTips, ServicesPublics, CarburantsPrix, LaPoste } from '@/components/dashboard';
 import { ProcessStatusBadge, QuotaGauge } from '@/components/processes';
 import { Card, CardHeader, CardTitle, CardContent, Button, SkeletonDashboard, ComingSoonBadge } from '@/components/ui';
 import { showComingSoonToast } from '@/components/ui/coming-soon';
@@ -282,6 +282,9 @@ export default function DashboardPage() {
         <ServicesPublics />
         <CarburantsPrix />
       </div>
+
+      {/* La Poste */}
+      <LaPoste />
 
       {/* Conseils & Actualites */}
       <NewsTips />
