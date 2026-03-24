@@ -44,6 +44,78 @@ interface PlageOuverture {
 }
 
 // GET /api/services-publics
+function parseRecord(r: any): ServicePublic | null {
+  let serviceType: ServiceType = 'mairie';
+  try {
+    const pivots = typeof r.pivot === 'string' ? JSON.parse(r.pivot) : r.pivot;
+    if (Array.isArray(pivots) && pivots.length > 0) {
+      const found = SERVICE_TYPES.find((t) => pivots[0].type_service_local === t);
+      if (found) serviceType = found;
+    }
+  } catch {}
+
+  let adresse = '';
+  let codePostal = '';
+  let commune = '';
+  try {
+    const adresses = typeof r.adresse === 'string' ? JSON.parse(r.adresse) : r.adresse;
+    if (Array.isArray(adresses) && adresses.length > 0) {
+      const a = adresses[0];
+      adresse = a.numero_voie || '';
+      codePostal = a.code_postal || '';
+      commune = a.nom_commune || '';
+    }
+  } catch {}
+
+  let telephone: string | null = null;
+  try {
+    const tels = typeof r.telephone === 'string' ? JSON.parse(r.telephone) : r.telephone;
+    if (Array.isArray(tels) && tels.length > 0) {
+      telephone = tels[0].valeur || null;
+    }
+  } catch {}
+
+  let siteInternet: string | null = null;
+  try {
+    const sites =
+      typeof r.site_internet === 'string' ? JSON.parse(r.site_internet) : r.site_internet;
+    if (Array.isArray(sites) && sites.length > 0) {
+      siteInternet = sites[0].valeur || null;
+    }
+  } catch {}
+
+  let horaires: PlageOuverture[] | null = null;
+  try {
+    const plages =
+      typeof r.plage_ouverture === 'string' ? JSON.parse(r.plage_ouverture) : r.plage_ouverture;
+    if (Array.isArray(plages) && plages.length > 0) {
+      horaires = plages.map((p: any) => ({
+        jourDebut: p.nom_jour_debut || '',
+        jourFin: p.nom_jour_fin || '',
+        heureDebut1: p.valeur_heure_debut_1 || '',
+        heureFin1: p.valeur_heure_fin_1 || '',
+        heureDebut2: p.valeur_heure_debut_2 || null,
+        heureFin2: p.valeur_heure_fin_2 || null,
+      }));
+    }
+  } catch {}
+
+  return {
+    id: r.id,
+    type: serviceType,
+    typeLabel: SERVICE_LABELS[serviceType],
+    nom: r.nom || '',
+    adresse,
+    codePostal,
+    commune,
+    telephone,
+    email: r.adresse_courriel || null,
+    horaires,
+    siteInternet,
+    urlServicePublic: r.url_service_public || null,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -141,84 +213,7 @@ export async function GET(request: NextRequest) {
     const records: any[] = annuaireData.results || [];
 
     // 3. Transformer les resultats
-    const services: ServicePublic[] = records.map((r) => {
-      // Extraire le type depuis pivot
-      let serviceType: ServiceType = 'mairie';
-      try {
-        const pivots = typeof r.pivot === 'string' ? JSON.parse(r.pivot) : r.pivot;
-        if (Array.isArray(pivots) && pivots.length > 0) {
-          const found = SERVICE_TYPES.find((t) => pivots[0].type_service_local === t);
-          if (found) serviceType = found;
-        }
-      } catch {}
-
-      // Extraire l'adresse
-      let adresse = '';
-      let codePostal = '';
-      let commune = '';
-      try {
-        const adresses = typeof r.adresse === 'string' ? JSON.parse(r.adresse) : r.adresse;
-        if (Array.isArray(adresses) && adresses.length > 0) {
-          const a = adresses[0];
-          adresse = a.numero_voie || '';
-          codePostal = a.code_postal || '';
-          commune = a.nom_commune || '';
-        }
-      } catch {}
-
-      // Extraire le telephone
-      let telephone: string | null = null;
-      try {
-        const tels = typeof r.telephone === 'string' ? JSON.parse(r.telephone) : r.telephone;
-        if (Array.isArray(tels) && tels.length > 0) {
-          telephone = tels[0].valeur || null;
-        }
-      } catch {}
-
-      // Extraire le site internet
-      let siteInternet: string | null = null;
-      try {
-        const sites =
-          typeof r.site_internet === 'string' ? JSON.parse(r.site_internet) : r.site_internet;
-        if (Array.isArray(sites) && sites.length > 0) {
-          siteInternet = sites[0].valeur || null;
-        }
-      } catch {}
-
-      // Extraire les horaires
-      let horaires: PlageOuverture[] | null = null;
-      try {
-        const plages =
-          typeof r.plage_ouverture === 'string'
-            ? JSON.parse(r.plage_ouverture)
-            : r.plage_ouverture;
-        if (Array.isArray(plages) && plages.length > 0) {
-          horaires = plages.map((p: any) => ({
-            jourDebut: p.nom_jour_debut || '',
-            jourFin: p.nom_jour_fin || '',
-            heureDebut1: p.valeur_heure_debut_1 || '',
-            heureFin1: p.valeur_heure_fin_1 || '',
-            heureDebut2: p.valeur_heure_debut_2 || null,
-            heureFin2: p.valeur_heure_fin_2 || null,
-          }));
-        }
-      } catch {}
-
-      return {
-        id: r.id,
-        type: serviceType,
-        typeLabel: SERVICE_LABELS[serviceType],
-        nom: r.nom || '',
-        adresse,
-        codePostal,
-        commune,
-        telephone,
-        email: r.adresse_courriel || null,
-        horaires,
-        siteInternet,
-        urlServicePublic: r.url_service_public || null,
-      };
-    });
+    const services: ServicePublic[] = records.map(parseRecord).filter(Boolean) as ServicePublic[];
 
     // Trier : un service par type, privilegier le premier trouve
     const byType = new Map<ServiceType, ServicePublic>();
@@ -226,6 +221,50 @@ export async function GET(request: NextRequest) {
       if (!byType.has(s.type)) {
         byType.set(s.type, s);
       }
+    }
+
+    // Fallback : pour les types manquants, chercher dans les communes voisines
+    const missingTypes = SERVICE_TYPES.filter((t) => !byType.has(t));
+    if (missingTypes.length > 0 && codeInsee.length > 0) {
+      try {
+        const voisinesRes = await fetch(
+          `https://geo.api.gouv.fr/communes/${codeInsee[0]}/voisines?fields=code&format=json`,
+          { next: { revalidate: 86400 } }
+        );
+        if (voisinesRes.ok) {
+          const voisines: { code: string }[] = await voisinesRes.json();
+          const voisinesInsee = voisines.map((v) => v.code).slice(0, 10);
+
+          if (voisinesInsee.length > 0) {
+            const whereVoisines = voisinesInsee.map((c) => `code_insee_commune='${c}'`).join(' or ');
+            const whereMissing = missingTypes.map((t) => `search(pivot,'${t}')`).join(' or ');
+            const whereExtra = `(${whereVoisines}) and (${whereMissing})`;
+
+            const extraUrl = new URL(
+              'https://api-lannuaire.service-public.gouv.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records'
+            );
+            extraUrl.searchParams.set('where', whereExtra);
+            extraUrl.searchParams.set('limit', '20');
+            extraUrl.searchParams.set(
+              'select',
+              'id,nom,pivot,adresse,telephone,adresse_courriel,plage_ouverture,site_internet,url_service_public'
+            );
+
+            const extraRes = await fetch(extraUrl.toString(), { next: { revalidate: 3600 } });
+            if (extraRes.ok) {
+              const extraData = await extraRes.json();
+              const extraRecords: any[] = extraData.results || [];
+
+              for (const r of extraRecords) {
+                const parsed = parseRecord(r);
+                if (parsed && !byType.has(parsed.type)) {
+                  byType.set(parsed.type, parsed);
+                }
+              }
+            }
+          }
+        }
+      } catch {}
     }
 
     return NextResponse.json({

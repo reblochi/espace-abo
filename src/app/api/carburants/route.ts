@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { getCommuneGeo } from '@/lib/geo';
 
 const FUEL_TYPES = ['gazole', 'sp95', 'sp98', 'e10', 'e85', 'gplc'] as const;
 type FuelType = (typeof FUEL_TYPES)[number];
@@ -64,14 +65,18 @@ export async function GET(request: NextRequest) {
     }
 
     const zipCode = user.zipCode;
-    const deptCode = zipCode.slice(0, 2);
 
-    // Essayer par code postal d'abord, puis par departement si pas de resultats
+    // Essayer par code postal d'abord
     let stations = await fetchStations(`refine=cp:${zipCode}`);
 
+    // Fallback : recherche par rayon geographique (10km)
     if (stations.length === 0) {
-      // Pour Paris/Lyon/Marseille ou petites communes, elargir au departement
-      stations = await fetchStations(`refine=code_departement:${deptCode}`);
+      const geo = await getCommuneGeo(zipCode);
+      if (geo) {
+        stations = await fetchStations(
+          `where=within_distance(geom,geom'POINT(${geo.lon} ${geo.lat})',10km)`
+        );
+      }
     }
 
     // Limiter a 10 stations max

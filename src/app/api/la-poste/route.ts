@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { getCommuneGeo } from '@/lib/geo';
 import fs from 'fs';
 import path from 'path';
 
@@ -134,6 +135,42 @@ function formatHeure(raw: string): string | null {
   return match ? match[1] : null;
 }
 
+/** Distance en km entre deux points GPS (formule de Haversine) */
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Trouve les N bureaux de poste les plus proches d'un point GPS */
+function findNearestBureaux(
+  map: Map<string, BureauPoste[]>,
+  lat: number,
+  lon: number,
+  maxResults: number
+): BureauPoste[] {
+  const all: { bureau: BureauPoste; dist: number }[] = [];
+
+  for (const bureaux of map.values()) {
+    for (const b of bureaux) {
+      if (b.latitude != null && b.longitude != null) {
+        const dist = haversineKm(lat, lon, b.latitude, b.longitude);
+        if (dist <= 20) {
+          // Max 20km
+          all.push({ bureau: b, dist });
+        }
+      }
+    }
+  }
+
+  all.sort((a, b) => a.dist - b.dist);
+  return all.slice(0, maxResults).map((a) => a.bureau);
+}
+
 // GET /api/la-poste
 export async function GET(request: NextRequest) {
   try {
@@ -159,8 +196,16 @@ export async function GET(request: NextRequest) {
     const bureauxMap = parseBureauxCSV();
     const boitesMap = parseBoitesCSV();
 
-    const bureaux = bureauxMap.get(cp) || [];
-    const boites = (boitesMap.get(cp) || []).slice(0, 10); // Limiter les boites
+    let bureaux = bureauxMap.get(cp) || [];
+    let boites = (boitesMap.get(cp) || []).slice(0, 10);
+
+    // Fallback : si aucun bureau, chercher les plus proches par distance GPS
+    if (bureaux.length === 0) {
+      const geo = await getCommuneGeo(cp);
+      if (geo) {
+        bureaux = findNearestBureaux(bureauxMap, geo.lat, geo.lon, 5);
+      }
+    }
 
     return NextResponse.json({
       bureaux,
