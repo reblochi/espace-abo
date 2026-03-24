@@ -1,7 +1,7 @@
 // API Route - Bureaux de poste et boites aux lettres proches du client
 // Utilise les CSV de La Poste (donnees statiques)
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
@@ -172,7 +172,7 @@ function findNearestBureaux(
 }
 
 // GET /api/la-poste
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {

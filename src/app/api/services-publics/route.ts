@@ -2,10 +2,11 @@
 // Utilise geo.api.gouv.fr pour convertir code postal -> code INSEE
 // Puis api-lannuaire.service-public.gouv.fr pour lister les services
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { addArrondissementInsee } from '@/lib/insee';
 
 const SERVICE_TYPES = ['mairie', 'france_services', 'caf', 'cpam', 'point_accueil_numerique'] as const;
 
@@ -116,7 +117,7 @@ function parseRecord(r: any): ServicePublic | null {
   };
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -161,27 +162,7 @@ export async function GET(request: NextRequest) {
     const codeInsee = communes.map((c) => c.code);
 
     // Pour Paris/Lyon/Marseille, les services sont enregistres par arrondissement
-    // Le code postal permet de deduire le code INSEE arrondissement
-    const zipCode = user.zipCode;
-    if (zipCode.startsWith('750') && zipCode.length === 5) {
-      // Paris: 75001->75101, 75011->75111, 75020->75120
-      const arr = parseInt(zipCode.slice(3), 10);
-      if (arr >= 1 && arr <= 20) {
-        codeInsee.push(`751${arr.toString().padStart(2, '0')}`);
-      }
-    } else if (zipCode.startsWith('6900') && zipCode.length === 5) {
-      // Lyon: 69001->69381, 69002->69382, etc.
-      const arr = parseInt(zipCode.slice(4), 10);
-      if (arr >= 1 && arr <= 9) {
-        codeInsee.push(`6938${arr}`);
-      }
-    } else if (zipCode.startsWith('130') && zipCode.length === 5) {
-      // Marseille: 13001->13201, 13002->13202, etc.
-      const arr = parseInt(zipCode.slice(3), 10);
-      if (arr >= 1 && arr <= 16) {
-        codeInsee.push(`132${arr.toString().padStart(2, '0')}`);
-      }
-    }
+    addArrondissementInsee(user.zipCode, codeInsee);
 
     // 2. Interroger l'annuaire pour chaque type de service
     const whereInsee = [...new Set(codeInsee)].map((c) => `code_insee_commune='${c}'`).join(' or ');

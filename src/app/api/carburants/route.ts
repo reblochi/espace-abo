@@ -1,7 +1,7 @@
 // API Route - Prix des carburants proches du client
 // Utilise data.economie.gouv.fr (flux instantane v2)
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
@@ -45,7 +45,7 @@ export interface CarburantsResponse {
 }
 
 // GET /api/carburants
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {

@@ -113,11 +113,9 @@ export function CarburantsPrix() {
                     <p className="font-medium text-gray-900 text-xs">
                       {station.adresse}, {station.cp} {station.ville}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {station.automate24h && (
-                        <span className="ml-1 text-blue-500">24h/24</span>
-                      )}
-                    </p>
+                    {station.automate24h && (
+                      <p className="text-xs text-blue-500">24h/24</p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <span className={`font-bold ${isBest ? 'text-green-600' : 'text-gray-900'}`}>

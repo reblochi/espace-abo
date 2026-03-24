@@ -6,7 +6,16 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { sendRawEmail } from '@/lib/email';
+import { addArrondissementInsee } from '@/lib/insee';
 import { z } from 'zod';
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 const signalementSchema = z.object({
   category: z.string().min(1, 'Categorie requise'),
@@ -14,12 +23,12 @@ const signalementSchema = z.object({
   adresse: z.string().optional(),
 });
 
-// Cache email mairie par code postal
-const mairieEmailCache = new Map<string, string | null>();
+// Cache email + nom mairie par code postal
+const mairieCache = new Map<string, { email: string | null; nom: string | null }>();
 
 async function getMairieEmail(zipCode: string): Promise<{ email: string | null; nom: string | null }> {
-  if (mairieEmailCache.has(zipCode)) {
-    return { email: mairieEmailCache.get(zipCode) || null, nom: null };
+  if (mairieCache.has(zipCode)) {
+    return mairieCache.get(zipCode)!;
   }
 
   try {
@@ -33,18 +42,7 @@ async function getMairieEmail(zipCode: string): Promise<{ email: string | null; 
     if (communes.length === 0) return { email: null, nom: null };
 
     const codeInsee = communes.map((c) => c.code);
-
-    // Pour Paris/Lyon/Marseille, ajouter arrondissement
-    if (zipCode.startsWith('750') && zipCode.length === 5) {
-      const arr = parseInt(zipCode.slice(3), 10);
-      if (arr >= 1 && arr <= 20) codeInsee.push(`751${arr.toString().padStart(2, '0')}`);
-    } else if (zipCode.startsWith('6900') && zipCode.length === 5) {
-      const arr = parseInt(zipCode.slice(4), 10);
-      if (arr >= 1 && arr <= 9) codeInsee.push(`6938${arr}`);
-    } else if (zipCode.startsWith('130') && zipCode.length === 5) {
-      const arr = parseInt(zipCode.slice(3), 10);
-      if (arr >= 1 && arr <= 16) codeInsee.push(`132${arr.toString().padStart(2, '0')}`);
-    }
+    addArrondissementInsee(zipCode, codeInsee);
 
     const whereInsee = [...new Set(codeInsee)].map((c) => `code_insee_commune='${c}'`).join(' or ');
 
@@ -63,20 +61,22 @@ async function getMairieEmail(zipCode: string): Promise<{ email: string | null; 
 
     for (const r of records) {
       if (r.adresse_courriel) {
-        mairieEmailCache.set(zipCode, r.adresse_courriel);
-        return { email: r.adresse_courriel, nom: r.nom || null };
+        const result = { email: r.adresse_courriel, nom: r.nom || null };
+        mairieCache.set(zipCode, result);
+        return result;
       }
     }
 
-    mairieEmailCache.set(zipCode, null);
-    return { email: null, nom: records[0]?.nom || null };
+    const result = { email: null, nom: records[0]?.nom || null };
+    mairieCache.set(zipCode, result);
+    return result;
   } catch {
     return { email: null, nom: null };
   }
 }
 
 // GET /api/signalements - Info mairie (email disponible ou non)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -153,25 +153,31 @@ export async function POST(request: NextRequest) {
       minute: '2-digit',
     });
 
+    const safeCategory = escapeHtml(category);
+    const safeLieu = escapeHtml(lieu);
+    const safeDescription = escapeHtml(description).replace(/\n/g, '<br>');
+    const safeUserName = escapeHtml(userName);
+    const safeEmail = escapeHtml(user.email);
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1e40af;">Signalement citoyen</h2>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr>
             <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: bold; background: #f9fafb; width: 140px;">Categorie</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${category}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${safeCategory}</td>
           </tr>
           <tr>
             <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: bold; background: #f9fafb;">Localisation</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${lieu}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${safeLieu}</td>
           </tr>
           <tr>
             <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: bold; background: #f9fafb;">Description</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${description.replace(/\n/g, '<br>')}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${safeDescription}</td>
           </tr>
           <tr>
             <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: bold; background: #f9fafb;">Signale par</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${userName} (${user.email})</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${safeUserName} (${safeEmail})</td>
           </tr>
           <tr>
             <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: bold; background: #f9fafb;">Date</td>
