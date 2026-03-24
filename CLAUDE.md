@@ -250,6 +250,38 @@ En plus des variables locales, Vercel necessite `RESEND_API_KEY` meme si non uti
 - **Desabonnement simplifie** : page publique sur espace-abo (`/desabonnement`) accessible sans connexion. L'utilisateur saisit son email, recoit un lien de confirmation par email, clic = desactivation de l'abonnement. Lien vers cette page visible depuis la home de l'espace-abo.
 - **Acces factures** : donner acces aux factures depuis l'espace membre (`/espace-membre/mes-factures`) et potentiellement via un lien direct envoye par email apres chaque paiement (token signe, sans auth requise).
 
+## Services de proximite (Dashboard espace membre)
+
+Le dashboard affiche des donnees localisees basees sur le `zipCode` du user en BDD.
+
+### Services publics (`/api/services-publics`)
+
+- **Source** : API Annuaire Service Public (`api-lannuaire.service-public.gouv.fr`)
+- **Types affiches** : mairie, Maison France Services, CAF, CPAM, point d'accueil numerique
+- **Resolution** : code postal → code(s) INSEE via `geo.api.gouv.fr`, puis requete annuaire par `code_insee_commune`
+- **Paris/Lyon/Marseille** : ajout automatique du code INSEE arrondissement (deduit du code postal)
+- **Fallback** : si des types manquent, recherche dans les communes voisines via `geo.api.gouv.fr/communes/{code}/voisines`
+
+### Prix des carburants (`/api/carburants`)
+
+- **Source** : API data.economie.gouv.fr (flux instantane v2)
+- **Affichage** : meilleur prix par type (Gazole, SP95, SP98, E10, E85, GPLc) + detail des stations au clic
+- **Fallback** : si 0 station par code postal, recherche dans un rayon de 10km via `within_distance` (coordonnees GPS depuis `geo.api.gouv.fr`)
+
+### La Poste (`/api/la-poste`)
+
+- **Source** : CSV statiques dans `data/` (bureaux de poste + boites aux lettres)
+  - `data/bureaux-poste.csv` (~13k bureaux, source La Poste)
+  - `data/boites-aux-lettres.csv` (~114k boites, source Datanova)
+- **Affichage** : bureaux de poste (nom, adresse, tel, DAB) + boites aux lettres (depliable, avec horaires de releve)
+- **Fallback** : si 0 bureau par code postal, recherche des 5 plus proches par distance GPS (Haversine, max 20km)
+- **Cache** : index en memoire par code postal (parse CSV une seule fois par instance serverless)
+
+### Utilitaire geographique (`src/lib/geo.ts`)
+
+- `getCommuneGeo(codePostal)` : retourne les coordonnees GPS (lon, lat) d'une commune via `geo.api.gouv.fr`
+- Utilise par les API carburants et La Poste pour les fallbacks par rayon
+
 ## Notes importantes
 
 - Le schema Prisma utilise un schema PostgreSQL dedie: `espace_abo`
