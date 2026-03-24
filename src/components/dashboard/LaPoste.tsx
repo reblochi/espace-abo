@@ -65,6 +65,8 @@ function BoiteCard({ boite }: { boite: BoiteAuxLettres }) {
 export function LaPoste() {
   const { data, isLoading, error } = useLaPoste();
   const [showBoites, setShowBoites] = useState(false);
+  const [bureauxLimit, setBureauxLimit] = useState(5);
+  const [boitesLimit, setBoitesLimit] = useState(5);
 
   if (isLoading) {
     return (
@@ -99,9 +101,17 @@ export function LaPoste() {
         {/* Bureaux de poste */}
         {data.bureaux.length > 0 && (
           <div className="space-y-3">
-            {data.bureaux.map((bureau) => (
+            {data.bureaux.slice(0, bureauxLimit).map((bureau) => (
               <BureauCard key={bureau.id} bureau={bureau} />
             ))}
+            {data.bureaux.length > bureauxLimit && (
+              <button
+                onClick={() => setBureauxLimit((l) => l + 5)}
+                className="w-full text-sm text-blue-600 hover:text-blue-800 py-2 transition-colors"
+              >
+                Voir plus ({data.bureaux.length - bureauxLimit} restants)
+              </button>
+            )}
           </div>
         )}
 
@@ -125,9 +135,17 @@ export function LaPoste() {
 
             {showBoites && (
               <div className="space-y-2 mt-3">
-                {data.boites.map((boite) => (
+                {data.boites.slice(0, boitesLimit).map((boite) => (
                   <BoiteCard key={boite.id} boite={boite} />
                 ))}
+                {data.boites.length > boitesLimit && (
+                  <button
+                    onClick={() => setBoitesLimit((l) => l + 5)}
+                    className="w-full text-sm text-blue-600 hover:text-blue-800 py-2 transition-colors"
+                  >
+                    Voir plus ({data.boites.length - boitesLimit} restantes)
+                  </button>
+                )}
               </div>
             )}
           </div>
