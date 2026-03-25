@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0 } = body;
+    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false } = body;
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -170,32 +170,51 @@ export async function POST(request: NextRequest) {
         amountCents += stampTaxCents;
       }
 
-      // Pour les autres demarches, ligne frais de service
-      lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: processConfig.label,
-            description: `Demarche ${reference}`,
-          },
-          unit_amount: processConfig.basePrice,
-        },
-        quantity: 1,
-      });
+      // Si abonne, seul le timbre fiscal est a payer (frais de service inclus)
+      if (isFromSubscription) {
+        serviceFeesCents = 0;
+        amountCents = stampTaxCents; // Seulement le timbre
 
-      // Ligne timbre fiscal separee
-      if (stampTaxCents > 0) {
+        if (stampTaxCents > 0) {
+          lineItems.push({
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Timbre fiscal',
+                description: 'Obligatoire pour les demandes suite a un vol ou une perte',
+              },
+              unit_amount: stampTaxCents,
+            },
+            quantity: 1,
+          });
+        }
+      } else {
+        // Non-abonne : ligne frais de service + timbre fiscal
         lineItems.push({
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Timbre fiscal',
-              description: 'Obligatoire pour les demandes suite a un vol ou une perte',
+              name: processConfig.label,
+              description: `Demarche ${reference}`,
             },
-            unit_amount: stampTaxCents,
+            unit_amount: processConfig.basePrice,
           },
           quantity: 1,
         });
+
+        if (stampTaxCents > 0) {
+          lineItems.push({
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Timbre fiscal',
+                description: 'Obligatoire pour les demandes suite a un vol ou une perte',
+              },
+              unit_amount: stampTaxCents,
+            },
+            quantity: 1,
+          });
+        }
       }
     }
 
@@ -213,7 +232,7 @@ export async function POST(request: NextRequest) {
           amountCents,
           taxesCents,
           serviceFeesCents,
-          isFromSubscription: false,
+          isFromSubscription,
           data,
           mandatoryFileTypes,
         },

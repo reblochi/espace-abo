@@ -222,12 +222,35 @@ export function IdentityCardForm({
         return;
       }
 
-      if (isSubscriber) {
+      if (isSubscriber && stampTax === 0) {
+        // Abonne sans timbre fiscal : creation directe
         const response = await fetch('/api/processes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'IDENTITY_CARD',
+            isFromSubscription: true,
+            stampTaxCents: 0,
+            data,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || 'Une erreur est survenue');
+          return;
+        }
+
+        onComplete(result.process.reference);
+      } else if (isSubscriber && stampTax > 0) {
+        // Abonne avec timbre fiscal : passer par checkout pour payer le timbre
+        const response = await fetch('/api/processes/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'IDENTITY_CARD',
+            paymentMode: 'one_time',
             isFromSubscription: true,
             stampTaxCents: stampTax,
             data,
@@ -241,7 +264,9 @@ export function IdentityCardForm({
           return;
         }
 
-        onComplete(result.process.reference);
+        if (result.url) {
+          onCheckout(result.url);
+        }
       } else {
         const response = await fetch('/api/processes/checkout', {
           method: 'POST',
