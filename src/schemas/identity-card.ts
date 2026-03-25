@@ -55,7 +55,7 @@ export const identityStepSchema = z.object({
   birthCountryId: z.number().int().positive('Pays de naissance requis'),
   birthCityId: z.number().int().optional(),
   birthCityName: z.string().min(1, 'Commune de naissance requise'),
-  taille: z.number().int().min(20, 'Taille minimum 20 cm').max(280, 'Taille maximum 280 cm'),
+  taille: z.preprocess((val) => (val === '' || Number.isNaN(val) ? undefined : val), z.number({ required_error: 'Taille requise' }).int().min(20, 'Taille minimum 20 cm').max(280, 'Taille maximum 280 cm')),
   raisonFrancais: z.string().min(1, 'Veuillez indiquer la raison de votre nationalite francaise'),
 });
 
@@ -71,7 +71,7 @@ export const parentsStepSchema = z.object({
     { message: NOM_ERROR }
   ),
   fatherBirthDate: z.string().optional(),
-  fatherNationalityId: z.number().int().optional(), // 0 ou vide = francais
+  fatherNationalityId: z.preprocess((val) => (val === '' || Number.isNaN(val) ? undefined : val), z.number().int().optional()), // vide = francais
   fatherBirthCity: z.string().max(50).optional(),
   motherUnknown: z.boolean().default(false),
   motherLastName: z.string().max(150).optional().refine(
@@ -83,7 +83,7 @@ export const parentsStepSchema = z.object({
     { message: NOM_ERROR }
   ),
   motherBirthDate: z.string().optional(),
-  motherNationalityId: z.number().int().optional(), // 0 ou vide = francaise
+  motherNationalityId: z.preprocess((val) => (val === '' || Number.isNaN(val) ? undefined : val), z.number().int().optional()), // 0 ou vide = francaise
   motherBirthCity: z.string().max(50).optional(),
 });
 
@@ -138,7 +138,7 @@ export const identityCardSchema = z.object({
   birthCountryId: z.number().int().positive('Pays de naissance requis'),
   birthCityId: z.number().int().optional(),
   birthCityName: z.string().min(1, 'Commune de naissance requise'),
-  taille: z.number().int().min(20).max(280),
+  taille: z.preprocess((val) => (val === '' || Number.isNaN(val) ? undefined : val), z.number({ required_error: 'Taille requise' }).int().min(20).max(280)),
   raisonFrancais: z.string().min(1),
   // Etape 3: Parents
   fatherUnknown: z.boolean().default(false),
@@ -151,7 +151,7 @@ export const identityCardSchema = z.object({
   motherLastName: z.string().max(150).optional(),
   motherFirstName: z.string().max(150).optional(),
   motherBirthDate: z.string().optional(),
-  motherNationalityId: z.number().int().optional(),
+  motherNationalityId: z.preprocess((val) => (val === '' || Number.isNaN(val) ? undefined : val), z.number().int().optional()),
   motherBirthCity: z.string().max(50).optional(),
   // Etape 4: Demandeur & Livraison
   isTitulaire: z.boolean().default(true),
