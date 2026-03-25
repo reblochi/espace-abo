@@ -82,6 +82,7 @@ const createProcessRequestSchema = z.object({
   data: z.record(z.unknown()),
   isFromSubscription: z.boolean().default(false),
   asDraft: z.boolean().default(false), // Permet de creer un brouillon
+  stampTaxCents: z.number().int().min(0).default(0), // Timbre fiscal (vol/perte CNI)
 });
 
 // POST /api/processes - Creer une demarche (brouillon ou directe)
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, data, isFromSubscription, asDraft } = result.data;
+    const { type, data, isFromSubscription, asDraft, stampTaxCents } = result.data;
 
     // Verifier que le type existe
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -175,10 +176,16 @@ export async function POST(request: NextRequest) {
       amountCents = taxes.total;
     }
 
+    // Ajouter le timbre fiscal (CNI vol/perte)
+    if (stampTaxCents > 0) {
+      taxesCents += stampTaxCents;
+      amountCents += stampTaxCents;
+    }
+
     // Si abonnement, frais de service = 0
     if (isFromSubscription) {
       serviceFeesCents = 0;
-      amountCents = taxesCents; // Seulement les taxes obligatoires
+      amountCents = taxesCents; // Seulement les taxes obligatoires (inclut timbre fiscal)
     }
 
     // Determiner les documents obligatoires

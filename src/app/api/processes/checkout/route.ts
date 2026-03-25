@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference, paymentMode = 'one_time' } = body;
+    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0 } = body;
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -164,7 +164,13 @@ export async function POST(request: NextRequest) {
         quantity: 1,
       });
     } else {
-      // Pour les autres demarches, une seule ligne
+      // Ajouter le timbre fiscal si applicable (CNI vol/perte)
+      if (stampTaxCents > 0) {
+        taxesCents += stampTaxCents;
+        amountCents += stampTaxCents;
+      }
+
+      // Pour les autres demarches, ligne frais de service
       lineItems.push({
         price_data: {
           currency: 'eur',
@@ -172,10 +178,25 @@ export async function POST(request: NextRequest) {
             name: processConfig.label,
             description: `Demarche ${reference}`,
           },
-          unit_amount: amountCents,
+          unit_amount: processConfig.basePrice,
         },
         quantity: 1,
       });
+
+      // Ligne timbre fiscal separee
+      if (stampTaxCents > 0) {
+        lineItems.push({
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Timbre fiscal',
+              description: 'Obligatoire pour les demandes suite a un vol ou une perte',
+            },
+            unit_amount: stampTaxCents,
+          },
+          quantity: 1,
+        });
+      }
     }
 
     // Si pas de demarche existante, en creer une
