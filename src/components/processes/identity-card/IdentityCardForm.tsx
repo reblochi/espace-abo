@@ -152,7 +152,7 @@ export function IdentityCardForm({
     mode: 'onChange',
   });
 
-  const { handleSubmit, trigger } = methods;
+  const { handleSubmit, trigger, formState: { errors: formErrors } } = methods;
 
   // Validation de l'etape courante
   const validateCurrentStep = async (): Promise<boolean> => {
@@ -299,7 +299,23 @@ export function IdentityCardForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(handleFormSubmit, (validationErrors) => {
+        // Afficher les erreurs de validation (refine) qui bloquent le submit
+        const messages: string[] = [];
+        const flatErrors = (obj: Record<string, unknown>, prefix = ''): void => {
+          for (const [key, val] of Object.entries(obj)) {
+            if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
+              messages.push((val as { message: string }).message);
+            } else if (val && typeof val === 'object') {
+              flatErrors(val as Record<string, unknown>, prefix + key + '.');
+            }
+          }
+        };
+        flatErrors(validationErrors as Record<string, unknown>);
+        if (messages.length > 0) {
+          setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+        }
+      })} className="space-y-6">
         {/* Progress bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
