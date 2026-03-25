@@ -314,32 +314,7 @@ export const PROCESS_TYPES_CONFIG: Record<ProcessType, ProcessTypeConfig> = {
     estimatedDelay: '10-15 jours ouvres',
     includedInSubscription: true,
     subscriberPrice: 0,
-    requiredDocuments: [
-      {
-        id: 'PHOTO_IDENTITE',
-        label: 'Photo d\'identite',
-        description: 'Photo aux normes',
-        required: true,
-        acceptedFormats: ['jpg', 'jpeg', 'png'],
-        maxSizeMb: 5,
-      },
-      {
-        id: 'JUSTIFICATIF_DOMICILE',
-        label: 'Justificatif de domicile',
-        description: 'De moins de 3 mois',
-        required: true,
-        acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-        maxSizeMb: 10,
-      },
-      {
-        id: 'ACTE_NAISSANCE',
-        label: 'Acte de naissance',
-        description: 'De moins de 3 mois',
-        required: true,
-        acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-        maxSizeMb: 10,
-      },
-    ],
+    requiredDocuments: [], // Pas de documents requis (comme l'ancien formulaire CNI)
     subtypes: [
       { code: 'first', label: 'Premiere demande' },
       { code: 'renewal', label: 'Renouvellement' },
