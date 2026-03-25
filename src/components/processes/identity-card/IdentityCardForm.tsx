@@ -92,6 +92,7 @@ export function IdentityCardForm({
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = React.useState(false);
   const [paymentMode, setPaymentMode] = React.useState<PaymentMode>('subscription');
   const [subscriptionConsent, setSubscriptionConsent] = React.useState(false);
 
@@ -165,6 +166,7 @@ export function IdentityCardForm({
   const handleNext = async () => {
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
+      setError(null);
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -172,6 +174,7 @@ export function IdentityCardForm({
 
   const handlePrevious = () => {
     if (currentStep > 0) {
+      setError(null);
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -299,23 +302,30 @@ export function IdentityCardForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit, (validationErrors) => {
-        // Afficher les erreurs de validation (refine) qui bloquent le submit
-        const messages: string[] = [];
-        const flatErrors = (obj: Record<string, unknown>, prefix = ''): void => {
-          for (const [key, val] of Object.entries(obj)) {
-            if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
-              messages.push((val as { message: string }).message);
-            } else if (val && typeof val === 'object') {
-              flatErrors(val as Record<string, unknown>, prefix + key + '.');
-            }
-          }
-        };
-        flatErrors(validationErrors as Record<string, unknown>);
-        if (messages.length > 0) {
-          setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+      <form onSubmit={(e) => {
+        // Empecher le submit par Enter sur un champ texte (sauf si on est a la derniere etape)
+        if (currentStep < STEPS.length - 1) {
+          e.preventDefault();
+          return;
         }
-      })} className="space-y-6">
+        setHasAttemptedSubmit(true);
+        handleSubmit(handleFormSubmit, (validationErrors) => {
+          const messages: string[] = [];
+          const flatErrors = (obj: Record<string, unknown>): void => {
+            for (const [, val] of Object.entries(obj)) {
+              if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
+                messages.push((val as { message: string }).message);
+              } else if (val && typeof val === 'object') {
+                flatErrors(val as Record<string, unknown>);
+              }
+            }
+          };
+          flatErrors(validationErrors as Record<string, unknown>);
+          if (messages.length > 0) {
+            setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+          }
+        })(e);
+      }} className="space-y-6">
         {/* Progress bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
