@@ -31,7 +31,15 @@ export function StepIdentity() {
   const hasNomUsage = !!nomUsage && nomUsage.trim().length > 0;
 
   const { countriesWithFrance } = useCountries();
-  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+
+  // Restaurer la ville selectionnee depuis les valeurs du form (survit au remount)
+  const existingCityId = watch('birthCityId');
+  const existingCityName = watch('birthCityName');
+  const [selectedCity, setSelectedCity] = useState<City | null>(
+    existingCityId && existingCityName
+      ? { id: existingCityId, name: existingCityName, postal_code: '', department_code: '' }
+      : null
+  );
 
   const handleCityChange = (city: City | null) => {
     setSelectedCity(city);

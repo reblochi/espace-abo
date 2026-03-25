@@ -98,7 +98,11 @@ export function StepParents() {
                   Nationalite du pere
                 </label>
                 <select
-                  {...register('fatherNationalityId', { valueAsNumber: true })}
+                  value={watch('fatherNationalityId') ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setValue('fatherNationalityId', val ? parseInt(val, 10) : undefined);
+                  }}
                   className={inputClass}
                 >
                   <option value="">Francais</option>
@@ -201,7 +205,11 @@ export function StepParents() {
                   Nationalite de la mere
                 </label>
                 <select
-                  {...register('motherNationalityId', { valueAsNumber: true })}
+                  value={watch('motherNationalityId') ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setValue('motherNationalityId', val ? parseInt(val, 10) : undefined);
+                  }}
                   className={inputClass}
                 >
                   <option value="">Francaise</option>
