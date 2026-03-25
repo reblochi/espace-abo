@@ -16,6 +16,7 @@ import {
 } from '@/lib/process-types';
 import { RegistrationCertificateForm } from '@/components/processes/registration-certificate';
 import { BirthCertificateForm } from '@/components/processes/birth-certificate';
+import { IdentityCardForm } from '@/components/processes/identity-card';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
@@ -246,6 +247,56 @@ export default function FormulaireDemarchePage() {
             isSubscriber={hasActiveSubscription}
             basePrice={processConfig.basePrice}
             embedPartner={!isAuthenticated ? 'direct' : undefined}
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
+  // Formulaire carte d'identite
+  // ================================================
+  if (typeCode === 'IDENTITY_CARD') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Logo size="md" />
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Breadcrumb */}
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li>
+                <Link href="/nouvelle-demarche" className="hover:text-blue-600">
+                  Demarches
+                </Link>
+              </li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+
+        {/* Formulaire carte d'identite */}
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <IdentityCardForm
+            isSubscriber={hasActiveSubscription}
+            basePrice={processConfig.basePrice}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}

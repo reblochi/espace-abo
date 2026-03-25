@@ -5,6 +5,7 @@ import type { ProcessStatus, ProcessType, RegistrationCertificateProcessData } f
 import { PROCESS_TYPE_MAPPING, AdvercityStep } from './process-types';
 import { mapToAdvercityPayload, type RegistrationCertificateInput } from '@/schemas/registration-certificate';
 import { mapBirthCertificateToAdvercity, type BirthCertificateInput } from '@/schemas/birth-certificate';
+import { mapIdentityCardToAdvercity, type IdentityCardInput } from '@/schemas/identity-card';
 
 // Types pour l'API Advercity
 export interface AdvercityProcessInput {
@@ -109,6 +110,23 @@ export async function searchCities(query: string, limit: number = 10): Promise<A
     const response = await advercityClient.get<AdvercityCitySearchResult[]>(
       '/api/external/cities',
       { params: { q: query.trim(), limit } }
+    );
+    return response.data || [];
+  } catch {
+    return [];
+  }
+}
+
+// Recuperer les pays de naissance via l'API Advercity (table demarche_acte_pays)
+export interface AdvercityCountry {
+  id: number;
+  label: string;
+}
+
+export async function getCountries(): Promise<AdvercityCountry[]> {
+  try {
+    const response = await advercityClient.get<AdvercityCountry[]>(
+      '/api/external/countries'
     );
     return response.data || [];
   } catch {
@@ -256,6 +274,9 @@ export function mapProcessDataToAdvercity(
           birthCity: data.birthCity,
         },
       };
+
+    case 'IDENTITY_CARD':
+      return mapIdentityCardToAdvercity(data as unknown as IdentityCardInput, user);
 
     case 'KBIS':
       return {
