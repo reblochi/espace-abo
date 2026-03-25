@@ -9,6 +9,8 @@ import { useProcess } from '@/hooks';
 import { ProcessTimeline, ContactSupportModal } from '@/components/processes';
 import { ProcessStatusBadge } from '@/components/processes/ProcessStatusBadge';
 import { DocumentCard } from '@/components/documents';
+import { DocumentUploadSection } from '@/components/documents/DocumentUploadSection';
+import { getRequiredDocuments } from '@/lib/process-types';
 import { Card, CardHeader, CardTitle, CardContent, Button, Alert, Badge } from '@/components/ui';
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
@@ -356,25 +358,60 @@ export default function ProcessDetailPage() {
             </>
           )}
 
-          {/* Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {files && files.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {files.map((file: { id: string }) => (
-                    <DocumentCard key={file.id} document={file} />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">
-                  Aucun document disponible pour cette demarche.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Documents obligatoires + Upload */}
+          {(() => {
+            const requiredDocs = processItem ? getRequiredDocuments(
+              processItem.type as ProcessType,
+              processItem.data as Record<string, unknown>
+            ) : [];
+            const hasRequiredDocs = requiredDocs.length > 0;
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Documents
+                    {hasRequiredDocs && processItem?.status === 'PENDING_DOCUMENTS' && (
+                      <Badge variant="warning" className="ml-2 text-xs">A completer</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {hasRequiredDocs ? (
+                    <DocumentUploadSection
+                      reference={reference}
+                      requiredDocuments={requiredDocs}
+                      uploadedFiles={files as Array<{ id: string; fileType: string; originalName: string }>}
+                      processStatus={processItem?.status || ''}
+                      onAllUploaded={async () => {
+                        try {
+                          const res = await fetch(`/api/processes/${reference}/submit`, { method: 'POST' });
+                          if (!res.ok) {
+                            const err = await res.json();
+                            alert(err.error || 'Erreur lors de la soumission');
+                          } else {
+                            window.location.reload();
+                          }
+                        } catch {
+                          alert('Erreur lors de la soumission');
+                        }
+                      }}
+                    />
+                  ) : files && files.length > 0 ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {files.map((file: { id: string }) => (
+                        <DocumentCard key={file.id} document={file} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">
+                      Aucun document requis pour cette demarche.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Sidebar: Timeline et Actions */}
