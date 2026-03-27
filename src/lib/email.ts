@@ -10,8 +10,8 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@example.com';
-const FROM_NAME = process.env.FROM_NAME || 'SAF Service';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@franceguichet.fr';
+const FROM_NAME = process.env.FROM_NAME || 'France Guichet';
 
 interface EmailOptions {
   to: string;
