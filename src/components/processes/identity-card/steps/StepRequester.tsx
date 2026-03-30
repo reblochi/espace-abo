@@ -5,6 +5,7 @@
 import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { genderLabels } from '@/types/identity-card';
+import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
 import type { IdentityCardInput } from '@/schemas/identity-card';
 
 export function StepRequester() {
@@ -190,37 +191,15 @@ export function StepRequester() {
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="form-gov-label">
-              Code postal <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              {...register('deliveryAddress.zipCode')}
-              className={`form-gov-input ${deliveryErrors?.zipCode ? 'form-gov-error' : ''}`}
-              placeholder="75001"
-              maxLength={5}
-            />
-            {deliveryErrors?.zipCode && (
-              <p className="form-gov-error-msg">{deliveryErrors.zipCode.message}</p>
-            )}
-          </div>
-          <div className="col-span-2">
-            <label className="form-gov-label">
-              Ville <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              {...register('deliveryAddress.city')}
-              className={`form-gov-input ${deliveryErrors?.city ? 'form-gov-error' : ''}`}
-              placeholder="Paris"
-            />
-            {deliveryErrors?.city && (
-              <p className="form-gov-error-msg">{deliveryErrors.city.message}</p>
-            )}
-          </div>
-        </div>
+        <PostalCityAutocomplete
+          cpValue={watch('deliveryAddress.zipCode') || ''}
+          cityValue={watch('deliveryAddress.city') || ''}
+          onCpChange={(value) => setValue('deliveryAddress.zipCode', value, { shouldValidate: true })}
+          onCityChange={(value) => setValue('deliveryAddress.city', value, { shouldValidate: true })}
+          cpError={deliveryErrors?.zipCode?.message}
+          cityError={deliveryErrors?.city?.message}
+          required
+        />
       </div>
     </div>
   );
