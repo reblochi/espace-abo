@@ -280,13 +280,33 @@ export class StripeAdapter extends BasePSPAdapter {
       'checkout.session.completed': 'checkout.completed',
       'customer.created': 'customer.created',
       'customer.updated': 'customer.updated',
+      'charge.dispute.created': 'charge.dispute.created',
+      'charge.dispute.updated': 'charge.dispute.updated',
+      'charge.dispute.closed': 'charge.dispute.closed',
     };
-    return mapping[type] || ('subscription.updated' as WebhookEventType);
+    const mapped = mapping[type];
+    if (!mapped) {
+      console.log(`[Stripe] Event type non mappe, ignore: ${type}`);
+    }
+    return mapped || (null as unknown as WebhookEventType);
   }
 
   private extractEventData(event: Stripe.Event): WebhookEvent['data'] {
     const obj = event.data.object as Record<string, unknown>;
     const metadata = obj.metadata as Record<string, string> | undefined;
+
+    // Pour les events dispute, la structure est differente
+    if (event.type.startsWith('charge.dispute.')) {
+      return {
+        disputeId: obj.id as string,
+        paymentId: obj.charge as string,
+        amountCents: obj.amount as number,
+        disputeReason: obj.reason as string,
+        disputeStatus: obj.status as string,
+        metadata: (obj.metadata as Record<string, string>) || undefined,
+      };
+    }
+
     return {
       subscriptionId: obj.subscription as string,
       customerId: obj.customer as string,

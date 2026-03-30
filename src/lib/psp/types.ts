@@ -63,6 +63,10 @@ export interface WebhookEvent {
     checkoutSessionId?: string;
     checkoutMode?: 'payment' | 'subscription' | 'setup';
     metadata?: Record<string, string>;
+    // Champs dispute/chargeback
+    disputeId?: string;
+    disputeReason?: string;
+    disputeStatus?: string;
   };
   rawEvent: unknown;
 }
@@ -80,7 +84,10 @@ export type WebhookEventType =
   | 'payment.refunded'
   | 'checkout.completed'
   | 'customer.created'
-  | 'customer.updated';
+  | 'customer.updated'
+  | 'charge.dispute.created'
+  | 'charge.dispute.updated'
+  | 'charge.dispute.closed';
 
 // Configuration PSP
 export interface PSPConfig {

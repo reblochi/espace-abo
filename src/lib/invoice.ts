@@ -30,12 +30,14 @@ export async function generateInvoicePdf(invoice: InvoiceWithRelations): Promise
       doc.on('error', reject);
 
       // En-tete
-      doc.fontSize(20).text('FACTURE', { align: 'center' });
+      const title = invoice.type === 'CREDIT_NOTE' ? 'AVOIR' : 'FACTURE';
+      doc.fontSize(20).text(title, { align: 'center' });
       doc.moveDown();
 
       // Numero et date
       doc.fontSize(12);
-      doc.text(`Facture N: ${invoice.number}`, { align: 'right' });
+      const docLabel = invoice.type === 'CREDIT_NOTE' ? 'Avoir N' : 'Facture N';
+      doc.text(`${docLabel}: ${invoice.number}`, { align: 'right' });
       doc.text(`Date: ${formatDate(invoice.createdAt)}`, { align: 'right' });
       if (invoice.paidAt) {
         doc.text(`Payee le: ${formatDate(invoice.paidAt)}`, { align: 'right' });
@@ -138,16 +140,35 @@ export async function generateAndUploadInvoice(invoice: InvoiceWithRelations): P
   return storageUrl;
 }
 
-// Generer le numero de facture
-export async function generateInvoiceNumber(prisma: unknown): Promise<string> {
+// Generer le prochain numero sequentiel pour un prefixe donne.
+// Utilise findFirst + orderBy desc pour eviter les race conditions avec count().
+async function generateNextNumber(prismaClient: unknown, prefix: string): Promise<string> {
   const year = new Date().getFullYear();
+  const fullPrefix = `${prefix}-${year}-`;
+
   // @ts-expect-error - prisma type
-  const count = await prisma.invoice.count({
-    where: {
-      number: {
-        startsWith: `FAC-${year}`,
-      },
-    },
+  const last = await prismaClient.invoice.findFirst({
+    where: { number: { startsWith: fullPrefix } },
+    orderBy: { number: 'desc' },
+    select: { number: true },
   });
-  return `FAC-${year}-${String(count + 1).padStart(6, '0')}`;
+
+  let nextNum = 1;
+  if (last?.number) {
+    const lastNumStr = last.number.replace(fullPrefix, '');
+    const parsed = parseInt(lastNumStr, 10);
+    if (!isNaN(parsed)) nextNum = parsed + 1;
+  }
+
+  return `${fullPrefix}${String(nextNum).padStart(6, '0')}`;
+}
+
+// Generer le numero de facture
+export async function generateInvoiceNumber(prismaClient: unknown): Promise<string> {
+  return generateNextNumber(prismaClient, 'FAC');
+}
+
+// Generer le numero d'avoir
+export async function generateCreditNoteNumber(prismaClient: unknown): Promise<string> {
+  return generateNextNumber(prismaClient, 'AVO');
 }

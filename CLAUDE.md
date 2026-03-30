@@ -282,6 +282,12 @@ Le dashboard affiche des donnees localisees basees sur le `zipCode` du user en B
 - `getCommuneGeo(codePostal)` : retourne les coordonnees GPS (lon, lat) d'une commune via `geo.api.gouv.fr`
 - Utilise par les API carburants et La Poste pour les fallbacks par rayon
 
+## Admin Back-Office
+
+Documentation complete dans [`docs/ADMIN.md`](docs/ADMIN.md). **Penser a actualiser ce fichier a chaque modification de l'admin.**
+
+Resume : back-office integre sous `/admin`, auth par role (`UserRole` sur User), gestion des abonnements (cancel/refund), comptabilite (factures/avoirs), litiges/chargebacks (webhooks Stripe + auto-avoir quand perdu), detection cartes expirantes, dashboard stats.
+
 ## Notes importantes
 
 - Le schema Prisma utilise un schema PostgreSQL dedie: `espace_abo`

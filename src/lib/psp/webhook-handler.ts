@@ -35,6 +35,11 @@ export async function handlePSPWebhook(
   // Parser l'evenement
   const event = adapter.parseWebhookEvent(body, signature);
 
+  // Ignorer les events non mappes
+  if (!event.type) {
+    return { success: true, message: 'Event type non mappe, ignore' };
+  }
+
   // Router vers le handler approprie
   switch (event.type) {
     case 'subscription.created':
@@ -65,6 +70,22 @@ export async function handlePSPWebhook(
 
     case 'payment.refunded':
       await handlePaymentRefunded(event);
+      break;
+
+    case 'charge.dispute.created':
+      await handleDisputeCreated(event);
+      break;
+
+    case 'charge.dispute.updated':
+      await handleDisputeUpdated(event);
+      break;
+
+    case 'charge.dispute.closed':
+      await handleDisputeClosed(event);
+      break;
+
+    case 'customer.updated':
+      await handleCustomerUpdated(event);
       break;
 
     default:
@@ -296,24 +317,24 @@ async function handlePaymentRefunded(event: WebhookEvent): Promise<void> {
   const { paymentId, amountCents } = event.data;
   if (!paymentId) return;
 
-  // Chercher le process associe
+  // Chercher le process associe (idempotent : ne pas re-rembourser)
   const process = await prisma.process.findFirst({
     where: { pspPaymentId: paymentId },
   });
 
-  if (process) {
+  if (process && process.status !== 'REFUNDED') {
     await prisma.process.update({
       where: { id: process.id },
       data: { status: 'REFUNDED' },
     });
   }
 
-  // Chercher l'echeance associee
+  // Chercher l'echeance associee (idempotent : skip si deja REFUNDED)
   const deadline = await prisma.subscriptionDeadline.findFirst({
     where: { pspInvoiceId: paymentId },
   });
 
-  if (deadline) {
+  if (deadline && deadline.paymentStatus !== 'REFUNDED') {
     await prisma.subscriptionDeadline.update({
       where: { id: deadline.id },
       data: {
@@ -506,6 +527,219 @@ async function sendProcessToAdvercity(processId: string): Promise<void> {
   } catch (error) {
     console.error(`[Webhook] Erreur envoi Advercity pour ${paidProcess.reference}:`, error);
     // La demarche reste en PAID, retry ulterieur possible
+  }
+}
+
+// Handlers Dispute / Chargeback
+async function handleDisputeCreated(event: WebhookEvent): Promise<void> {
+  const { disputeId, paymentId, amountCents, disputeReason, disputeStatus } = event.data;
+  if (!disputeId || !paymentId) return;
+
+  // Verifier qu'on n'a pas deja ce litige
+  const existing = await prisma.dispute.findUnique({ where: { pspDisputeId: disputeId } });
+  if (existing) return;
+
+  // Trouver le paiement d'origine : echeance ou demarche
+  // paymentId est un charge ID (ch_xxx) pour les disputes Stripe.
+  // On doit resoudre : charge -> payment_intent -> invoice pour trouver l'echeance,
+  // ou charge -> payment_intent pour trouver la demarche.
+  let subscriptionId: string | undefined;
+  let deadlineId: string | undefined;
+  let processId: string | undefined;
+  let userId: string | undefined;
+
+  // Resolution PSP-specifique : Stripe utilise charge -> payment_intent -> invoice.
+  // Les autres PSPs envoient directement l'ID transaction utilisable pour la recherche DB.
+  let resolvedInvoiceId: string | undefined;
+  let resolvedPaymentIntentId: string | undefined;
+  if (event.provider === 'stripe' && paymentId.startsWith('ch_')) {
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(globalThis.process?.env?.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
+      const charge = await stripe.charges.retrieve(paymentId);
+      resolvedPaymentIntentId = charge.payment_intent as string;
+      if (resolvedPaymentIntentId) {
+        // Recuperer le payment_intent pour trouver l'invoice liee
+        const pi = await stripe.paymentIntents.retrieve(resolvedPaymentIntentId);
+        if (pi.invoice) {
+          resolvedInvoiceId = typeof pi.invoice === 'string' ? pi.invoice : pi.invoice.id;
+        }
+      }
+    } catch (err) {
+      console.error('[Webhook] Erreur resolution charge -> invoice:', err);
+    }
+  }
+
+  // Chercher l'echeance par invoice ID Stripe (in_xxx)
+  if (resolvedInvoiceId) {
+    const deadline = await prisma.subscriptionDeadline.findFirst({
+      where: { pspInvoiceId: resolvedInvoiceId },
+      include: { subscription: true },
+    });
+    if (deadline) {
+      subscriptionId = deadline.subscriptionId;
+      deadlineId = deadline.id;
+      userId = deadline.subscription.userId;
+    }
+  }
+
+  // Fallback pour PSPs non-Stripe : chercher l'echeance par le paymentId direct
+  if (!userId && !resolvedInvoiceId) {
+    const deadline = await prisma.subscriptionDeadline.findFirst({
+      where: { pspInvoiceId: paymentId },
+      include: { subscription: true },
+    });
+    if (deadline) {
+      subscriptionId = deadline.subscriptionId;
+      deadlineId = deadline.id;
+      userId = deadline.subscription.userId;
+    }
+  }
+
+  // Chercher la demarche par payment_intent, pspPaymentId, ou stripePaymentIntent
+  if (!userId) {
+    const lookupIds = [resolvedPaymentIntentId, paymentId].filter(Boolean) as string[];
+    for (const pid of lookupIds) {
+      const process = await prisma.process.findFirst({
+        where: { OR: [{ pspPaymentId: pid }, { stripePaymentIntent: pid }] },
+      });
+      if (process) {
+        processId = process.id;
+        userId = process.userId;
+        break;
+      }
+    }
+  }
+
+  // Creer le litige
+  const dispute = await prisma.dispute.create({
+    data: {
+      subscriptionId,
+      deadlineId,
+      processId,
+      pspProvider: event.provider,
+      pspDisputeId: disputeId,
+      pspPaymentId: paymentId,
+      amountCents: amountCents || 0,
+      status: mapDisputeStatus(disputeStatus),
+      reason: disputeReason,
+      disputedAt: new Date(),
+    },
+  });
+
+  // L'avoir sera cree seulement si le litige est perdu (handleDisputeClosed)
+  // pour eviter de fausser la compta si on gagne le litige
+
+  console.log(`[Webhook] Dispute cree: ${disputeId}, montant: ${amountCents}`);
+}
+
+async function handleDisputeUpdated(event: WebhookEvent): Promise<void> {
+  const { disputeId, disputeStatus } = event.data;
+  if (!disputeId) return;
+
+  await prisma.dispute.updateMany({
+    where: { pspDisputeId: disputeId },
+    data: { status: mapDisputeStatus(disputeStatus) },
+  });
+}
+
+async function handleDisputeClosed(event: WebhookEvent): Promise<void> {
+  const { disputeId, disputeStatus } = event.data;
+  if (!disputeId) return;
+
+  const isLost = disputeStatus !== 'won';
+  const status = isLost ? 'LOST' : 'WON';
+
+  await prisma.dispute.updateMany({
+    where: { pspDisputeId: disputeId },
+    data: {
+      status: status as 'WON' | 'LOST',
+      resolvedAt: new Date(),
+    },
+  });
+
+  // Creer l'avoir seulement si le litige est perdu (chargeback confirme)
+  if (isLost) {
+    const dispute = await prisma.dispute.findFirst({ where: { pspDisputeId: disputeId } });
+    if (dispute && !dispute.creditNoteId) {
+      // Trouver le userId via la subscription ou le process
+      let userId: string | undefined;
+      if (dispute.subscriptionId) {
+        const sub = await prisma.subscription.findUnique({ where: { id: dispute.subscriptionId }, select: { userId: true } });
+        userId = sub?.userId;
+      } else if (dispute.processId) {
+        const proc = await prisma.process.findUnique({ where: { id: dispute.processId }, select: { userId: true } });
+        userId = proc?.userId;
+      }
+
+      if (userId && dispute.amountCents > 0) {
+        try {
+          const { createCreditNote } = await import('@/lib/invoice-creation');
+          const creditNote = await createCreditNote({
+            userId,
+            totalCents: dispute.amountCents,
+            reason: `Chargeback perdu ${disputeId} - ${dispute.reason || 'non specifie'}`,
+          });
+          await prisma.dispute.update({
+            where: { id: dispute.id },
+            data: { creditNoteId: creditNote.id },
+          });
+        } catch (err) {
+          console.error('[Webhook] Erreur creation avoir pour dispute perdu:', err);
+        }
+      }
+    }
+  }
+}
+
+// Handler customer.updated - sync info carte
+async function handleCustomerUpdated(event: WebhookEvent): Promise<void> {
+  const { customerId } = event.data;
+  if (!customerId) return;
+
+  const subscription = await prisma.subscription.findFirst({
+    where: { pspCustomerId: customerId },
+  });
+
+  if (!subscription || subscription.pspProvider !== 'stripe') return;
+
+  // Recuperer les infos carte depuis Stripe
+  try {
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(globalThis.process?.env?.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2023-10-16',
+    });
+
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ['invoice_settings.default_payment_method'],
+    });
+
+    if (customer.deleted) return;
+
+    const pm = customer.invoice_settings?.default_payment_method;
+    if (pm && typeof pm !== 'string' && pm.card) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          cardBrand: pm.card.brand,
+          cardLast4: pm.card.last4,
+          cardExpMonth: pm.card.exp_month,
+          cardExpYear: pm.card.exp_year,
+        },
+      });
+    }
+  } catch (err) {
+    console.error('[Webhook] Erreur sync carte:', err);
+  }
+}
+
+function mapDisputeStatus(status?: string): 'NEEDS_RESPONSE' | 'UNDER_REVIEW' | 'WON' | 'LOST' {
+  switch (status) {
+    case 'needs_response': return 'NEEDS_RESPONSE';
+    case 'under_review': return 'UNDER_REVIEW';
+    case 'won': return 'WON';
+    case 'lost': return 'LOST';
+    default: return 'NEEDS_RESPONSE';
   }
 }
 

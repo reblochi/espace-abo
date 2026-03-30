@@ -22,32 +22,42 @@ model User {
   emailVerified DateTime?
   passwordHash  String?
 
+  // Role
+  role UserRole @default(USER)
+
   // Informations personnelles
-  gender        String?   // M, F, O
-  firstName     String
-  lastName      String
-  phone         String?
-  birthDate     DateTime?
+  gender    String? // M, F, O
+  firstName String
+  lastName  String
+  phone     String?
+  birthDate DateTime?
 
   // Adresse
-  address       String?
-  addressExtra  String?
-  zipCode       String?
-  city          String?
-  country       String    @default("FR")
+  address      String?
+  addressExtra String?
+  zipCode      String?
+  city         String?
+  country      String  @default("FR")
 
   // Tokens securises
-  resetPasswordToken    String?   @unique
-  resetPasswordExpires  DateTime?
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  subscription  Subscription?
-  processes     Process[]
-  invoices      Invoice[]
+  subscription Subscription?
+  processes    Process[]
+  invoices     Invoice[]
 
   @@map("users")
+  @@schema("espace_abo")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+
   @@schema("espace_abo")
 }
 
@@ -56,82 +66,88 @@ model User {
 // ============================================
 
 model Subscription {
-  id                  String   @id @default(cuid())
-  reference           String   @unique  // ex: "SUB-2026-000001"
+  id        String @id @default(cuid())
+  reference String @unique // ex: "SUB-2026-000001"
 
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id])
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  status              SubscriptionStatus @default(ACTIVE)
+  status SubscriptionStatus @default(ACTIVE)
 
   // Montant mensuel en centimes
-  amountCents         Int      @default(990)  // 9.90 EUR
-  currency            String   @default("EUR")
+  amountCents Int    @default(990) // 9.90 EUR
+  currency    String @default("EUR")
 
   // Dates importantes
-  startDate           DateTime @default(now())
-  currentPeriodStart  DateTime
-  currentPeriodEnd    DateTime
-  canceledAt          DateTime?
-  endDate             DateTime?  // Date fin des droits (apres annulation)
+  startDate          DateTime  @default(now())
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  canceledAt         DateTime?
+  endDate            DateTime? // Date fin des droits (apres annulation)
 
   // Compteur de demarches incluses
-  includedProcessCount Int     @default(0) // Nombre utilise ce mois
-  maxProcessPerMonth   Int?    // null = illimite, ou quota
+  includedProcessCount Int      @default(0) // Nombre utilise ce mois
+  maxProcessPerMonth   Int? // null = illimite, ou quota
   processCountResetAt  DateTime @default(now())
 
   // Integration PSP (Stripe par defaut, extensible via Multi-PSP)
-  pspProvider         String   @default("stripe")  // stripe, hipay, payzen, etc.
-  pspCustomerId       String?
-  pspSubscriptionId   String?
+  pspProvider       String  @default("stripe") // stripe, hipay, payzen, etc.
+  pspCustomerId     String?
+  pspSubscriptionId String?
+
+  // Informations carte bancaire (sync depuis PSP)
+  cardBrand    String? // visa, mastercard...
+  cardLast4    String? // 4 derniers chiffres
+  cardExpMonth Int? // 1-12
+  cardExpYear  Int? // 2026, 2027...
 
   // Tokens securises
-  unsubscribeToken    String   @unique @default(cuid())
-  changeCardToken     String   @unique @default(cuid())
+  unsubscribeToken String @unique @default(cuid())
+  changeCardToken  String @unique @default(cuid())
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  deadlines           SubscriptionDeadline[]
-  processUsages       SubscriptionProcessUsage[]
+  deadlines     SubscriptionDeadline[]
+  processUsages SubscriptionProcessUsage[]
 
   @@map("subscriptions")
   @@schema("espace_abo")
 }
 
 enum SubscriptionStatus {
-  PENDING      // En attente premier paiement
-  ACTIVE       // Actif
-  PAST_DUE     // Paiement en retard
-  CANCELED     // Annule (peut avoir droits restants)
-  ENDED        // Termine
+  PENDING // En attente premier paiement
+  ACTIVE // Actif
+  PAST_DUE // Paiement en retard
+  CANCELED // Annule (peut avoir droits restants)
+  ENDED // Termine
 
   @@schema("espace_abo")
 }
 
 model SubscriptionDeadline {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  subscriptionId  String
-  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
 
-  deadlineNumber  Int      // Numero d'echeance (1, 2, 3...)
-  amountCents     Int
-  dueDate         DateTime
+  deadlineNumber Int // Numero d'echeance (1, 2, 3...)
+  amountCents    Int
+  dueDate        DateTime
 
-  status          DeadlineStatus @default(UPCOMING)
-  paymentStatus   PaymentStatus  @default(PENDING)
+  status        DeadlineStatus @default(UPCOMING)
+  paymentStatus PaymentStatus  @default(PENDING)
 
-  paidAt          DateTime?
-  refundedAt      DateTime?
-  refundedAmount  Int?
+  paidAt         DateTime?
+  refundedAt     DateTime?
+  refundedAmount Int?
 
-  pspInvoiceId    String?
+  pspInvoiceId String?
 
-  invoice         Invoice?
+  invoice Invoice?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("subscription_deadlines")
   @@schema("espace_abo")
@@ -159,38 +175,38 @@ enum PaymentStatus {
 // ============================================
 
 model Process {
-  id              String   @id @default(cuid())
-  reference       String   @unique  // ex: "DEM-2026-000001"
+  id        String @id @default(cuid())
+  reference String @unique // ex: "DEM-2026-000001"
 
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  type            ProcessType
-  status          ProcessStatus @default(DRAFT)
+  type   ProcessType
+  status ProcessStatus @default(DRAFT)
 
   // Prix
-  amountCents     Int              // Montant total en centimes
-  taxesCents      Int      @default(0) // Taxes specifiques (ex: taxe regionale carte grise)
-  serviceFeesCents Int     @default(0) // Frais de service
-  currency        String   @default("EUR")
+  amountCents      Int // Montant total en centimes
+  taxesCents       Int    @default(0) // Taxes specifiques (ex: taxe regionale carte grise)
+  serviceFeesCents Int    @default(0) // Frais de service
+  currency         String @default("EUR")
 
   // Paiement
-  paidAt          DateTime?
-  pspPaymentId    String?
+  paidAt              DateTime?
+  pspPaymentId        String?
   stripePaymentIntent String?
 
   // Si via abonnement (gratuit)
   isFromSubscription Boolean @default(false)
 
   // Donnees specifiques (JSON)
-  data            Json
+  data Json
 
   // Reference Advercity (apres envoi)
-  advercityId     String?  @unique
-  advercityRef    String?
+  advercityId  String? @unique
+  advercityRef String?
 
   // Suivi
-  advercityStatus Int?     // Step Advercity
+  advercityStatus Int? // Step Advercity
   lastSyncAt      DateTime?
   submittedAt     DateTime? // Date envoi a Advercity
   completedAt     DateTime? // Date fin traitement
@@ -198,12 +214,12 @@ model Process {
   // Types de fichiers obligatoires pour cette demarche
   mandatoryFileTypes String[] @default([])
 
-  invoice         Invoice?
-  files           ProcessFile[]
-  statusHistory   ProcessStatusHistory[]
+  invoice       Invoice?
+  files         ProcessFile[]
+  statusHistory ProcessStatusHistory[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("processes")
   @@schema("espace_abo")
@@ -214,18 +230,18 @@ model Process {
 // ============================================
 
 model ProcessStatusHistory {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  processId       String
-  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
-  fromStatus      ProcessStatus
-  toStatus        ProcessStatus
-  reason          String?
-  metadata        Json?
+  fromStatus ProcessStatus
+  toStatus   ProcessStatus
+  reason     String?
+  metadata   Json?
 
-  createdBy       String?  // 'system', 'webhook', userId
-  createdAt       DateTime @default(now())
+  createdBy String? // 'system', 'webhook', userId
+  createdAt DateTime @default(now())
 
   @@map("process_status_history")
   @@schema("espace_abo")
@@ -236,24 +252,24 @@ model ProcessStatusHistory {
 // ============================================
 
 model ProcessFile {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  processId       String
-  process         Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
-  userId          String
+  userId String
 
   // Informations fichier
-  originalName    String            // Nom original du fichier
-  fileName        String            // Nom stocke (uuid.ext)
-  mimeType        String
-  size            Int               // Taille en bytes
-  fileType        FileType          // Type de document (CNI, PASSEPORT, etc.)
+  originalName String // Nom original du fichier
+  fileName     String // Nom stocke (uuid.ext)
+  mimeType     String
+  size         Int // Taille en bytes
+  fileType     FileType // Type de document (CNI, PASSEPORT, etc.)
 
   // Stockage
-  storageKey      String            // Cle S3/R2
-  storageUrl      String            // URL complete vers le fichier
-  thumbnailUrl    String?           // URL miniature (pour images)
+  storageKey   String // Cle S3/R2
+  storageUrl   String // URL complete vers le fichier
+  thumbnailUrl String? // URL miniature (pour images)
 
   // Validation
   validationStatus DocumentValidationStatus @default(PENDING)
@@ -261,85 +277,85 @@ model ProcessFile {
   validatedAt      DateTime?
 
   // Statut
-  deleted         Boolean  @default(false)
-  deletedAt       DateTime?
+  deleted   Boolean   @default(false)
+  deletedAt DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("process_files")
   @@schema("espace_abo")
 }
 
 enum FileType {
-  CNI                     // Carte d'identite
-  PASSEPORT               // Passeport
-  PERMIS                  // Permis de conduire
-  JUSTIFICATIF_DOMICILE   // Justificatif de domicile
-  PHOTO_IDENTITE          // Photo d'identite
-  ACTE_NAISSANCE          // Acte de naissance
-  LIVRET_FAMILLE          // Livret de famille
-  CARTE_GRISE             // Ancienne carte grise
-  CERTIFICAT_CESSION      // Certificat de cession
-  CERTIFICAT_NON_GAGE     // Certificat de non-gage
-  CONTROLE_TECHNIQUE      // Controle technique
-  MANDAT                  // Mandat (si mandataire)
-  DECLARATION_PERTE       // Declaration de perte/vol
-  AUTRE                   // Autre document
+  CNI // Carte d'identite
+  PASSEPORT // Passeport
+  PERMIS // Permis de conduire
+  JUSTIFICATIF_DOMICILE // Justificatif de domicile
+  PHOTO_IDENTITE // Photo d'identite
+  ACTE_NAISSANCE // Acte de naissance
+  LIVRET_FAMILLE // Livret de famille
+  CARTE_GRISE // Ancienne carte grise
+  CERTIFICAT_CESSION // Certificat de cession
+  CERTIFICAT_NON_GAGE // Certificat de non-gage
+  CONTROLE_TECHNIQUE // Controle technique
+  MANDAT // Mandat (si mandataire)
+  DECLARATION_PERTE // Declaration de perte/vol
+  AUTRE // Autre document
 
   @@schema("espace_abo")
 }
 
 enum DocumentValidationStatus {
-  PENDING   // En attente de validation
-  APPROVED  // Approuve
-  REJECTED  // Rejete
+  PENDING // En attente de validation
+  APPROVED // Approuve
+  REJECTED // Rejete
 
   @@schema("espace_abo")
 }
 
 enum ProcessType {
   // Etat civil
-  CIVIL_STATUS_BIRTH      // Acte de naissance
-  CIVIL_STATUS_MARRIAGE   // Acte de mariage
-  CIVIL_STATUS_DEATH      // Acte de deces
+  CIVIL_STATUS_BIRTH // Acte de naissance
+  CIVIL_STATUS_MARRIAGE // Acte de mariage
+  CIVIL_STATUS_DEATH // Acte de deces
 
   // Vehicule
-  REGISTRATION_CERT       // Certificat d'immatriculation (carte grise)
-  NON_PLEDGE_CERT         // Certificat de non-gage
-  CRITAIR                 // Vignette Crit'Air
+  REGISTRATION_CERT // Certificat d'immatriculation (carte grise)
+  NON_PLEDGE_CERT // Certificat de non-gage
+  CRITAIR // Vignette Crit'Air
 
   // Identite
-  IDENTITY_CARD           // Carte d'identite
-  PASSPORT                // Passeport
-  DRIVING_LICENCE         // Permis de conduire
+  IDENTITY_CARD // Carte d'identite
+  PASSPORT // Passeport
+  DRIVING_LICENCE // Permis de conduire
 
   // Entreprise
-  KBIS                    // Extrait Kbis
+  KBIS // Extrait Kbis
 
   // Logement
-  ADDRESS_CHANGE          // Changement d'adresse
-  CADASTRE                // Plan cadastral
+  ADDRESS_CHANGE // Changement d'adresse
+  CADASTRE // Plan cadastral
 
   // Justice
-  CRIMINAL_RECORD         // Casier judiciaire
+  CRIMINAL_RECORD // Casier judiciaire
 
   @@schema("espace_abo")
 }
 
 enum ProcessStatus {
-  DRAFT             // Brouillon, formulaire en cours
+  DRAFT // Brouillon, formulaire en cours
   PENDING_DOCUMENTS // En attente de documents
-  PENDING_PAYMENT   // En attente paiement
+  PENDING_PAYMENT // En attente paiement
   PAYMENT_PROCESSING // Paiement en cours
-  PAYMENT_FAILED    // Echec paiement
-  PAID              // Paye, a envoyer
+  PAYMENT_FAILED // Echec paiement
+  PAID // Paye, a envoyer
   SENT_TO_ADVERCITY // Envoye a Advercity
-  IN_PROGRESS       // En traitement
-  AWAITING_INFO     // Advercity attend des infos
-  COMPLETED         // Termine
-  REFUNDED          // Rembourse
-  CANCELED          // Annule
+  IN_PROGRESS // En traitement
+  AWAITING_INFO // Advercity attend des infos
+  COMPLETED // Termine
+  REFUNDED // Rembourse
+  CANCELED // Annule
 
   @@schema("espace_abo")
 }
@@ -349,48 +365,51 @@ enum ProcessStatus {
 // ============================================
 
 model Invoice {
-  id              String   @id @default(cuid())
-  number          String   @unique  // ex: "FAC-2026-000001"
+  id     String @id @default(cuid())
+  number String @unique // ex: "FAC-2026-000001"
 
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  type            InvoiceType
+  type InvoiceType
 
   // Montants
-  subtotalCents   Int
-  taxCents        Int
-  totalCents      Int
-  currency        String   @default("EUR")
+  subtotalCents Int
+  taxCents      Int
+  totalCents    Int
+  currency      String @default("EUR")
 
   // TVA
-  taxRate         Float    @default(20.0)
+  taxRate Float @default(20.0)
 
   // Statut
-  status          InvoiceStatus @default(DRAFT)
-  paidAt          DateTime?
+  status InvoiceStatus @default(DRAFT)
+  paidAt DateTime?
 
   // Liens
-  processId       String?  @unique
-  process         Process? @relation(fields: [processId], references: [id])
+  processId String?  @unique
+  process   Process? @relation(fields: [processId], references: [id])
 
-  deadlineId      String?  @unique
-  deadline        SubscriptionDeadline? @relation(fields: [deadlineId], references: [id])
+  deadlineId String?               @unique
+  deadline   SubscriptionDeadline? @relation(fields: [deadlineId], references: [id])
 
   // Fichier PDF
-  pdfUrl          String?
+  pdfUrl String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Relation inverse litige (pour avoirs lies a un litige)
+  dispute Dispute?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("invoices")
   @@schema("espace_abo")
 }
 
 enum InvoiceType {
-  SUBSCRIPTION    // Facture abonnement
-  PROCESS         // Facture demarche unitaire
-  CREDIT_NOTE     // Avoir
+  SUBSCRIPTION // Facture abonnement
+  PROCESS // Facture demarche unitaire
+  CREDIT_NOTE // Avoir
 
   @@schema("espace_abo")
 }
@@ -409,18 +428,86 @@ enum InvoiceStatus {
 // ============================================
 
 model SubscriptionProcessUsage {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  subscriptionId  String
-  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
 
-  processId       String   @unique
-  processType     ProcessType
+  processId   String      @unique
+  processType ProcessType
 
-  usedAt          DateTime @default(now())
-  periodStart     DateTime // Debut de la periode d'abonnement
-  periodEnd       DateTime // Fin de la periode d'abonnement
+  usedAt      DateTime @default(now())
+  periodStart DateTime // Debut de la periode d'abonnement
+  periodEnd   DateTime // Fin de la periode d'abonnement
 
   @@map("subscription_process_usages")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// LITIGES / CHARGEBACKS
+// ============================================
+
+model Dispute {
+  id String @id @default(cuid())
+
+  // Liens vers le paiement d'origine
+  subscriptionId String?
+  deadlineId     String?
+  processId      String?
+
+  // Donnees PSP
+  pspProvider  String // stripe, hipay
+  pspDisputeId String @unique
+  pspPaymentId String
+
+  // Montants
+  amountCents Int
+  currency    String @default("EUR")
+
+  // Statut
+  status DisputeStatus @default(NEEDS_RESPONSE)
+  reason String? // "fraudulent", "product_not_received", etc.
+
+  // Notes admin
+  adminNotes String?
+
+  // Avoir auto-genere
+  creditNoteId String?  @unique
+  creditNote   Invoice? @relation(fields: [creditNoteId], references: [id])
+
+  // Dates
+  disputedAt DateTime
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("disputes")
+  @@schema("espace_abo")
+}
+
+enum DisputeStatus {
+  NEEDS_RESPONSE
+  UNDER_REVIEW
+  WON
+  LOST
+
+  @@schema("espace_abo")
+}
+
+// ============================================
+// AUDIT ADMIN
+// ============================================
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String // "refund_deadline", "cancel_subscription", "create_credit_note"
+  targetType String // "Subscription", "Invoice", "Dispute"
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@map("admin_audit_logs")
   @@schema("espace_abo")
 }
