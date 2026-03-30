@@ -4,7 +4,6 @@
 
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { cn } from '@/lib/utils';
 import { CityAutocomplete, type City } from '@/components/forms';
 import {
   genderLabels,
@@ -18,9 +17,6 @@ import {
 } from '@/types/identity-card';
 import { useCountries } from '@/hooks/useCountries';
 import type { IdentityCardInput } from '@/schemas/identity-card';
-
-const inputClass = 'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
-const errorInputClass = 'border-red-500 focus:ring-red-500';
 
 export function StepIdentity() {
   const { register, watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
@@ -54,91 +50,116 @@ export function StepIdentity() {
 
   return (
     <div className="space-y-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Personne concernee par la carte d'identite
+        </h2>
+        <p className="form-gov-hint">
+          Renseignez les informations telles qu'elles apparaissent sur l'acte de naissance
+        </p>
+      </div>
+
       {/* Civilite */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Civilite <span className="text-red-500">*</span>
+      <div className="mb-6">
+        <label className="form-gov-label mb-3">
+          Civilite <span className="text-red-600">*</span>
         </label>
         <div className="flex gap-3">
           {(Object.entries(genderLabels) as [string, string][]).map(([value, label]) => (
-            <button
+            <label
               key={value}
-              type="button"
-              onClick={() => setValue('gender', value as 'MALE' | 'FEMALE', { shouldValidate: true })}
-              className={cn(
-                'px-6 py-2 rounded-lg border-2 text-sm font-medium transition-all',
-                selectedGender === value
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
-              )}
+              className={`
+                flex-1 flex items-center justify-center p-3 cursor-pointer transition-colors duration-150 border-2
+                ${selectedGender === value
+                  ? 'border-blue-700 bg-blue-50'
+                  : 'border-gray-400 bg-white hover:bg-gray-50'
+                }
+              `}
             >
-              {label}
-            </button>
+              <input
+                type="radio"
+                value={value}
+                checked={selectedGender === value}
+                onChange={() => setValue('gender', value as 'MALE' | 'FEMALE', { shouldValidate: true })}
+                className="sr-only"
+              />
+              <span className={`font-semibold text-base ${selectedGender === value ? 'text-blue-700' : 'text-gray-900'}`}>
+                {label}
+              </span>
+            </label>
           ))}
         </div>
         {errors.gender && (
-          <p className="mt-2 text-sm text-red-600">{errors.gender.message}</p>
+          <p className="form-gov-error-msg">{errors.gender.message}</p>
         )}
       </div>
 
-      {/* Nom / Prenom */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nom de naissance <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('nom')}
-            className={cn(inputClass, errors.nom && errorInputClass)}
-            placeholder="Nom de naissance"
-          />
-          {errors.nom && (
-            <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Prenom(s) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('prenom')}
-            className={cn(inputClass, errors.prenom && errorInputClass)}
-            placeholder="Prenom(s)"
-          />
-          {errors.prenom && (
-            <p className="mt-1 text-sm text-red-600">{errors.prenom.message}</p>
-          )}
-        </div>
+      {/* Nom de naissance */}
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Nom de naissance <span className="text-red-600">*</span>
+        </label>
+        <input
+          type="text"
+          {...register('nom')}
+          className={`form-gov-input ${errors.nom ? 'form-gov-error' : ''}`}
+        />
+        {errors.nom && (
+          <p className="form-gov-error-msg">{errors.nom.message}</p>
+        )}
+      </div>
+
+      {/* Prenom(s) */}
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Prenom(s) <span className="text-red-600">*</span>
+        </label>
+        <input
+          type="text"
+          {...register('prenom')}
+          className={`form-gov-input ${errors.prenom ? 'form-gov-error' : ''}`}
+        />
+        <p className="form-gov-hint">
+          Separez vos prenoms par des espaces
+        </p>
+        {errors.prenom && (
+          <p className="form-gov-error-msg">{errors.prenom.message}</p>
+        )}
       </div>
 
       {/* Nom d'usage */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Nom d'usage (epouse/epoux)
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Nom d'usage <span className="text-gray-500 font-normal">(facultatif)</span>
         </label>
         <input
           type="text"
           {...register('nomUsage')}
-          className={cn(inputClass, errors.nomUsage && errorInputClass)}
-          placeholder="Facultatif"
+          className={`form-gov-input ${errors.nomUsage ? 'form-gov-error' : ''}`}
         />
+        <p className="form-gov-hint">
+          Nom d'epoux/epouse si different du nom de naissance
+        </p>
         {errors.nomUsage && (
-          <p className="mt-1 text-sm text-red-600">{errors.nomUsage.message}</p>
+          <p className="form-gov-error-msg">{errors.nomUsage.message}</p>
         )}
       </div>
 
       {/* Type nom d'usage + Mot additionnel (conditionnel) */}
       {hasNomUsage && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type de nom d'usage <span className="text-red-500">*</span>
+        <div className="p-4 bg-gray-50 space-y-4 border-l-4 border-l-blue-700">
+          <p className="form-gov-hint">
+            Le nom d'usage permet de faire figurer sur la carte d'identite le nom de votre conjoint(e)
+            ou le nom de l'un de vos parents, en plus de votre nom de naissance.
+          </p>
+
+          <div className="mb-4">
+            <label className="form-gov-label">
+              Il s'agit du nom de votre <span className="text-red-600">*</span>
             </label>
             <select
               {...register('typeNomUsage')}
-              className={cn(inputClass, errors.typeNomUsage && errorInputClass)}
+              className={`form-gov-select ${errors.typeNomUsage ? 'form-gov-error' : ''}`}
             >
               <option value="">Selectionnez...</option>
               {(Object.entries(usageNameTypeLabels) as [string, string][]).map(([value, label]) => (
@@ -146,52 +167,55 @@ export function StepIdentity() {
               ))}
             </select>
             {errors.typeNomUsage && (
-              <p className="mt-1 text-sm text-red-600">{errors.typeNomUsage.message}</p>
+              <p className="form-gov-error-msg">{errors.typeNomUsage.message}</p>
             )}
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot a faire apparaitre
+            <label className="form-gov-label">
+              Mot a faire apparaitre <span className="text-gray-500 font-normal">(facultatif)</span>
             </label>
             <select
               {...register('motAdditionnelNom')}
-              className={inputClass}
+              className="form-gov-select"
             >
               <option value="">Aucun</option>
               {(Object.entries(additionalNameWordLabels) as [string, string][]).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+            <p className="form-gov-hint">
+              Exemple : "Epoux DUPONT" ou "Veuf MARTIN"
+            </p>
           </div>
         </div>
       )}
 
       {/* Date de naissance */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Date de naissance <span className="text-red-500">*</span>
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Date de naissance <span className="text-red-600">*</span>
         </label>
         <input
           type="date"
           {...register('birthDate')}
-          className={cn(inputClass, errors.birthDate && errorInputClass)}
+          className={`form-gov-input ${errors.birthDate ? 'form-gov-error' : ''}`}
         />
         {errors.birthDate && (
-          <p className="mt-1 text-sm text-red-600">{errors.birthDate.message}</p>
+          <p className="form-gov-error-msg">{errors.birthDate.message}</p>
         )}
       </div>
 
       {/* Pays de naissance */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Pays de naissance <span className="text-red-500">*</span>
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Pays de naissance <span className="text-red-600">*</span>
         </label>
         <select
           value={birthCountryId === FRANCE_COUNTRY_ID ? '' : String(birthCountryId || '')}
           onChange={(e) => {
             const val = e.target.value;
             if (val === '') {
-              // France
               setValue('birthCountryId', FRANCE_COUNTRY_ID, { shouldValidate: true });
             } else {
               setValue('birthCountryId', parseInt(val, 10), { shouldValidate: true });
@@ -200,69 +224,81 @@ export function StepIdentity() {
               setSelectedCity(null);
             }
           }}
-          className={cn(inputClass, errors.birthCountryId && errorInputClass)}
+          className={`form-gov-select ${errors.birthCountryId ? 'form-gov-error' : ''}`}
         >
           {countriesWithFrance.map((c) => (
             <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
           ))}
         </select>
         {errors.birthCountryId && (
-          <p className="mt-1 text-sm text-red-600">{errors.birthCountryId.message}</p>
+          <p className="form-gov-error-msg">{errors.birthCountryId.message}</p>
         )}
       </div>
 
       {/* Commune de naissance */}
-      {isFrance ? (
-        <CityAutocomplete
-          label="Commune de naissance"
-          value={selectedCity}
-          onChange={handleCityChange}
-          error={errors.birthCityName?.message}
-          required
-        />
-      ) : (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ville de naissance <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('birthCityName')}
-            className={cn(inputClass, errors.birthCityName && errorInputClass)}
-            placeholder="Nom de la ville de naissance"
+      <div className="mb-6">
+        {isFrance ? (
+          <CityAutocomplete
+            label="Commune de naissance"
+            value={selectedCity}
+            onChange={handleCityChange}
+            error={errors.birthCityName?.message}
+            required
           />
-          {errors.birthCityName && (
-            <p className="mt-1 text-sm text-red-600">{errors.birthCityName.message}</p>
-          )}
-        </div>
-      )}
-
-      {/* Taille */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Taille (en cm) <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="number"
-          {...register('taille', { valueAsNumber: true })}
-          className={cn(inputClass, errors.taille && errorInputClass)}
-          placeholder="170"
-          min={20}
-          max={280}
-        />
-        {errors.taille && (
-          <p className="mt-1 text-sm text-red-600">{errors.taille.message}</p>
+        ) : (
+          <>
+            <label className="form-gov-label">
+              Ville de naissance <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              {...register('birthCityName')}
+              className={`form-gov-input ${errors.birthCityName ? 'form-gov-error' : ''}`}
+              placeholder="Nom de la ville de naissance"
+            />
+            <p className="form-gov-hint">
+              Indiquez la ville telle qu'elle apparait sur votre acte de naissance
+            </p>
+            {errors.birthCityName && (
+              <p className="form-gov-error-msg">{errors.birthCityName.message}</p>
+            )}
+          </>
         )}
       </div>
 
+      {/* Taille */}
+      <div className="border-t border-gray-200 pt-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Votre taille
+          </h2>
+        </div>
+        <div className="mb-6">
+          <label className="form-gov-label">
+            Taille (en cm) <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="number"
+            {...register('taille', { valueAsNumber: true })}
+            className={`form-gov-input ${errors.taille ? 'form-gov-error' : ''}`}
+            placeholder="170"
+            min={20}
+            max={280}
+          />
+          {errors.taille && (
+            <p className="form-gov-error-msg">{errors.taille.message}</p>
+          )}
+        </div>
+      </div>
+
       {/* Raison nationalite francaise */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Vous etes francais(e) parce que... <span className="text-red-500">*</span>
+      <div className="mb-6">
+        <label className="form-gov-label">
+          Vous etes francais(e) parce que... <span className="text-red-600">*</span>
         </label>
         <select
           {...register('raisonFrancais')}
-          className={cn(inputClass, errors.raisonFrancais && errorInputClass)}
+          className={`form-gov-select ${errors.raisonFrancais ? 'form-gov-error' : ''}`}
         >
           <option value="">Selectionnez une raison...</option>
           {(Object.values(NationalityReason)).map((value) => (
@@ -270,7 +306,7 @@ export function StepIdentity() {
           ))}
         </select>
         {errors.raisonFrancais && (
-          <p className="mt-1 text-sm text-red-600">{errors.raisonFrancais.message}</p>
+          <p className="form-gov-error-msg">{errors.raisonFrancais.message}</p>
         )}
       </div>
     </div>

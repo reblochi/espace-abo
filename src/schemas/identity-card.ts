@@ -252,7 +252,7 @@ export type IdentityCardInput = z.infer<typeof identityCardSchema>;
 export const STEP_FIELDS: Record<string, (keyof IdentityCardInput)[]> = {
   requestType: ['motif'],
   identity: ['gender', 'nom', 'prenom', 'birthDate', 'birthCountryId', 'birthCityName', 'taille', 'raisonFrancais'],
-  parents: ['fatherUnknown', 'motherUnknown', 'fatherLastName', 'fatherFirstName', 'fatherBirthCity', 'motherLastName', 'motherFirstName', 'motherBirthCity'],
+  parents: ['fatherUnknown', 'motherUnknown', 'fatherLastName', 'fatherFirstName', 'fatherBirthDate', 'fatherBirthCity', 'motherLastName', 'motherFirstName', 'motherBirthDate', 'motherBirthCity'],
   requester: ['telephone', 'email', 'emailConfirm', 'deliveryAddress'],
   contact: ['contact'],
   summary: ['consents'],

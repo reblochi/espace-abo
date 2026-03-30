@@ -5,10 +5,6 @@
 import * as React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert } from '@/components/ui/alert';
 import {
   identityCardSchema,
   STEP_FIELDS,
@@ -153,20 +149,118 @@ export function IdentityCardForm({
     mode: 'onChange',
   });
 
-  const { handleSubmit, trigger, formState: { errors: formErrors } } = methods;
+  const { handleSubmit, trigger, getValues, setError: setFieldError, formState: { errors: formErrors } } = methods;
 
-  // Validation de l'etape courante
+  // Validation de l'etape courante (champs individuels + validations cross-champs)
   const validateCurrentStep = async (): Promise<boolean> => {
     const stepId = STEPS[currentStep]?.id;
     const fieldsToValidate = STEP_FIELDS[stepId];
     if (!fieldsToValidate || fieldsToValidate.length === 0) return true;
-    return await trigger(fieldsToValidate);
+
+    const fieldsValid = await trigger(fieldsToValidate);
+    if (!fieldsValid) return false;
+
+    // Validations cross-champs par etape
+    const values = getValues();
+
+    if (stepId === 'parents') {
+      let valid = true;
+
+      // Les deux parents ne peuvent pas etre inconnus
+      if (values.fatherUnknown && values.motherUnknown) {
+        setFieldError('fatherUnknown', { type: 'manual', message: 'Les deux parents ne peuvent pas etre inconnus simultanement' });
+        valid = false;
+      }
+
+      // Pere non inconnu : nom, prenom, ville requis
+      if (!values.fatherUnknown) {
+        if (!values.fatherLastName?.trim()) {
+          setFieldError('fatherLastName', { type: 'manual', message: 'Nom du pere requis' });
+          valid = false;
+        }
+        if (!values.fatherFirstName?.trim()) {
+          setFieldError('fatherFirstName', { type: 'manual', message: 'Prenom du pere requis' });
+          valid = false;
+        }
+        if (!values.fatherBirthCity?.trim()) {
+          setFieldError('fatherBirthCity', { type: 'manual', message: 'Ville de naissance du pere requise' });
+          valid = false;
+        }
+      }
+
+      // Mere non inconnue : nom, prenom, ville requis
+      if (!values.motherUnknown) {
+        if (!values.motherLastName?.trim()) {
+          setFieldError('motherLastName', { type: 'manual', message: 'Nom de la mere requis' });
+          valid = false;
+        }
+        if (!values.motherFirstName?.trim()) {
+          setFieldError('motherFirstName', { type: 'manual', message: 'Prenom de la mere requis' });
+          valid = false;
+        }
+        if (!values.motherBirthCity?.trim()) {
+          setFieldError('motherBirthCity', { type: 'manual', message: 'Ville de naissance de la mere requise' });
+          valid = false;
+        }
+      }
+
+      // Date naissance pere < date naissance titulaire
+      if (!values.fatherUnknown && values.fatherBirthDate && values.birthDate) {
+        if (new Date(values.fatherBirthDate) >= new Date(values.birthDate)) {
+          setFieldError('fatherBirthDate', { type: 'manual', message: 'La date de naissance du pere doit etre anterieure a celle du titulaire' });
+          valid = false;
+        }
+      }
+
+      // Date naissance mere < date naissance titulaire
+      if (!values.motherUnknown && values.motherBirthDate && values.birthDate) {
+        if (new Date(values.motherBirthDate) >= new Date(values.birthDate)) {
+          setFieldError('motherBirthDate', { type: 'manual', message: 'La date de naissance de la mere doit etre anterieure a celle du titulaire' });
+          valid = false;
+        }
+      }
+
+      return valid;
+    }
+
+    if (stepId === 'requester') {
+      let valid = true;
+
+      // Confirmation email doit correspondre
+      if (values.email !== values.emailConfirm) {
+        setFieldError('emailConfirm', { type: 'manual', message: 'Les 2 adresses email ne sont pas identiques' });
+        valid = false;
+      }
+
+      // Telephone francais : 10 chiffres commencant par 0
+      const tel = values.telephone?.replace(/[\s\-.]/g, '') || '';
+      if (!/^0[0-9]{9}$/.test(tel)) {
+        setFieldError('telephone', { type: 'manual', message: 'Format invalide (exemple : 06 12 34 56 78)' });
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    if (stepId === 'identity') {
+      let valid = true;
+
+      // Si nom d'usage rempli, type obligatoire
+      if (values.nomUsage && values.nomUsage.trim().length > 0 && !values.typeNomUsage) {
+        setFieldError('typeNomUsage', { type: 'manual', message: 'Veuillez preciser le type de nom d\'usage' });
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    return true;
   };
 
   const handleNext = async () => {
+    setError(null);
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
-      setError(null);
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -297,6 +391,9 @@ export function IdentityCardForm({
     }
   };
 
+  // Progress bar percentage
+  const progress = STEPS.length > 1 ? (currentStep / (STEPS.length - 1)) * 100 : 0;
+
   const renderStepContent = () => {
     switch (STEPS[currentStep].id) {
       case 'requestType':
@@ -327,121 +424,133 @@ export function IdentityCardForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={(e) => {
-        // Empecher le submit par Enter sur un champ texte (sauf si on est a la derniere etape)
-        if (currentStep < STEPS.length - 1) {
-          e.preventDefault();
-          return;
-        }
-        setHasAttemptedSubmit(true);
-        handleSubmit(handleFormSubmit, (validationErrors) => {
-          const messages: string[] = [];
-          const flatErrors = (obj: Record<string, unknown>): void => {
-            for (const [, val] of Object.entries(obj)) {
-              if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
-                messages.push((val as { message: string }).message);
-              } else if (val && typeof val === 'object') {
-                flatErrors(val as Record<string, unknown>);
-              }
-            }
-          };
-          flatErrors(validationErrors as Record<string, unknown>);
-          if (messages.length > 0) {
-            setError('Veuillez corriger les erreurs : ' + messages.join(', '));
-          }
-        })(e);
-      }} className="space-y-6">
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            {STEPS.map((step, index) => (
-              <React.Fragment key={step.id}>
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => index < currentStep && setCurrentStep(index)}
-                    disabled={index > currentStep}
-                    className={cn(
-                      'w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                      index < currentStep
-                        ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700'
-                        : index === currentStep
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    )}
-                  >
-                    {index < currentStep ? (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      index + 1
-                    )}
-                  </button>
-                  <span className={cn(
-                    'mt-2 text-xs font-medium hidden sm:block',
-                    index <= currentStep ? 'text-blue-600' : 'text-gray-500'
-                  )}>
-                    {step.title}
-                  </span>
-                </div>
-                {index < STEPS.length - 1 && (
-                  <div className={cn(
-                    'flex-1 h-0.5 mx-2',
-                    index < currentStep ? 'bg-blue-600' : 'bg-gray-200'
-                  )} />
-                )}
-              </React.Fragment>
-            ))}
+      <div className="max-w-2xl mx-auto p-4">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+            Demande de Carte d'Identite
+          </h1>
+        </div>
+
+        {/* Progress bar - GOV.UK style */}
+        <div className="form-gov-progress">
+          <div className="form-gov-progress-header">
+            <p className="form-gov-progress-text">
+              <span className="form-gov-progress-step">
+                Etape {currentStep + 1} sur {STEPS.length}
+              </span>
+              <span className="form-gov-progress-label">
+                — {STEPS[currentStep].title}
+              </span>
+            </p>
+          </div>
+          <div className="form-gov-progress-bar">
+            <div
+              className="form-gov-progress-fill"
+              style={{ width: `${Math.max(progress, 2)}%` }}
+            />
           </div>
         </div>
 
-        {/* Contenu de l'etape */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{STEPS[currentStep].title}</CardTitle>
-            <CardDescription>{STEPS[currentStep].description}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Form Card */}
+        <div className="form-gov-card">
+          <form onSubmit={(e) => {
+            // Empecher le submit par Enter sur un champ texte (sauf si on est a la derniere etape)
+            if (currentStep < STEPS.length - 1) {
+              e.preventDefault();
+              return;
+            }
+            setHasAttemptedSubmit(true);
+            handleSubmit(handleFormSubmit, (validationErrors) => {
+              const messages: string[] = [];
+              const flatErrors = (obj: Record<string, unknown>): void => {
+                for (const [, val] of Object.entries(obj)) {
+                  if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
+                    messages.push((val as { message: string }).message);
+                  } else if (val && typeof val === 'object') {
+                    flatErrors(val as Record<string, unknown>);
+                  }
+                }
+              };
+              flatErrors(validationErrors as Record<string, unknown>);
+              if (messages.length > 0) {
+                setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+              }
+            })(e);
+          }}>
             {error && (
-              <Alert variant="error" className="mb-6">
-                {error}
-              </Alert>
+              <div className="p-4 bg-red-50 border-l-4 border-l-red-600 mb-6">
+                <p className="text-base text-red-800 font-semibold">{error}</p>
+              </div>
             )}
+
             {renderStepContent()}
-          </CardContent>
-        </Card>
 
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-          >
-            Precedent
-          </Button>
-
-          {currentStep < STEPS.length - 1 ? (
-            <Button type="button" onClick={handleNext}>
-              Suivant
-            </Button>
-          ) : (
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                'Traitement...'
-              ) : isSubscriber ? (
-                'Valider ma demande'
-              ) : paymentMode === 'subscription' ? (
-                'Souscrire et valider ma demande'
-              ) : (
-                'Proceder au paiement'
+            {/* Navigation */}
+            <div className={`flex ${currentStep === 0 ? 'justify-end' : 'justify-between'} mt-8 pt-6 border-t border-gray-200`}>
+              {currentStep > 0 && (
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  className="btn-gov btn-gov-secondary"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Retour
+                </button>
               )}
-            </Button>
-          )}
+
+              {currentStep < STEPS.length - 1 ? (
+                <button type="button" onClick={handleNext} className="btn-gov btn-gov-primary">
+                  Continuer
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ) : (
+                <button type="submit" disabled={isSubmitting} className="btn-gov btn-gov-primary">
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Traitement...
+                    </>
+                  ) : isSubscriber ? (
+                    <>
+                      Valider ma demande
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </>
+                  ) : paymentMode === 'subscription' ? (
+                    <>
+                      Souscrire et valider
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      Proceder au paiement
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </form>
         </div>
-      </form>
+
+        {/* Footer */}
+        <p className="mt-6 form-gov-hint">
+          Vos donnees sont traitees de maniere securisee et confidentielle.
+        </p>
+      </div>
     </FormProvider>
   );
 }
