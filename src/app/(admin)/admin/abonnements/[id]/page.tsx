@@ -126,7 +126,7 @@ export default function AdminSubscriptionDetailPage() {
             <div className="flex justify-between">
               <dt className="text-gray-500">Utilisateur</dt>
               <dd>
-                <Link href={`/admin/utilisateurs/${sub.user.id}`} className="text-blue-600 hover:text-blue-800">
+                <Link href={`/admin/clients/${sub.user.id}`} className="text-blue-600 hover:text-blue-800">
                   {sub.user.firstName} {sub.user.lastName}
                 </Link>
               </dd>

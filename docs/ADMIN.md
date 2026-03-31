@@ -6,7 +6,7 @@
 
 Le back-office admin est integre dans la meme codebase Next.js que l'espace membre, sous le groupe de routes `(admin)/admin/`. Il partage les modeles Prisma, les adaptateurs PSP, et la generation de factures.
 
-Acces : `/admin` — necessite un utilisateur avec `role: ADMIN` en BDD.
+Acces : `/admin` — necessite un utilisateur avec `role: ADMIN` ou `AGENT` en BDD.
 
 ---
 
@@ -14,21 +14,29 @@ Acces : `/admin` — necessite un utilisateur avec `role: ADMIN` en BDD.
 
 ```
 src/app/(admin)/admin/       # Pages admin (server + client components)
-src/app/api/admin/           # API routes admin (protegees par requireAdmin)
+src/app/api/admin/           # API routes admin (protegees par requireAdminOrAgent)
 src/components/admin/        # Composants reutilisables admin
 src/lib/admin-auth.ts        # Helpers auth admin
 src/schemas/admin.ts         # Schemas Zod validation admin
 ```
 
-### Authentification admin
+### Roles et authentification
 
-- Le champ `role` (enum `UserRole`: USER | ADMIN) est sur le modele `User`
+Trois roles existent :
+
+| Role | Acces admin | Restrictions |
+|------|-------------|-------------|
+| `USER` | Aucun (espace membre uniquement) | — |
+| `AGENT` | Tout le back-office | Ne peut pas changer les roles des utilisateurs |
+| `ADMIN` | Tout le back-office | Peut nommer/denommer agents et admins depuis la fiche client |
+
+- Le champ `role` (enum `UserRole`: USER | AGENT | ADMIN) est sur le modele `User`
 - Le JWT NextAuth contient le role (mis a jour au login)
-- `requireAdmin()` dans `src/lib/admin-auth.ts` re-verifie le role en BDD a chaque requete API (le JWT peut etre stale jusqu'a 30 jours)
-- Pas de formulaire d'inscription admin — flag manuel en SQL :
-  ```sql
-  UPDATE espace_abo.users SET role = 'ADMIN' WHERE email = '...';
-  ```
+- `requireAdminOrAgent()` pour les routes accessibles aux agents et admins
+- `requireAdmin()` pour les routes admin-only (changement de role)
+- Re-verification du role en BDD a chaque requete (le JWT peut etre stale jusqu'a 30 jours)
+- Les admins peuvent nommer/denommer depuis la fiche client (`/admin/clients/[id]`)
+- Un admin ne peut pas modifier son propre role (securite)
 
 ### Audit
 
@@ -42,9 +50,10 @@ Toutes les actions admin mutantes (cancel, refund, credit note, etc.) sont trace
 - Stats en temps reel : utilisateurs, abonnements actifs, revenu net (mois + total), litiges ouverts, cartes expirantes, demarches
 - **Calcul du revenu** : somme de toutes les factures payees (abo + demarches + avoirs). Les avoirs ont des montants negatifs donc la somme donne le net.
 
-### Utilisateurs (`/admin/utilisateurs`)
-- **Recherche** : par email (partiel), nom/prenom (partiel), ou ID exact
-- **Fiche 360** (`/admin/utilisateurs/[id]`) : infos perso, abonnement, factures, demarches, litiges. Liens croises vers chaque section.
+### Clients (`/admin/clients`)
+- **Recherche** : par email (partiel), nom/prenom (partiel), ID exact, ou reference demarche (DEM-YYYY-XXXXXX)
+- **Fiche 360** (`/admin/clients/[id]`) : infos perso, abonnement, factures, demarches, litiges. Liens croises vers chaque section.
+- **Gestion des roles** (admin seulement) : dropdown pour changer le role d'un client (Client/Agent/Admin). Un admin ne peut pas modifier son propre role.
 - **Securite** : l'API n'expose jamais `passwordHash` ni les tokens de reset (utilise `select` explicite)
 
 ### Abonnements (`/admin/abonnements`)

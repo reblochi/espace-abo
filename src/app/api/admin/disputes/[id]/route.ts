@@ -2,14 +2,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdmin, logAdminAction } from '@/lib/admin-auth';
+import { requireAdminOrAgent, logAdminAction } from '@/lib/admin-auth';
 import { adminUpdateDisputeSchema } from '@/schemas/admin';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
+  const session = await requireAdminOrAgent();
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 });
   }
@@ -34,7 +34,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireAdmin();
+  const session = await requireAdminOrAgent();
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 });
   }

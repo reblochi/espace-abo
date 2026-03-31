@@ -2,10 +2,10 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireAdminOrAgent } from '@/lib/admin-auth';
 
 export async function GET() {
-  const session = await requireAdmin();
+  const session = await requireAdminOrAgent();
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 });
   }

@@ -1,12 +1,13 @@
-// Admin - Fiche utilisateur 360
+// Admin - Fiche client 360
 
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/hooks';
 import Link from 'next/link';
 
 const subscriptionStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
@@ -28,16 +29,18 @@ const processStatusConfig: Record<string, { label: string; variant: 'success' | 
   CANCELED: { label: 'Annule', variant: 'secondary' },
 };
 
-const paymentStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
-  PENDING: { label: 'En attente', variant: 'warning' },
-  PAID: { label: 'Paye', variant: 'success' },
-  FAILED: { label: 'Echoue', variant: 'destructive' },
-  REFUNDED: { label: 'Rembourse', variant: 'destructive' },
+const roleLabels: Record<string, string> = {
+  USER: 'Client',
+  AGENT: 'Agent',
+  ADMIN: 'Admin',
 };
 
-export default function AdminUserDetailPage() {
+export default function AdminClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const isCurrentAdmin = currentUser?.role === 'ADMIN';
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['admin', 'user', id],
@@ -48,16 +51,35 @@ export default function AdminUserDetailPage() {
     },
   });
 
+  const changeRole = useMutation({
+    mutationFn: async (newRole: string) => {
+      const res = await fetch(`/api/admin/users/${id}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+    },
+  });
+
   if (isLoading) {
     return <div className="text-gray-500">Chargement...</div>;
   }
 
   if (!user) {
-    return <div className="text-gray-500">Utilisateur non trouve</div>;
+    return <div className="text-gray-500">Client non trouve</div>;
   }
 
   const sub = user.subscription;
   const subStatus = sub ? subscriptionStatusConfig[sub.status] : null;
+  const isSelf = currentUser?.id === user.id;
 
   return (
     <div>
@@ -71,10 +93,15 @@ export default function AdminUserDetailPage() {
         Retour
       </button>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">
-        {user.firstName} {user.lastName}
-      </h1>
-      <p className="text-sm text-gray-500 mb-6">{user.email} &middot; ID: {user.id}</p>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl font-semibold text-gray-900">
+          {user.firstName} {user.lastName}
+        </h1>
+        <Badge variant={user.role === 'ADMIN' ? 'destructive' : user.role === 'AGENT' ? 'default' : 'secondary'}>
+          {roleLabels[user.role] || user.role}
+        </Badge>
+      </div>
+      <p className="text-sm text-gray-500 mb-6">{user.email}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informations personnelles */}
@@ -98,6 +125,25 @@ export default function AdminUserDetailPage() {
               <dd>{formatDate(user.createdAt)}</dd>
             </div>
           </dl>
+
+          {/* Gestion du role - admin seulement, pas sur soi-meme */}
+          {isCurrentAdmin && !isSelf && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <label className="block text-sm text-gray-600 mb-1">Role</label>
+              <select
+                value={user.role}
+                onChange={(e) => changeRole.mutate(e.target.value)}
+                disabled={changeRole.isPending}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+              >
+                <option value="USER">Client</option>
+                <option value="AGENT">Agent</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+              {changeRole.isPending && <span className="text-xs text-gray-400 ml-2">Sauvegarde...</span>}
+              {changeRole.isError && <p className="text-sm text-red-600 mt-1">{(changeRole.error as Error).message}</p>}
+            </div>
+          )}
         </Card>
 
         {/* Abonnement */}

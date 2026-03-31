@@ -1,4 +1,4 @@
-// Admin - Liste et recherche utilisateurs
+// Admin - Liste et recherche clients
 
 'use client';
 
@@ -75,11 +75,11 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-4">Utilisateurs</h1>
+      <h1 className="text-xl font-semibold text-gray-900 mb-4">Clients</h1>
 
       <div className="mb-4 max-w-md">
         <SearchBar
-          placeholder="Rechercher par email, nom ou ID..."
+          placeholder="Rechercher par email, nom, ID ou ref demarche..."
           onSearch={handleSearch}
         />
       </div>
@@ -92,8 +92,8 @@ export default function AdminUsersPage() {
         <DataTable
           columns={columns}
           data={data?.items || []}
-          onRowClick={(item) => router.push(`/admin/utilisateurs/${item.id}`)}
-          emptyMessage="Aucun utilisateur trouve"
+          onRowClick={(item) => router.push(`/admin/clients/${item.id}`)}
+          emptyMessage="Aucun client trouve"
           pagination={
             data?.pagination
               ? {

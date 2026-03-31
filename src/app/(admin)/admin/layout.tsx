@@ -1,6 +1,7 @@
 // Layout Admin avec authentification
 
 import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -16,9 +17,15 @@ export default async function AdminRootLayout({ children }: Props) {
     redirect('/login');
   }
 
-  if (session.user.role !== 'ADMIN') {
+  // Re-check role en BDD
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || !['ADMIN', 'AGENT'].includes(user.role)) {
     redirect('/espace-membre');
   }
 
-  return <AdminLayout>{children}</AdminLayout>;
+  return <AdminLayout role={user.role}>{children}</AdminLayout>;
 }

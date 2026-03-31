@@ -2,12 +2,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdmin, logAdminAction } from '@/lib/admin-auth';
+import { requireAdminOrAgent, logAdminAction } from '@/lib/admin-auth';
 import { adminCreateCreditNoteSchema } from '@/schemas/admin';
 import { createCreditNote } from '@/lib/invoice-creation';
 
 export async function POST(request: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireAdminOrAgent();
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 });
   }

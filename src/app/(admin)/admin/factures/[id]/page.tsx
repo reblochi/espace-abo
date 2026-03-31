@@ -119,7 +119,7 @@ export default function AdminInvoiceDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-gray-500">Utilisateur</dt>
                 <dd>
-                  <Link href={`/admin/utilisateurs/${invoice.user.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link href={`/admin/clients/${invoice.user.id}`} className="text-blue-600 hover:text-blue-800">
                     {invoice.user.firstName} {invoice.user.lastName}
                   </Link>
                 </dd>

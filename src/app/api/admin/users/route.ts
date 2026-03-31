@@ -1,12 +1,13 @@
-// API Admin - Liste utilisateurs avec recherche
+// API Admin - Liste clients avec recherche
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireAdminOrAgent } from '@/lib/admin-auth';
 import { adminUserSearchSchema } from '@/schemas/admin';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireAdminOrAgent();
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 });
   }
@@ -20,17 +21,34 @@ export async function GET(request: NextRequest) {
   const { search, page, limit } = parsed.data;
   const skip = (page - 1) * limit;
 
-  // Construction du filtre de recherche
-  const where = search
-    ? {
-        OR: [
-          { email: { contains: search, mode: 'insensitive' as const } },
-          { firstName: { contains: search, mode: 'insensitive' as const } },
-          { lastName: { contains: search, mode: 'insensitive' as const } },
-          { id: search },
-        ],
+  let where: Prisma.UserWhereInput = {};
+
+  if (search) {
+    // Chercher d'abord si c'est une reference demarche (DEM-YYYY-XXXXXX)
+    if (search.startsWith('DEM-')) {
+      const process = await prisma.process.findUnique({
+        where: { reference: search },
+        select: { userId: true },
+      });
+      if (process) {
+        where = { id: process.userId };
+      } else {
+        // Aucune demarche trouvee -> aucun resultat
+        return NextResponse.json({ items: [], pagination: { page, limit, total: 0, totalPages: 0 } });
       }
-    : {};
+    } else {
+      where = {
+        OR: [
+          { email: { contains: search, mode: 'insensitive' } },
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { id: search },
+          // Recherche par reference abo
+          { subscription: { reference: { contains: search, mode: 'insensitive' } } },
+        ],
+      };
+    }
+  }
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -43,6 +61,7 @@ export async function GET(request: NextRequest) {
         phone: true,
         zipCode: true,
         city: true,
+        role: true,
         createdAt: true,
         subscription: {
           select: {
