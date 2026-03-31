@@ -18,9 +18,9 @@ const typeLabels: Record<string, string> = {
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   DRAFT: { label: 'Brouillon', variant: 'secondary' },
-  SENT: { label: 'Envoyee', variant: 'warning' },
-  PAID: { label: 'Payee', variant: 'success' },
-  VOID: { label: 'Annulee', variant: 'destructive' },
+  SENT: { label: 'Envoyée', variant: 'warning' },
+  PAID: { label: 'Payée', variant: 'success' },
+  VOID: { label: 'Annulée', variant: 'destructive' },
 };
 
 export default function AdminInvoicesPage() {

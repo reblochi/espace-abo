@@ -13,17 +13,17 @@ import Link from 'next/link';
 
 const paymentStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   PENDING: { label: 'En attente', variant: 'warning' },
-  PAID: { label: 'Paye', variant: 'success' },
-  FAILED: { label: 'Echoue', variant: 'destructive' },
-  REFUNDED: { label: 'Rembourse', variant: 'destructive' },
+  PAID: { label: 'Payé', variant: 'success' },
+  FAILED: { label: 'Échoué', variant: 'destructive' },
+  REFUNDED: { label: 'Remboursé', variant: 'destructive' },
 };
 
 const subscriptionStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   ACTIVE: { label: 'Actif', variant: 'success' },
   PENDING: { label: 'En attente', variant: 'warning' },
-  PAST_DUE: { label: 'Impaye', variant: 'destructive' },
-  CANCELED: { label: 'Annule', variant: 'secondary' },
-  ENDED: { label: 'Termine', variant: 'secondary' },
+  PAST_DUE: { label: 'Impayé', variant: 'destructive' },
+  CANCELED: { label: "Annulé", variant: 'secondary' },
+  ENDED: { label: 'Terminé', variant: 'secondary' },
 };
 
 interface Deadline {
@@ -162,7 +162,7 @@ export default function AdminSubscriptionDetailPage() {
             </div>
             {sub.canceledAt && (
               <div className="flex justify-between">
-                <dt className="text-gray-500">Annule le</dt>
+                <dt className="text-gray-500">Annulé le</dt>
                 <dd>{formatDate(sub.canceledAt)}</dd>
               </div>
             )}
@@ -225,7 +225,7 @@ export default function AdminSubscriptionDetailPage() {
         {selectedDeadlines.length > 0 && (
           <Card className="p-4">
             <h2 className="font-medium text-gray-900 mb-2">
-              Rembourser {selectedDeadlines.length} echeance{selectedDeadlines.length > 1 ? 's' : ''} sur {refundableDeadlines.length} payee{refundableDeadlines.length > 1 ? 's' : ''}
+              Rembourser {selectedDeadlines.length} échéance{selectedDeadlines.length > 1 ? 's' : ''} sur {refundableDeadlines.length} payée{refundableDeadlines.length > 1 ? 's' : ''}
             </h2>
             <p className="text-sm text-gray-500 mb-3">
               Montant total : {formatCurrency(selectedDeadlines.reduce((sum, did) => {
@@ -268,9 +268,9 @@ export default function AdminSubscriptionDetailPage() {
         )}
       </div>
 
-      {/* Tableau des echeances */}
+      {/* Tableau des échéances */}
       <Card className="p-4">
-        <h2 className="font-medium text-gray-900 mb-3">Echeances ({sub.deadlines?.length || 0})</h2>
+        <h2 className="font-medium text-gray-900 mb-3">Échéances ({sub.deadlines?.length || 0})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -278,9 +278,9 @@ export default function AdminSubscriptionDetailPage() {
                 <th className="px-3 py-2 text-left w-8"></th>
                 <th className="px-3 py-2 text-left">#</th>
                 <th className="px-3 py-2 text-left">Montant</th>
-                <th className="px-3 py-2 text-left">Echeance</th>
+                <th className="px-3 py-2 text-left">Échéance</th>
                 <th className="px-3 py-2 text-left">Statut</th>
-                <th className="px-3 py-2 text-left">Paye le</th>
+                <th className="px-3 py-2 text-left">Payé le</th>
                 <th className="px-3 py-2 text-left">Facture</th>
               </tr>
             </thead>

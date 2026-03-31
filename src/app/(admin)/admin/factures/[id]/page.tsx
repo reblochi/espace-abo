@@ -75,7 +75,7 @@ export default function AdminInvoiceDetailPage() {
       <div className="flex items-center gap-3 mb-6">
         <h1 className="text-xl font-semibold text-gray-900">{invoice.number}</h1>
         <Badge variant={isCreditNote ? 'destructive' : invoice.status === 'PAID' ? 'success' : 'secondary'}>
-          {isCreditNote ? 'Avoir' : invoice.status === 'PAID' ? 'Payee' : invoice.status}
+          {isCreditNote ? 'Avoir' : invoice.status === 'PAID' ? 'Payée' : invoice.status}
         </Badge>
       </div>
 
@@ -105,7 +105,7 @@ export default function AdminInvoiceDetailPage() {
             </div>
             {invoice.paidAt && (
               <div className="flex justify-between">
-                <dt className="text-gray-500">Paye le</dt>
+                <dt className="text-gray-500">Payé le</dt>
                 <dd>{formatDate(invoice.paidAt)}</dd>
               </div>
             )}
@@ -133,13 +133,13 @@ export default function AdminInvoiceDetailPage() {
             )}
             {invoice.deadline && (
               <div className="flex justify-between">
-                <dt className="text-gray-500">Echeance</dt>
+                <dt className="text-gray-500">Échéance</dt>
                 <dd>
                   <Link
                     href={`/admin/abonnements/${invoice.deadline.subscriptionId}`}
                     className="text-blue-600 hover:text-blue-800"
                   >
-                    Echeance #{invoice.deadline.deadlineNumber}
+                    Échéance #{invoice.deadline.deadlineNumber}
                   </Link>
                 </dd>
               </div>

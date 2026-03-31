@@ -14,20 +14,20 @@ import Link from 'next/link';
 const subscriptionStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   ACTIVE: { label: 'Actif', variant: 'success' },
   PENDING: { label: 'En attente', variant: 'warning' },
-  PAST_DUE: { label: 'Impaye', variant: 'destructive' },
-  CANCELED: { label: 'Annule', variant: 'secondary' },
-  ENDED: { label: 'Termine', variant: 'secondary' },
+  PAST_DUE: { label: 'Impayé', variant: 'destructive' },
+  CANCELED: { label: "Annulé", variant: 'secondary' },
+  ENDED: { label: 'Terminé', variant: 'secondary' },
 };
 
 const processStatusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   DRAFT: { label: 'Brouillon', variant: 'secondary' },
   PENDING_PAYMENT: { label: 'Attente paiement', variant: 'warning' },
-  PAID: { label: 'Paye', variant: 'success' },
-  SENT_TO_ADVERCITY: { label: 'Envoye', variant: 'success' },
+  PAID: { label: 'Payé', variant: 'success' },
+  SENT_TO_ADVERCITY: { label: 'Envoyé', variant: 'success' },
   IN_PROGRESS: { label: 'En cours', variant: 'warning' },
-  COMPLETED: { label: 'Termine', variant: 'success' },
-  REFUNDED: { label: 'Rembourse', variant: 'destructive' },
-  CANCELED: { label: 'Annule', variant: 'secondary' },
+  COMPLETED: { label: 'Terminé', variant: 'success' },
+  REFUNDED: { label: 'Remboursé', variant: 'destructive' },
+  CANCELED: { label: "Annulé", variant: 'secondary' },
 };
 
 const roleLabels: Record<string, string> = {
@@ -211,7 +211,7 @@ export default function AdminClientDetailPage() {
                 <dd>{formatDate(sub.currentPeriodStart)} - {formatDate(sub.currentPeriodEnd)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Echeances payees</dt>
+                <dt className="text-gray-500">Échéances payées</dt>
                 <dd>{sub.deadlines?.filter((d: { paymentStatus: string }) => d.paymentStatus === 'PAID').length || 0}</dd>
               </div>
             </dl>
@@ -311,7 +311,7 @@ export default function AdminClientDetailPage() {
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {user.auditLogs.map((log: { id: string; action: string; createdAt: string; metadata: Record<string, unknown> | null }) => {
                 const actionLabels: Record<string, string> = {
-                  refund_deadlines: 'Remboursement echeances',
+                  refund_deadlines: 'Remboursement échéances',
                   refund_and_cancel: 'Remboursement + désabonnement',
                   cancel_subscription: 'Désabonnement',
                   create_credit_note: 'Creation avoir',

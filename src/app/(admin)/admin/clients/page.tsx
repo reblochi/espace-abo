@@ -13,9 +13,9 @@ import { formatDate } from '@/lib/utils';
 const subscriptionStatusLabels: Record<string, { label: string; variant: string }> = {
   ACTIVE: { label: 'Actif', variant: 'success' },
   PENDING: { label: 'En attente', variant: 'warning' },
-  PAST_DUE: { label: 'Impaye', variant: 'destructive' },
-  CANCELED: { label: 'Annule', variant: 'secondary' },
-  ENDED: { label: 'Termine', variant: 'secondary' },
+  PAST_DUE: { label: 'Impayé', variant: 'destructive' },
+  CANCELED: { label: "Annulé", variant: 'secondary' },
+  ENDED: { label: 'Terminé', variant: 'secondary' },
 };
 
 export default function AdminUsersPage() {
