@@ -193,6 +193,12 @@ const session = await adapter.createCheckoutSession({...});
 
 Pour ajouter un nouveau PSP, creer un adapter dans `src/lib/psp/` implementant `BasePSPAdapter`.
 
+### Regle absolue : independance PSP
+
+**Ne jamais appeler directement l'API Stripe (ou tout autre PSP) en dehors des adapters dans `src/lib/psp/`.** Tout doit passer par l'interface `BasePSPAdapter`. Si une fonctionnalite manque dans l'adapter (ex: remboursement via charge ID), l'ajouter dans l'interface abstraite et l'implementer dans chaque adapter.
+
+Stripe n'est pas le PSP definitif — le code doit pouvoir basculer sur un autre PSP (HiPay, etc.) sans modifier les routes API ni les pages admin. Les seuls fichiers qui importent `stripe` doivent etre `src/lib/psp/stripe-adapter.ts` et `src/lib/psp/webhook-handler.ts`.
+
 ## Integration Advercity
 
 - Les demarches payees sont envoyees a l'API Advercity via `src/lib/advercity.ts`

@@ -173,10 +173,34 @@ export class StripeAdapter extends BasePSPAdapter {
 
   async refund(input: RefundInput): Promise<RefundResult> {
     try {
+      // Resoudre le charge ID a partir de l'identifiant fourni (invoice, PI ou charge)
+      let chargeId: string | null = null;
+      const paymentId = input.paymentId;
+
+      if (paymentId.startsWith('in_')) {
+        const invoice = await this.stripe.invoices.retrieve(paymentId);
+        if (invoice.charge) {
+          chargeId = typeof invoice.charge === 'string' ? invoice.charge : invoice.charge.id;
+        } else if (invoice.payment_intent) {
+          const piId = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent.id;
+          const pi = await this.stripe.paymentIntents.retrieve(piId);
+          chargeId = pi.latest_charge as string || null;
+        }
+      } else if (paymentId.startsWith('ch_')) {
+        chargeId = paymentId;
+      } else if (paymentId.startsWith('pi_')) {
+        const pi = await this.stripe.paymentIntents.retrieve(paymentId);
+        chargeId = pi.latest_charge as string || null;
+      }
+
+      if (!chargeId) {
+        throw new Error(`Impossible de resoudre le charge Stripe depuis: ${paymentId}`);
+      }
+
       const refund = await this.stripe.refunds.create({
-        payment_intent: input.paymentId,
+        charge: chargeId,
         amount: input.amountCents,
-        reason: input.reason as Stripe.RefundCreateParams.Reason,
+        reason: (input.reason as Stripe.RefundCreateParams.Reason) || 'requested_by_customer',
       });
 
       return {
