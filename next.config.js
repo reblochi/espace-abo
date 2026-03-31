@@ -5,7 +5,7 @@ const nextConfig = {
 
   // Inclure les polices pdfkit dans le bundle serverless (Vercel)
   outputFileTracingIncludes: {
-    '/api/gestion/invoices/\\[id\\]/download': ['./node_modules/pdfkit/js/data/**/*'],
+    '/api/**': ['./node_modules/pdfkit/js/data/**/*'],
   },
 
   // Ignorer les erreurs TS au build (fix progressif en cours)
