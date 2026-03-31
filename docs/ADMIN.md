@@ -4,20 +4,20 @@
 
 ## Vue d'ensemble
 
-Le back-office admin est integre dans la meme codebase Next.js que l'espace membre, sous le groupe de routes `(admin)/admin/`. Il partage les modeles Prisma, les adaptateurs PSP, et la generation de factures.
+Le back-office admin est integre dans la meme codebase Next.js que l'espace membre, sous le groupe de routes `(admin)/gestion/`. Il partage les modeles Prisma, les adaptateurs PSP, et la generation de factures.
 
-Acces : `/admin` — necessite un utilisateur avec `role: ADMIN` ou `AGENT` en BDD.
+Acces : `/gestion` — necessite un utilisateur avec `role: ADMIN` ou `AGENT` en BDD.
 
 ---
 
 ## Architecture
 
 ```
-src/app/(admin)/admin/       # Pages admin (server + client components)
-src/app/api/admin/           # API routes admin (protegees par requireAdminOrAgent)
-src/components/admin/        # Composants reutilisables admin
-src/lib/admin-auth.ts        # Helpers auth admin
-src/schemas/admin.ts         # Schemas Zod validation admin
+src/app/(admin)/gestion/       # Pages admin (server + client components)
+src/app/api/gestion/           # API routes admin (protegees par requireAdminOrAgent)
+src/components/gestion/        # Composants reutilisables admin
+src/lib/gestion-auth.ts        # Helpers auth admin
+src/schemas/gestion.ts         # Schemas Zod validation admin
 ```
 
 ### Roles et authentification
@@ -35,7 +35,7 @@ Trois roles existent :
 - `requireAdminOrAgent()` pour les routes accessibles aux agents et admins
 - `requireAdmin()` pour les routes admin-only (changement de role)
 - Re-verification du role en BDD a chaque requete (le JWT peut etre stale jusqu'a 30 jours)
-- Les admins peuvent nommer/denommer depuis la fiche client (`/admin/clients/[id]`)
+- Les admins peuvent nommer/denommer depuis la fiche client (`/gestion/clients/[id]`)
 - Un admin ne peut pas modifier son propre role (securite)
 
 ### Audit
@@ -46,21 +46,21 @@ Toutes les actions admin mutantes (cancel, refund, credit note, etc.) sont trace
 
 ## Pages et fonctionnalites
 
-### Dashboard (`/admin`)
+### Dashboard (`/gestion`)
 - Stats en temps reel : utilisateurs, abonnements actifs, revenu net (mois + total), litiges ouverts, cartes expirantes, demarches
 - **Calcul du revenu** : somme de toutes les factures payees (abo + demarches + avoirs). Les avoirs ont des montants negatifs donc la somme donne le net.
 
-### Clients (`/admin/clients`)
+### Clients (`/gestion/clients`)
 - **Recherche** : par email (partiel), nom/prenom (partiel), ID exact, ou reference demarche (DEM-YYYY-XXXXXX)
-- **Fiche 360** (`/admin/clients/[id]`) : infos perso, abonnement, factures, demarches, litiges. Liens croises vers chaque section.
+- **Fiche 360** (`/gestion/clients/[id]`) : infos perso, abonnement, factures, demarches, litiges. Liens croises vers chaque section.
 - **Gestion des roles** (admin seulement) : dropdown pour changer le role d'un client (Client/Agent/Admin). Un admin ne peut pas modifier son propre role.
 - **Securite** : l'API n'expose jamais `passwordHash` ni les tokens de reset (utilise `select` explicite)
 
-### Abonnements (`/admin/abonnements`)
+### Abonnements (`/gestion/abonnements`)
 - **Liste** : reference, user, statut, montant, carte (last4 + expiration), date debut
 - **Filtres** : statut, carte expirante (abos actifs avec carte expiree ou expirant dans 2 mois)
 - **Badge "Expire"** sur les cartes problematiques
-- **Detail** (`/admin/abonnements/[id]`) :
+- **Detail** (`/gestion/abonnements/[id]`) :
   - Infos abo + user + carte
   - **Desabonnement** : immediat ou fin de periode, avec motif. Appel PSP + annulation echeances UPCOMING
   - **Remboursement echeances** : selection par checkbox des echeances payees. Pour chaque echeance :
@@ -69,12 +69,12 @@ Toutes les actions admin mutantes (cancel, refund, credit note, etc.) sont trace
     3. Si PSP echoue : rollback de la DB
     4. Si PSP ok : cree un avoir (credit note)
 
-### Factures (`/admin/factures`)
+### Factures (`/gestion/factures`)
 - **Liste** : numero, user, type (Abo/Demarche/Avoir), montant, statut, date
 - **Filtres** : type, statut
 - **Recherche** : email, nom, numero de facture
 - **Download PDF** : generation a la volee si pas de cache R2
-- **Detail** (`/admin/factures/[id]`) :
+- **Detail** (`/gestion/factures/[id]`) :
   - Infos completes, liens user/demarche/echeance
   - **Creation avoir** : motif obligatoire, montant optionnel (defaut = total). Protection contre les doublons : verifie le montant deja rembourse via audit logs.
 
@@ -83,10 +83,10 @@ Toutes les actions admin mutantes (cancel, refund, credit note, etc.) sont trace
 - Avoirs : `AVO-YYYY-XXXXXX`
 - Protection race condition : retry sur unique constraint violation (3 tentatives)
 
-### Litiges (`/admin/litiges`)
+### Litiges (`/gestion/litiges`)
 - **Liste** : date, ID PSP, montant, raison, statut, avoir lie
 - **Filtres** : statut (A traiter, En cours, Gagne, Perdu)
-- **Detail** (`/admin/litiges/[id]`) : infos, liens subscription/avoir, notes admin editables
+- **Detail** (`/gestion/litiges/[id]`) : infos, liens subscription/avoir, notes admin editables
 
 ---
 
@@ -154,10 +154,10 @@ role: UserRole (USER | ADMIN) @default(USER)
 
 | Composant | Fichier | Usage |
 |-----------|---------|-------|
-| `AdminLayout` | `src/components/admin/AdminLayout.tsx` | Sidebar + header admin |
-| `DataTable` | `src/components/admin/DataTable.tsx` | Table avec pagination, tri, click row |
-| `SearchBar` | `src/components/admin/SearchBar.tsx` | Recherche avec debounce 300ms |
-| `StatCard` | `src/components/admin/StatCard.tsx` | Carte stat dashboard (default/success/warning/destructive) |
+| `AdminLayout` | `src/components/gestion/AdminLayout.tsx` | Sidebar + header admin |
+| `DataTable` | `src/components/gestion/DataTable.tsx` | Table avec pagination, tri, click row |
+| `SearchBar` | `src/components/gestion/SearchBar.tsx` | Recherche avec debounce 300ms |
+| `StatCard` | `src/components/gestion/StatCard.tsx` | Carte stat dashboard (default/success/warning/destructive) |
 
 ---
 

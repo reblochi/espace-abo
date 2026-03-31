@@ -46,7 +46,7 @@ export default function AdminClientDetailPage() {
   const { data: user, isLoading } = useQuery({
     queryKey: ['admin', 'user', id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/users/${id}`);
+      const res = await fetch(`/api/gestion/users/${id}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -56,7 +56,7 @@ export default function AdminClientDetailPage() {
 
   const anonymize = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/users/${id}/anonymize`, { method: 'POST' });
+      const res = await fetch(`/api/gestion/users/${id}/anonymize`, { method: 'POST' });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Erreur');
@@ -71,7 +71,7 @@ export default function AdminClientDetailPage() {
 
   const changeRole = useMutation({
     mutationFn: async (newRole: string) => {
-      const res = await fetch(`/api/admin/users/${id}/role`, {
+      const res = await fetch(`/api/gestion/users/${id}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -173,7 +173,7 @@ export default function AdminClientDetailPage() {
             <h2 className="font-medium text-gray-900">Abonnement</h2>
             {sub && (
               <Link
-                href={`/admin/abonnements/${sub.id}`}
+                href={`/gestion/abonnements/${sub.id}`}
                 className="text-xs text-blue-600 hover:text-blue-800"
               >
                 Voir detail
@@ -230,7 +230,7 @@ export default function AdminClientDetailPage() {
               {user.invoices.map((inv: { id: string; number: string; type: string; totalCents: number; status: string; createdAt: string }) => (
                 <Link
                   key={inv.id}
-                  href={`/admin/factures/${inv.id}`}
+                  href={`/gestion/factures/${inv.id}`}
                   className="flex items-center justify-between p-2 rounded hover:bg-gray-50 text-sm"
                 >
                   <div>
@@ -285,7 +285,7 @@ export default function AdminClientDetailPage() {
               {user.disputes.map((d: { id: string; pspDisputeId: string; amountCents: number; reason: string; status: string; disputedAt: string }) => (
                 <Link
                   key={d.id}
-                  href={`/admin/litiges/${d.id}`}
+                  href={`/gestion/litiges/${d.id}`}
                   className="flex items-center justify-between p-2 rounded hover:bg-gray-50 text-sm"
                 >
                   <div>

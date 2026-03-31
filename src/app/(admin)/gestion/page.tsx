@@ -10,7 +10,7 @@ export default function AdminDashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/gestion/stats');
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },

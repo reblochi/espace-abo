@@ -53,7 +53,7 @@ export default function AdminSubscriptionDetailPage() {
   const { data: sub, isLoading } = useQuery({
     queryKey: ['admin', 'subscription', id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/subscriptions/${id}`);
+      const res = await fetch(`/api/gestion/subscriptions/${id}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -61,7 +61,7 @@ export default function AdminSubscriptionDetailPage() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/subscriptions/${id}/cancel`, {
+      const res = await fetch(`/api/gestion/subscriptions/${id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: cancelReason, immediate: cancelImmediate }),
@@ -78,7 +78,7 @@ export default function AdminSubscriptionDetailPage() {
 
   const refundMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/subscriptions/${id}/refund`, {
+      const res = await fetch(`/api/gestion/subscriptions/${id}/refund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,7 +135,7 @@ export default function AdminSubscriptionDetailPage() {
             <div className="flex justify-between">
               <dt className="text-gray-500">Client</dt>
               <dd>
-                <Link href={`/admin/clients/${sub.user.id}`} className="text-blue-600 hover:text-blue-800">
+                <Link href={`/gestion/clients/${sub.user.id}`} className="text-blue-600 hover:text-blue-800">
                   {sub.user.firstName} {sub.user.lastName}
                 </Link>
               </dd>
@@ -313,7 +313,7 @@ export default function AdminSubscriptionDetailPage() {
                     <td className="px-3 py-2">{d.paidAt ? formatDate(d.paidAt) : '-'}</td>
                     <td className="px-3 py-2">
                       {d.invoice ? (
-                        <Link href={`/admin/factures/${d.invoice.id}`} className="text-blue-600 hover:text-blue-800 text-xs">
+                        <Link href={`/gestion/factures/${d.invoice.id}`} className="text-blue-600 hover:text-blue-800 text-xs">
                           {d.invoice.number}
                         </Link>
                       ) : '-'}

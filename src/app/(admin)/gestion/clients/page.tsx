@@ -28,7 +28,7 @@ export default function AdminUsersPage() {
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
-      const res = await fetch(`/api/admin/users?${params}`);
+      const res = await fetch(`/api/gestion/users?${params}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -99,7 +99,7 @@ export default function AdminUsersPage() {
         <DataTable
           columns={columns}
           data={data?.items || []}
-          onRowClick={(item) => router.push(`/admin/clients/${item.id}`)}
+          onRowClick={(item) => router.push(`/gestion/clients/${item.id}`)}
           emptyMessage="Aucun client trouve"
           pagination={
             data?.pagination

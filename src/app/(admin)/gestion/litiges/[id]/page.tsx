@@ -28,7 +28,7 @@ export default function AdminDisputeDetailPage() {
   const { data: dispute, isLoading } = useQuery({
     queryKey: ['admin', 'dispute', id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/disputes/${id}`);
+      const res = await fetch(`/api/gestion/disputes/${id}`);
       if (!res.ok) throw new Error('Erreur chargement');
       const data = await res.json();
       if (!notesLoaded) {
@@ -41,7 +41,7 @@ export default function AdminDisputeDetailPage() {
 
   const saveNotes = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/disputes/${id}`, {
+      const res = await fetch(`/api/gestion/disputes/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminNotes: notes }),
@@ -113,7 +113,7 @@ export default function AdminDisputeDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-gray-500">Abonnement</dt>
                 <dd>
-                  <Link href={`/admin/abonnements/${dispute.subscriptionId}`} className="text-blue-600 hover:text-blue-800">
+                  <Link href={`/gestion/abonnements/${dispute.subscriptionId}`} className="text-blue-600 hover:text-blue-800">
                     Voir
                   </Link>
                 </dd>
@@ -123,7 +123,7 @@ export default function AdminDisputeDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-gray-500">Avoir</dt>
                 <dd>
-                  <Link href={`/admin/factures/${dispute.creditNote.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link href={`/gestion/factures/${dispute.creditNote.id}`} className="text-blue-600 hover:text-blue-800">
                     {dispute.creditNote.number} ({formatCurrency(dispute.creditNote.totalCents)})
                   </Link>
                 </dd>

@@ -26,7 +26,7 @@ export default function AdminDisputesPage() {
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (statusFilter) params.set('status', statusFilter);
-      const res = await fetch(`/api/admin/disputes?${params}`);
+      const res = await fetch(`/api/gestion/disputes?${params}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -101,7 +101,7 @@ export default function AdminDisputesPage() {
         <DataTable
           columns={columns}
           data={data?.items || []}
-          onRowClick={(item) => router.push(`/admin/litiges/${item.id}`)}
+          onRowClick={(item) => router.push(`/gestion/litiges/${item.id}`)}
           emptyMessage="Aucun litige"
           pagination={
             data?.pagination

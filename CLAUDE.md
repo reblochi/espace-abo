@@ -286,7 +286,7 @@ Le dashboard affiche des donnees localisees basees sur le `zipCode` du user en B
 
 Documentation complete dans [`docs/ADMIN.md`](docs/ADMIN.md). **Penser a actualiser ce fichier a chaque modification de l'admin.**
 
-Resume : back-office integre sous `/admin`, auth par role (`UserRole` sur User), gestion des abonnements (cancel/refund), comptabilite (factures/avoirs), litiges/chargebacks (webhooks Stripe + auto-avoir quand perdu), detection cartes expirantes, dashboard stats.
+Resume : back-office integre sous `/gestion`, auth par role (`UserRole` sur User), gestion des abonnements (cancel/refund), comptabilite (factures/avoirs), litiges/chargebacks (webhooks Stripe + auto-avoir quand perdu), detection cartes expirantes, dashboard stats.
 
 ## Notes importantes
 

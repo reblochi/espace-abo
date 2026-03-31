@@ -30,7 +30,7 @@ export default function AdminSubscriptionsPage() {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
-      const res = await fetch(`/api/admin/subscriptions?${params}`);
+      const res = await fetch(`/api/gestion/subscriptions?${params}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -126,7 +126,7 @@ export default function AdminSubscriptionsPage() {
         <DataTable
           columns={columns}
           data={data?.items || []}
-          onRowClick={(item) => router.push(`/admin/abonnements/${item.id}`)}
+          onRowClick={(item) => router.push(`/gestion/abonnements/${item.id}`)}
           emptyMessage="Aucun abonnement"
           pagination={
             data?.pagination

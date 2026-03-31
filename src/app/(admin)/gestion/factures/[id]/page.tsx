@@ -22,7 +22,7 @@ export default function AdminInvoiceDetailPage() {
   const { data: invoice, isLoading } = useQuery({
     queryKey: ['admin', 'invoice', id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/invoices/${id}`);
+      const res = await fetch(`/api/gestion/invoices/${id}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -37,7 +37,7 @@ export default function AdminInvoiceDetailPage() {
       if (creditNoteAmount) {
         body.amountCents = Math.round(parseFloat(creditNoteAmount) * 100);
       }
-      const res = await fetch('/api/admin/invoices/credit-note', {
+      const res = await fetch('/api/gestion/invoices/credit-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -51,7 +51,7 @@ export default function AdminInvoiceDetailPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'invoice', id] });
       setShowCreditNoteForm(false);
-      router.push(`/admin/factures/${data.id}`);
+      router.push(`/gestion/factures/${data.id}`);
     },
   });
 
@@ -119,7 +119,7 @@ export default function AdminInvoiceDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-gray-500">Client</dt>
                 <dd>
-                  <Link href={`/admin/clients/${invoice.user.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link href={`/gestion/clients/${invoice.user.id}`} className="text-blue-600 hover:text-blue-800">
                     {invoice.user.firstName} {invoice.user.lastName}
                   </Link>
                 </dd>
@@ -136,7 +136,7 @@ export default function AdminInvoiceDetailPage() {
                 <dt className="text-gray-500">Échéance</dt>
                 <dd>
                   <Link
-                    href={`/admin/abonnements/${invoice.deadline.subscriptionId}`}
+                    href={`/gestion/abonnements/${invoice.deadline.subscriptionId}`}
                     className="text-blue-600 hover:text-blue-800"
                   >
                     Échéance #{invoice.deadline.deadlineNumber}
@@ -148,7 +148,7 @@ export default function AdminInvoiceDetailPage() {
 
           <div className="mt-4 flex gap-2">
             <a
-              href={`/api/admin/invoices/${id}/download`}
+              href={`/api/gestion/invoices/${id}/download`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:text-blue-800"

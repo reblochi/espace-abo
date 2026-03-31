@@ -35,7 +35,7 @@ export default function AdminInvoicesPage() {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       if (typeFilter) params.set('type', typeFilter);
-      const res = await fetch(`/api/admin/invoices?${params}`);
+      const res = await fetch(`/api/gestion/invoices?${params}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
     },
@@ -103,7 +103,7 @@ export default function AdminInvoicesPage() {
       label: '',
       render: (item: Record<string, unknown>) => (
         <a
-          href={`/api/admin/invoices/${item.id}/download`}
+          href={`/api/gestion/invoices/${item.id}/download`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
@@ -144,7 +144,7 @@ export default function AdminInvoicesPage() {
         <DataTable
           columns={columns}
           data={data?.items || []}
-          onRowClick={(item) => router.push(`/admin/factures/${item.id}`)}
+          onRowClick={(item) => router.push(`/gestion/factures/${item.id}`)}
           emptyMessage="Aucune facture trouvee"
           pagination={
             data?.pagination
