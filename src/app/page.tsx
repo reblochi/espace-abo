@@ -365,53 +365,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Image src="/logo-saf.png" alt="SAF" width={28} height={28} className="object-contain" />
-                <span className="text-lg font-bold text-[#1a2e5a]">SAF</span>
-              </div>
-              <p className="text-sm text-gray-500">
-                Service d&apos;Aide aux Formalités. Simplifiez toutes vos démarches administratives.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3 text-sm">Services</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><Link href="/nouvelle-demarche/acte-naissance" className="hover:text-gray-700">Acte de naissance</Link></li>
-                <li><Link href="/nouvelle-demarche/acte-mariage" className="hover:text-gray-700">Acte de mariage</Link></li>
-                <li><Link href="/nouvelle-demarche/acte-deces" className="hover:text-gray-700">Acte de décès</Link></li>
-                <li><Link href="/nouvelle-demarche/carte-grise" className="hover:text-gray-700">Carte grise</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3 text-sm">Entreprise</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><Link href="/abonnement" className="hover:text-gray-700">Tarifs</Link></li>
-                <li><Link href="/contact" className="hover:text-gray-700">Contact</Link></li>
-                <li><Link href="/faq" className="hover:text-gray-700">FAQ</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3 text-sm">Légal</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><Link href="/conditions-generales" className="hover:text-gray-700">CGU</Link></li>
-                <li><Link href="/politique-confidentialite" className="hover:text-gray-700">Confidentialité</Link></li>
-                <li><Link href="/mentions-legales" className="hover:text-gray-700">Mentions légales</Link></li>
-                <li><Link href="/desabonnement" className="hover:text-gray-700">Se désabonner</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-200 pt-8">
-            <p className="text-center text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} SAF - Service d&apos;Aide aux Formalités. Tous droits réservés.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

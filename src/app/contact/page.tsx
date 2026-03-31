@@ -138,14 +138,6 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-
-      <footer className="bg-gray-50 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} SAF - Service d&apos;Aide aux Formalités. Tous droits réservés.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

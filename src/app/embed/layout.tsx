@@ -1,4 +1,4 @@
-// Layout minimal pour les pages embarquees (iframe/widget)
+// Layout minimal pour les pages embarquées (iframe/widget)
 // Pas de header/footer, fond blanc, pas de navigation
 
 import type { Metadata } from 'next';
@@ -13,5 +13,10 @@ export default function EmbedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <style>{`footer { display: none !important; }`}</style>
+    </>
+  );
 }

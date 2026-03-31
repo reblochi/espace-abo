@@ -19,6 +19,7 @@ const PLANS = [
     features: [
       'Démarches administratives illimitées',
       'Courriers types pré-remplis (3/mois)',
+      'Lettres de résiliation, mise en demeure, préavis...',
       'Services publics localisés',
       'Suivi en temps réel de vos dossiers',
       'Coffre-fort numérique (bientôt)',
@@ -326,12 +327,6 @@ function AbonnementContent() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p>&copy; {new Date().getFullYear()} SAF - Service d'Aide aux Formalités. Tous droits réservés.</p>
-        </div>
-      </footer>
     </div>
   );
 }
