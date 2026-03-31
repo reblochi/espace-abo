@@ -15,9 +15,9 @@ Acces : `/gestion` — necessite un utilisateur avec `role: ADMIN` ou `AGENT` en
 ```
 src/app/(admin)/gestion/       # Pages admin (server + client components)
 src/app/api/gestion/           # API routes admin (protegees par requireAdminOrAgent)
-src/components/gestion/        # Composants reutilisables admin
-src/lib/gestion-auth.ts        # Helpers auth admin
-src/schemas/gestion.ts         # Schemas Zod validation admin
+src/components/admin/          # Composants reutilisables admin
+src/lib/admin-auth.ts          # Helpers auth admin
+src/schemas/admin.ts           # Schemas Zod validation admin
 ```
 
 ### Roles et authentification
@@ -154,10 +154,10 @@ role: UserRole (USER | ADMIN) @default(USER)
 
 | Composant | Fichier | Usage |
 |-----------|---------|-------|
-| `AdminLayout` | `src/components/gestion/AdminLayout.tsx` | Sidebar + header admin |
-| `DataTable` | `src/components/gestion/DataTable.tsx` | Table avec pagination, tri, click row |
-| `SearchBar` | `src/components/gestion/SearchBar.tsx` | Recherche avec debounce 300ms |
-| `StatCard` | `src/components/gestion/StatCard.tsx` | Carte stat dashboard (default/success/warning/destructive) |
+| `AdminLayout` | `src/components/admin/AdminLayout.tsx` | Sidebar + header admin |
+| `DataTable` | `src/components/admin/DataTable.tsx` | Table avec pagination, tri, click row |
+| `SearchBar` | `src/components/admin/SearchBar.tsx` | Recherche avec debounce 300ms |
+| `StatCard` | `src/components/admin/StatCard.tsx` | Carte stat dashboard (default/success/warning/destructive) |
 
 ---
 
