@@ -68,21 +68,44 @@ export async function POST(
       const isFakeId = deadline.pspInvoiceId?.includes('fake');
       if (deadline.pspInvoiceId && !isFakeId) {
         try {
-          let paymentId = deadline.pspInvoiceId;
-
-          // Pour Stripe, resoudre l'invoice ID en payment_intent ID
-          if (subscription.pspProvider === 'stripe' && paymentId.startsWith('in_')) {
+          if (subscription.pspProvider === 'stripe') {
             const Stripe = (await import('stripe')).default;
-            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
-            const stripeInvoice = await stripe.invoices.retrieve(paymentId);
-            paymentId = stripeInvoice.payment_intent as string || paymentId;
-          }
+            const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
 
-          await adapter.refund({
-            paymentId,
-            amountCents: deadline.amountCents,
-            reason: reason || 'Admin refund',
-          });
+            let chargeId: string | null = null;
+
+            if (deadline.pspInvoiceId.startsWith('in_')) {
+              // Resoudre invoice -> charge
+              const stripeInvoice = await stripeClient.invoices.retrieve(deadline.pspInvoiceId);
+              if (stripeInvoice.charge) {
+                chargeId = typeof stripeInvoice.charge === 'string' ? stripeInvoice.charge : stripeInvoice.charge.id;
+              } else if (stripeInvoice.payment_intent) {
+                // Fallback: resoudre via payment_intent
+                const piId = typeof stripeInvoice.payment_intent === 'string' ? stripeInvoice.payment_intent : stripeInvoice.payment_intent.id;
+                const pi = await stripeClient.paymentIntents.retrieve(piId);
+                chargeId = pi.latest_charge as string || null;
+              }
+            } else if (deadline.pspInvoiceId.startsWith('ch_')) {
+              chargeId = deadline.pspInvoiceId;
+            } else if (deadline.pspInvoiceId.startsWith('pi_')) {
+              const pi = await stripeClient.paymentIntents.retrieve(deadline.pspInvoiceId);
+              chargeId = pi.latest_charge as string || null;
+            }
+
+            if (!chargeId) throw new Error('Impossible de trouver le charge Stripe');
+
+            await stripeClient.refunds.create({
+              charge: chargeId,
+              amount: deadline.amountCents,
+              reason: 'requested_by_customer',
+            });
+          } else {
+            await adapter.refund({
+              paymentId: deadline.pspInvoiceId,
+              amountCents: deadline.amountCents,
+              reason: reason || 'Admin refund',
+            });
+          }
         } catch (pspErr) {
           // PSP echoue : rollback la DB
           console.error(`[Admin] Erreur PSP remboursement échéance ${deadline.id}:`, pspErr);
