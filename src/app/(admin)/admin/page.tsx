@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Utilisateurs"
+          label="Clients"
           value={stats?.totalUsers ?? 0}
         />
         <StatCard

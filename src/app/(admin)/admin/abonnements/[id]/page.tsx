@@ -124,7 +124,7 @@ export default function AdminSubscriptionDetailPage() {
           <h2 className="font-medium text-gray-900 mb-3">Abonnement</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-gray-500">Utilisateur</dt>
+              <dt className="text-gray-500">Client</dt>
               <dd>
                 <Link href={`/admin/clients/${sub.user.id}`} className="text-blue-600 hover:text-blue-800">
                   {sub.user.firstName} {sub.user.lastName}

@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Format date YYYY-MM-DD
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu : YYYY-MM-DD').optional();
 
-// Recherche utilisateurs
+// Recherche clients
 export const adminUserSearchSchema = z.object({
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
