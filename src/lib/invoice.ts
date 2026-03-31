@@ -1,168 +1,143 @@
-// Service de generation de factures PDF
-//
-// pdfkit cherche ses polices AFM dans node_modules/pdfkit/js/data/
-// Sur Vercel serverless ce dossier n'est pas inclus.
-// On copie les AFM depuis data/pdfkit/ (versionne) vers /tmp au runtime.
+// Service de génération de factures PDF (pdf-lib, 100% mémoire, compatible Vercel serverless)
 
-import path from 'path';
-import fs from 'fs';
-
-// Preparer les polices AVANT d'importer pdfkit
-const sourceDir = path.join(process.cwd(), 'data', 'pdfkit');
-const targetDir = path.resolve('node_modules/pdfkit/js/data');
-if (!fs.existsSync(path.join(targetDir, 'Helvetica.afm')) && fs.existsSync(sourceDir)) {
-  // Copier vers /tmp puis creer un symlink
-  const tmpDir = '/tmp/pdfkit-data';
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true });
-    for (const f of fs.readdirSync(sourceDir)) {
-      fs.copyFileSync(path.join(sourceDir, f), path.join(tmpDir, f));
-    }
-  }
-  // Creer le dossier parent si absent et symlinker
-  try {
-    fs.mkdirSync(path.dirname(targetDir), { recursive: true });
-    fs.symlinkSync(tmpDir, targetDir);
-  } catch {
-    // Si symlink echoue, essayer copie directe
-    try {
-      fs.mkdirSync(targetDir, { recursive: true });
-      for (const f of fs.readdirSync(tmpDir)) {
-        fs.copyFileSync(path.join(tmpDir, f), path.join(targetDir, f));
-      }
-    } catch { /* read-only FS, on tente quand meme pdfkit */ }
-  }
-}
-
-import PDFDocument from 'pdfkit';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { InvoiceWithRelations } from '@/types';
 import { formatDate, formatCurrency } from './utils';
 import { uploadToStorage } from './storage';
 
-// Configuration entreprise (a personnaliser)
 const COMPANY_INFO = {
-  name: process.env.COMPANY_NAME || 'Ma Societe',
+  name: process.env.COMPANY_NAME || 'France Guichet (SAF)',
   address: process.env.COMPANY_ADDRESS || '123 Rue Example',
   zipCode: process.env.COMPANY_ZIPCODE || '75001',
   city: process.env.COMPANY_CITY || 'Paris',
   country: 'France',
   siret: process.env.COMPANY_SIRET || '123 456 789 00000',
   tva: process.env.COMPANY_TVA || 'FR12345678901',
-  email: process.env.COMPANY_EMAIL || 'contact@example.com',
+  email: process.env.COMPANY_EMAIL || 'contact@franceguichet.fr',
   phone: process.env.COMPANY_PHONE || '01 23 45 67 89',
 };
 
-// Generer le PDF d'une facture
 export async function generateInvoicePdf(invoice: InvoiceWithRelations): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks: Buffer[] = [];
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595, 842]); // A4
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const { height } = page.getSize();
 
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+  const black = rgb(0, 0, 0);
+  const gray = rgb(0.4, 0.4, 0.4);
 
-      // En-tete
-      const title = invoice.type === 'CREDIT_NOTE' ? 'AVOIR' : 'FACTURE';
-      doc.fontSize(20).text(title, { align: 'center' });
-      doc.moveDown();
+  let y = height - 50;
 
-      // Numero et date
-      doc.fontSize(12);
-      const docLabel = invoice.type === 'CREDIT_NOTE' ? 'Avoir N' : 'Facture N';
-      doc.text(`${docLabel}: ${invoice.number}`, { align: 'right' });
-      doc.text(`Date: ${formatDate(invoice.createdAt)}`, { align: 'right' });
-      if (invoice.paidAt) {
-        doc.text(`Payee le: ${formatDate(invoice.paidAt)}`, { align: 'right' });
-      }
-      doc.moveDown();
+  // --- Titre ---
+  const title = invoice.type === 'CREDIT_NOTE' ? 'AVOIR' : 'FACTURE';
+  page.drawText(title, { x: 230, y, font: fontBold, size: 22, color: black });
+  y -= 35;
 
-      // Informations entreprise
-      doc.text(COMPANY_INFO.name, 50, 150);
-      doc.text(COMPANY_INFO.address);
-      doc.text(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`);
-      doc.text(COMPANY_INFO.country);
-      doc.text(`SIRET: ${COMPANY_INFO.siret}`);
-      doc.text(`TVA: ${COMPANY_INFO.tva}`);
-      doc.moveDown();
+  // --- Numéro et date (droite) ---
+  const docLabel = invoice.type === 'CREDIT_NOTE' ? 'Avoir' : 'Facture';
+  page.drawText(`${docLabel} N° : ${invoice.number}`, { x: 350, y, font, size: 10, color: black });
+  y -= 15;
+  page.drawText(`Date : ${formatDate(invoice.createdAt)}`, { x: 350, y, font, size: 10, color: black });
+  if (invoice.paidAt) {
+    y -= 15;
+    page.drawText(`Payée le : ${formatDate(invoice.paidAt)}`, { x: 350, y, font, size: 10, color: black });
+  }
 
-      // Informations client
-      if (invoice.user) {
-        doc.text('Facture a:', 350, 150);
-        doc.text(`${invoice.user.firstName} ${invoice.user.lastName}`);
-        if (invoice.user.address) doc.text(invoice.user.address);
-        if (invoice.user.zipCode && invoice.user.city) {
-          doc.text(`${invoice.user.zipCode} ${invoice.user.city}`);
-        }
-        doc.text(invoice.user.email);
-      }
+  // --- Entreprise (gauche) ---
+  let ey = height - 85;
+  page.drawText(COMPANY_INFO.name, { x: 50, y: ey, font: fontBold, size: 11, color: black });
+  ey -= 15;
+  page.drawText(COMPANY_INFO.address, { x: 50, y: ey, font, size: 9, color: gray });
+  ey -= 13;
+  page.drawText(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`, { x: 50, y: ey, font, size: 9, color: gray });
+  ey -= 13;
+  page.drawText(`SIRET : ${COMPANY_INFO.siret}`, { x: 50, y: ey, font, size: 9, color: gray });
+  ey -= 13;
+  page.drawText(`TVA : ${COMPANY_INFO.tva}`, { x: 50, y: ey, font, size: 9, color: gray });
 
-      // Ligne de separation
-      doc.moveTo(50, 280).lineTo(550, 280).stroke();
-
-      // Description
-      let description = '';
-      if (invoice.type === 'SUBSCRIPTION') {
-        description = `Abonnement mensuel${invoice.deadline ? ` - Echeance ${invoice.deadline.deadlineNumber}` : ''}`;
-      } else if (invoice.type === 'PROCESS' && invoice.process) {
-        description = `Demarche ${invoice.process.reference}`;
-      } else if (invoice.type === 'CREDIT_NOTE') {
-        description = 'Avoir';
-      }
-
-      // Tableau des lignes
-      const tableTop = 300;
-      doc.text('Description', 50, tableTop);
-      doc.text('HT', 350, tableTop, { width: 70, align: 'right' });
-      doc.text('TVA', 420, tableTop, { width: 50, align: 'right' });
-      doc.text('TTC', 480, tableTop, { width: 70, align: 'right' });
-
-      doc.moveTo(50, tableTop + 20).lineTo(550, tableTop + 20).stroke();
-
-      // Ligne facture
-      doc.text(description, 50, tableTop + 30);
-      doc.text(formatCurrency(invoice.subtotalCents), 350, tableTop + 30, { width: 70, align: 'right' });
-      doc.text(`${invoice.taxRate}%`, 420, tableTop + 30, { width: 50, align: 'right' });
-      doc.text(formatCurrency(invoice.totalCents), 480, tableTop + 30, { width: 70, align: 'right' });
-
-      // Totaux
-      doc.moveTo(350, tableTop + 60).lineTo(550, tableTop + 60).stroke();
-      doc.text('Total HT:', 350, tableTop + 70);
-      doc.text(formatCurrency(invoice.subtotalCents), 480, tableTop + 70, { width: 70, align: 'right' });
-      doc.text(`TVA (${invoice.taxRate}%):`, 350, tableTop + 90);
-      doc.text(formatCurrency(invoice.taxCents), 480, tableTop + 90, { width: 70, align: 'right' });
-      doc.font('Helvetica-Bold');
-      doc.text('Total TTC:', 350, tableTop + 115);
-      doc.text(formatCurrency(invoice.totalCents), 480, tableTop + 115, { width: 70, align: 'right' });
-      doc.font('Helvetica');
-
-      // Statut paiement
-      doc.moveDown(4);
-      const statusText = invoice.status === 'PAID' ? 'PAYEE' : 'EN ATTENTE';
-      doc.fontSize(14).text(`Statut: ${statusText}`, { align: 'center' });
-
-      // Pied de page
-      doc.fontSize(10);
-      doc.text(
-        `${COMPANY_INFO.name} - ${COMPANY_INFO.address}, ${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`,
-        50,
-        750,
-        { align: 'center' }
-      );
-      doc.text(
-        `Email: ${COMPANY_INFO.email} - Tel: ${COMPANY_INFO.phone}`,
-        { align: 'center' }
-      );
-
-      doc.end();
-    } catch (error) {
-      reject(error);
+  // --- Client (droite, sous les dates) ---
+  if (invoice.user) {
+    let cy = height - 145;
+    page.drawText('Facturé à :', { x: 350, y: cy, font, size: 9, color: gray });
+    cy -= 15;
+    page.drawText(`${invoice.user.firstName} ${invoice.user.lastName}`, { x: 350, y: cy, font: fontBold, size: 10, color: black });
+    if (invoice.user.address) {
+      cy -= 13;
+      page.drawText(invoice.user.address, { x: 350, y: cy, font, size: 9, color: gray });
     }
-  });
+    if (invoice.user.zipCode && invoice.user.city) {
+      cy -= 13;
+      page.drawText(`${invoice.user.zipCode} ${invoice.user.city}`, { x: 350, y: cy, font, size: 9, color: gray });
+    }
+    cy -= 13;
+    page.drawText(invoice.user.email, { x: 350, y: cy, font, size: 9, color: gray });
+  }
+
+  // --- Ligne de séparation ---
+  y = height - 260;
+  page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.5, color: gray });
+
+  // --- Description ---
+  let description = '';
+  if (invoice.type === 'SUBSCRIPTION') {
+    description = `Abonnement mensuel${invoice.deadline ? ` - Échéance ${invoice.deadline.deadlineNumber}` : ''}`;
+  } else if (invoice.type === 'PROCESS' && invoice.process) {
+    description = `Démarche ${invoice.process.reference}`;
+  } else if (invoice.type === 'CREDIT_NOTE') {
+    description = 'Avoir';
+  }
+
+  // --- En-tête tableau ---
+  y -= 20;
+  page.drawText('Description', { x: 50, y, font: fontBold, size: 9, color: black });
+  page.drawText('HT', { x: 350, y, font: fontBold, size: 9, color: black });
+  page.drawText('TVA', { x: 420, y, font: fontBold, size: 9, color: black });
+  page.drawText('TTC', { x: 490, y, font: fontBold, size: 9, color: black });
+
+  y -= 5;
+  page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.3, color: gray });
+
+  // --- Ligne facture ---
+  y -= 18;
+  page.drawText(description, { x: 50, y, font, size: 9, color: black });
+  page.drawText(formatCurrency(invoice.subtotalCents), { x: 340, y, font, size: 9, color: black });
+  page.drawText(`${invoice.taxRate}%`, { x: 420, y, font, size: 9, color: black });
+  page.drawText(formatCurrency(invoice.totalCents), { x: 480, y, font, size: 9, color: black });
+
+  // --- Totaux ---
+  y -= 30;
+  page.drawLine({ start: { x: 330, y: y + 5 }, end: { x: 545, y: y + 5 }, thickness: 0.3, color: gray });
+  page.drawText('Total HT :', { x: 340, y: y - 10, font, size: 9, color: black });
+  page.drawText(formatCurrency(invoice.subtotalCents), { x: 480, y: y - 10, font, size: 9, color: black });
+  page.drawText(`TVA (${invoice.taxRate}%) :`, { x: 340, y: y - 25, font, size: 9, color: black });
+  page.drawText(formatCurrency(invoice.taxCents), { x: 480, y: y - 25, font, size: 9, color: black });
+
+  y -= 45;
+  page.drawLine({ start: { x: 330, y: y + 5 }, end: { x: 545, y: y + 5 }, thickness: 0.5, color: black });
+  page.drawText('Total TTC :', { x: 340, y: y - 10, font: fontBold, size: 11, color: black });
+  page.drawText(formatCurrency(invoice.totalCents), { x: 475, y: y - 10, font: fontBold, size: 11, color: black });
+
+  // --- Statut ---
+  y -= 50;
+  const statusText = invoice.status === 'PAID' ? 'PAYÉE' : 'EN ATTENTE';
+  page.drawText(`Statut : ${statusText}`, { x: 230, y, font: fontBold, size: 13, color: black });
+
+  // --- Pied de page ---
+  page.drawText(
+    `${COMPANY_INFO.name} - ${COMPANY_INFO.address}, ${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`,
+    { x: 100, y: 50, font, size: 8, color: gray }
+  );
+  page.drawText(
+    `Email : ${COMPANY_INFO.email} - Tél : ${COMPANY_INFO.phone}`,
+    { x: 150, y: 38, font, size: 8, color: gray }
+  );
+
+  const pdfBytes = await doc.save();
+  return Buffer.from(pdfBytes);
 }
 
-// Generer et uploader une facture
+// Générer et uploader une facture
 export async function generateAndUploadInvoice(invoice: InvoiceWithRelations): Promise<string> {
   const pdfBuffer = await generateInvoicePdf(invoice);
   const { storageUrl } = await uploadToStorage(
@@ -174,8 +149,7 @@ export async function generateAndUploadInvoice(invoice: InvoiceWithRelations): P
   return storageUrl;
 }
 
-// Generer le prochain numero sequentiel pour un prefixe donne.
-// Utilise findFirst + orderBy desc pour eviter les race conditions avec count().
+// Générer le prochain numéro séquentiel pour un préfixe donné.
 async function generateNextNumber(prismaClient: unknown, prefix: string): Promise<string> {
   const year = new Date().getFullYear();
   const fullPrefix = `${prefix}-${year}-`;
@@ -197,12 +171,10 @@ async function generateNextNumber(prismaClient: unknown, prefix: string): Promis
   return `${fullPrefix}${String(nextNum).padStart(6, '0')}`;
 }
 
-// Generer le numero de facture
 export async function generateInvoiceNumber(prismaClient: unknown): Promise<string> {
   return generateNextNumber(prismaClient, 'FAC');
 }
 
-// Generer le numero d'avoir
 export async function generateCreditNoteNumber(prismaClient: unknown): Promise<string> {
   return generateNextNumber(prismaClient, 'AVO');
 }
