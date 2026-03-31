@@ -48,6 +48,7 @@ export default function AdminSubscriptionDetailPage() {
   const [cancelImmediate, setCancelImmediate] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [customAmount, setCustomAmount] = useState<string>('');
   const [alsoCancel, setAlsoCancel] = useState(false);
 
   const { data: sub, isLoading } = useQuery({
@@ -85,6 +86,7 @@ export default function AdminSubscriptionDetailPage() {
           deadlineIds: selectedDeadlines,
           reason: refundReason,
           cancelSubscription: alsoCancel,
+          ...(customAmount ? { customAmountCents: Math.round(parseFloat(customAmount) * 100) } : {}),
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -96,6 +98,7 @@ export default function AdminSubscriptionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'invoices'] });
       setSelectedDeadlines([]);
       setRefundReason('');
+      setCustomAmount('');
       setAlsoCancel(false);
     },
   });
@@ -227,12 +230,35 @@ export default function AdminSubscriptionDetailPage() {
             <h2 className="font-medium text-gray-900 mb-2">
               Rembourser {selectedDeadlines.length} échéance{selectedDeadlines.length > 1 ? 's' : ''} sur {refundableDeadlines.length} payée{refundableDeadlines.length > 1 ? 's' : ''}
             </h2>
-            <p className="text-sm text-gray-500 mb-3">
-              Montant total : {formatCurrency(selectedDeadlines.reduce((sum, did) => {
+            {(() => {
+              const totalCents = selectedDeadlines.reduce((sum, did) => {
                 const d = refundableDeadlines.find((dl) => dl.id === did);
                 return sum + (d?.amountCents || 0);
-              }, 0))}
-            </p>
+              }, 0);
+              const totalEuros = (totalCents / 100).toFixed(2);
+              return (
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-1">
+                    <label className="text-sm text-gray-500">Montant :</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={totalEuros}
+                      value={customAmount || totalEuros}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right"
+                    />
+                    <span className="text-sm text-gray-500">€</span>
+                  </div>
+                  {customAmount && parseFloat(customAmount) < parseFloat(totalEuros) && (
+                    <span className="text-xs text-orange-600">
+                      Remboursement partiel (total : {totalEuros} €)
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             <input
               type="text"
               value={refundReason}

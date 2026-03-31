@@ -24,7 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'Donnees invalides', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { deadlineIds, reason, cancelSubscription } = parsed.data;
+  const { deadlineIds, reason, cancelSubscription, customAmountCents } = parsed.data;
 
   const subscription = await prisma.subscription.findUnique({
     where: { id },
@@ -51,16 +51,35 @@ export async function POST(
   const adapter = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
   const results: { deadlineId: string; success: boolean; creditNoteId?: string; error?: string }[] = [];
 
+  // Calculer le montant total des échéances sélectionnées
+  const totalEligibleCents = eligibleDeadlines.reduce((sum, d) => sum + d.amountCents, 0);
+
+  // Valider le montant custom
+  const refundAmountCents = customAmountCents
+    ? Math.min(customAmountCents, totalEligibleCents)
+    : totalEligibleCents;
+
+  if (refundAmountCents <= 0) {
+    return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });
+  }
+
+  // Répartir le montant sur les échéances (ou tout sur la première si montant custom)
+  let remainingCents = refundAmountCents;
+
   for (const deadline of eligibleDeadlines) {
+    if (remainingCents <= 0) break;
+
+    const amountForThis = Math.min(remainingCents, deadline.amountCents);
+    remainingCents -= amountForThis;
+
     try {
-      // 1. Marquer l'echeance comme remboursee en base AVANT l'appel PSP
-      //    (si le PSP echoue, on rollback; si le PSP reussit mais la DB crashait apres, on aurait perdu la trace)
+      // 1. Marquer l'échéance comme remboursée
       await prisma.subscriptionDeadline.update({
         where: { id: deadline.id },
         data: {
           paymentStatus: 'REFUNDED',
           refundedAt: new Date(),
-          refundedAmount: deadline.amountCents,
+          refundedAmount: amountForThis,
         },
       });
 
@@ -70,11 +89,10 @@ export async function POST(
         try {
           await adapter.refund({
             paymentId: deadline.pspInvoiceId,
-            amountCents: deadline.amountCents,
+            amountCents: amountForThis,
             reason: reason || 'requested_by_customer',
           });
         } catch (pspErr) {
-          // PSP echoue : rollback la DB
           console.error(`[Admin] Erreur PSP remboursement échéance ${deadline.id}:`, pspErr);
           await prisma.subscriptionDeadline.update({
             where: { id: deadline.id },
@@ -85,16 +103,16 @@ export async function POST(
         }
       }
 
-      // 3. Creer l'avoir
+      // 3. Créer l'avoir
       const creditNote = await createCreditNote({
         userId: subscription.userId,
-        totalCents: deadline.amountCents,
-        reason: reason || `Remboursement echeance #${deadline.deadlineNumber}`,
+        totalCents: amountForThis,
+        reason: reason || `Remboursement échéance #${deadline.deadlineNumber}${amountForThis < deadline.amountCents ? ' (partiel)' : ''}`,
       });
 
       results.push({ deadlineId: deadline.id, success: true, creditNoteId: creditNote.id });
     } catch (err) {
-      console.error(`[Admin] Erreur remboursement echeance ${deadline.id}:`, err);
+      console.error(`[Admin] Erreur remboursement échéance ${deadline.id}:`, err);
       results.push({ deadlineId: deadline.id, success: false, error: 'Erreur remboursement' });
     }
   }

@@ -47,11 +47,12 @@ export const adminCancelSubscriptionSchema = z.object({
   immediate: z.boolean().default(false),
 });
 
-// Remboursement echeances
+// Remboursement échéances
 export const adminRefundDeadlinesSchema = z.object({
-  deadlineIds: z.array(z.string()).min(1, 'Selectionnez au moins une echeance'),
+  deadlineIds: z.array(z.string()).min(1, 'Sélectionnez au moins une échéance'),
   reason: z.string().optional(),
   cancelSubscription: z.boolean().default(false),
+  customAmountCents: z.number().int().positive().optional(),
 });
 
 // Creation avoir
