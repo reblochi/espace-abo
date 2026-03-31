@@ -19,6 +19,85 @@ import {
   TabsContent,
 } from '@/components/ui';
 
+function RgpdSection() {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isAnonymizing, setIsAnonymizing] = useState(false);
+  const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
+
+  const handleAnonymize = async () => {
+    setIsAnonymizing(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/account/anonymize', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      setResult({ success: true });
+      setShowConfirm(false);
+    } catch (err) {
+      setResult({ error: err instanceof Error ? err.message : 'Erreur inconnue' });
+    } finally {
+      setIsAnonymizing(false);
+    }
+  };
+
+  return (
+    <Card className="border-orange-200">
+      <CardHeader>
+        <CardTitle>Donnees personnelles (RGPD)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-gray-500 mb-2">
+          Conformement au RGPD, vous pouvez demander l&apos;effacement des donnees
+          de traitement de vos demarches (formulaires, documents uploades).
+        </p>
+        <p className="text-gray-500 mb-4 text-sm">
+          Vos informations d&apos;identification (nom, email, adresse) et vos factures
+          sont conservees pour des raisons legales et comptables (10 ans, art. L123-22 Code de commerce).
+        </p>
+
+        {result?.success && (
+          <Alert variant="success" className="mb-4">
+            Vos donnees de traitement ont ete anonymisees avec succes.
+          </Alert>
+        )}
+        {result?.error && (
+          <Alert variant="error" className="mb-4">
+            {result.error}
+          </Alert>
+        )}
+
+        {!showConfirm ? (
+          <Button variant="outline" onClick={() => setShowConfirm(true)}>
+            Anonymiser mes donnees de traitement
+          </Button>
+        ) : (
+          <div className="p-4 bg-orange-50 rounded-lg space-y-3">
+            <p className="text-sm font-medium text-orange-800">
+              Cette action est irreversible. Les donnees de formulaires et documents
+              de toutes vos demarches seront effaces.
+            </p>
+            <p className="text-sm text-orange-700">
+              Vos factures, votre abonnement et vos informations de contact seront conserves.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                onClick={handleAnonymize}
+                disabled={isAnonymizing}
+              >
+                {isAnonymizing ? 'Anonymisation...' : 'Confirmer l\'anonymisation'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MonProfilPage() {
   const { user, logout } = useAuth();
   const { profile, isLoading, updateProfile, isUpdating } = useProfile();
@@ -278,20 +357,8 @@ export default function MonProfilPage() {
               </CardContent>
             </Card>
 
-            {/* Suppression de compte */}
-            <Card className="border-red-200">
-              <CardHeader>
-                <CardTitle className="text-red-600">Zone de danger</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500 mb-4">
-                  La suppression de votre compte est irreversible. Toutes vos donnees seront perdues.
-                </p>
-                <Button variant="destructive">
-                  Supprimer mon compte
-                </Button>
-              </CardContent>
-            </Card>
+            {/* RGPD */}
+            <RgpdSection />
           </div>
         </TabsContent>
       </Tabs>

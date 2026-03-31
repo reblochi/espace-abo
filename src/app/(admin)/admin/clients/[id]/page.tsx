@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,23 @@ export default function AdminClientDetailPage() {
       const res = await fetch(`/api/admin/users/${id}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
+    },
+  });
+
+  const [showAnonymizeConfirm, setShowAnonymizeConfirm] = useState(false);
+
+  const anonymize = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/users/${id}/anonymize`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+      setShowAnonymizeConfirm(false);
     },
   });
 
@@ -280,6 +298,47 @@ export default function AdminClientDetailPage() {
                 </Link>
               ))}
             </div>
+          </Card>
+        )}
+
+        {/* RGPD - Anonymisation */}
+        {!isSelf && user.role === 'USER' && (
+          <Card className="p-4 lg:col-span-2 border-orange-200">
+            <h2 className="font-medium text-gray-900 mb-2">RGPD</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Anonymiser les donnees de traitement (formulaires, documents). Les informations
+              d&apos;identification et les factures sont conservees (obligation legale 10 ans).
+            </p>
+            {anonymize.isSuccess && (
+              <p className="text-sm text-green-600 mb-3">Donnees de traitement anonymisees.</p>
+            )}
+            {anonymize.isError && (
+              <p className="text-sm text-red-600 mb-3">{(anonymize.error as Error).message}</p>
+            )}
+            {!showAnonymizeConfirm ? (
+              <button
+                onClick={() => setShowAnonymizeConfirm(true)}
+                className="text-sm text-orange-600 hover:text-orange-800"
+              >
+                Anonymiser les donnees de traitement
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => anonymize.mutate()}
+                  disabled={anonymize.isPending}
+                  className="text-sm bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700 disabled:opacity-50"
+                >
+                  {anonymize.isPending ? 'Anonymisation...' : 'Confirmer'}
+                </button>
+                <button
+                  onClick={() => setShowAnonymizeConfirm(false)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Annuler
+                </button>
+              </div>
+            )}
           </Card>
         )}
       </div>
