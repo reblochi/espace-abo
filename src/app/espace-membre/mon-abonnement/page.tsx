@@ -68,7 +68,7 @@ export default function MonAbonnementPage() {
               Aucun abonnement actif
             </h3>
             <p className="text-gray-500 mb-6">
-              Souscrivez a notre offre pour beneficier de demarches illimitees et d'un suivi personnalise.
+              Souscrivez a notre offre pour bénéficier de démarches illimitées et d'un suivi personnalise.
             </p>
             <Button size="lg">
               Decouvrir l'offre
@@ -105,7 +105,7 @@ export default function MonAbonnementPage() {
 
       {subscription.status === 'CANCELED' && isActive && (
         <Alert variant="warning" title="Abonnement resilie">
-          Votre abonnement a ete resilie. Vous beneficiez encore de vos avantages jusqu'au {formatDate(subscription.endDate!)}.
+          Votre abonnement a ete resilie. Vous bénéficiez encore de vos avantages jusqu'au {formatDate(subscription.endDate!)}.
         </Alert>
       )}
 
@@ -120,7 +120,7 @@ export default function MonAbonnementPage() {
         <CardContent>
           <dl className="grid gap-6 sm:grid-cols-2">
             <div>
-              <dt className="text-sm text-gray-500">Reference</dt>
+              <dt className="text-sm text-gray-500">Référence</dt>
               <dd className="mt-1 font-medium text-gray-900">{subscription.reference}</dd>
             </div>
             <div>
@@ -132,7 +132,7 @@ export default function MonAbonnementPage() {
               <dd className="mt-1 font-medium text-gray-900">{formatDate(subscription.startDate)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-gray-500">Prochaine echeance</dt>
+              <dt className="text-sm text-gray-500">Prochaine échéance</dt>
               <dd className="mt-1 font-medium text-gray-900">{formatDate(subscription.currentPeriodEnd)}</dd>
             </div>
             {subscription.endDate && (
@@ -226,7 +226,7 @@ export default function MonAbonnementPage() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-500 mb-4">
-              Votre abonnement a expire. Reabonnez-vous pour continuer a beneficier de nos services.
+              Votre abonnement a expire. Reabonnez-vous pour continuer a bénéficier de nos services.
             </p>
             <Button>
               Se reabonner

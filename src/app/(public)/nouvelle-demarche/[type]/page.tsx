@@ -85,7 +85,7 @@ export default function FormulaireDemarchePage() {
         <Card className="max-w-md w-full">
           <CardContent className="py-8 text-center">
             <Alert variant="error" className="mb-4">
-              Type de demarche non reconnu
+              Type de démarche non reconnu
             </Alert>
             <Link href="/nouvelle-demarche">
               <Button>Retour aux demarches</Button>
@@ -130,7 +130,7 @@ export default function FormulaireDemarchePage() {
             </CardHeader>
             <CardContent className="text-center py-8">
               <p className="text-gray-600 mb-6">
-                Connectez-vous ou creez un compte pour effectuer cette demarche.
+                Connectez-vous ou créez un compte pour effectuer cette démarche.
               </p>
               <div className="flex gap-4 justify-center">
                 <Link href={`/login?callbackUrl=/nouvelle-demarche/${routeParams.type}`}>
@@ -260,7 +260,7 @@ export default function FormulaireDemarchePage() {
   }
 
   // ================================================
-  // Formulaire carte d'identite
+  // Formulaire carte d'identité
   // ================================================
   if (typeCode === 'IDENTITY_CARD') {
     return (
@@ -292,7 +292,7 @@ export default function FormulaireDemarchePage() {
           </nav>
         </div>
 
-        {/* Formulaire carte d'identite */}
+        {/* Formulaire carte d'identité */}
         <main className="max-w-4xl mx-auto px-4 pb-12">
           <IdentityCardForm
             isSubscriber={hasActiveSubscription}
@@ -434,7 +434,7 @@ export default function FormulaireDemarchePage() {
                 </h3>
                 <p className="text-gray-500 mb-6">
                   Le formulaire pour "{processConfig.label}" sera bientot disponible.
-                  En attendant, vous pouvez nous contacter pour effectuer cette demarche.
+                  En attendant, vous pouvez nous contacter pour effectuer cette démarche.
                 </p>
                 <div className="flex gap-4 justify-center">
                   <Link href="/nouvelle-demarche">
@@ -673,7 +673,7 @@ export default function FormulaireDemarchePage() {
                   <h4 className="font-medium mb-2">Recapitulatif</h4>
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>
-                      <span className="font-medium">Demarche:</span> {processConfig.label}
+                      <span className="font-medium">Démarche :</span> {processConfig.label}
                     </p>
                     <p>
                       <span className="font-medium">Beneficiaire:</span>{' '}

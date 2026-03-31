@@ -8,7 +8,7 @@ const tips = [
   {
     title: 'Pensez a renouveler votre CNI',
     description:
-      'Votre carte d\'identite doit etre renouvelee tous les 15 ans. Anticipez les delais en faisant votre demande en avance.',
+      'Votre carte d\'identité doit etre renouvelee tous les 15 ans. Anticipez les delais en faisant votre demande en avance.',
     icon: (
       <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />

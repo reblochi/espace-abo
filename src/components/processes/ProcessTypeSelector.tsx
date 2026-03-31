@@ -257,7 +257,7 @@ export function ProcessTypeSelector({
 
       {filteredTypes.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          Aucune demarche disponible dans cette categorie
+          Aucune démarche disponible dans cette categorie
         </div>
       )}
     </div>

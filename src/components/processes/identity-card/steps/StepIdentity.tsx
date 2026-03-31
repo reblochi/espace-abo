@@ -1,4 +1,4 @@
-// Etape 2: Identite du titulaire de la carte d'identite
+// Etape 2: Identite du titulaire de la carte d'identité
 
 'use client';
 
@@ -52,7 +52,7 @@ export function StepIdentity() {
     <div className="space-y-6">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Personne concernee par la carte d'identite
+          Personne concernee par la carte d'identité
         </h2>
         <p className="form-gov-hint">
           Renseignez les informations telles qu'elles apparaissent sur l'acte de naissance
@@ -149,7 +149,7 @@ export function StepIdentity() {
       {hasNomUsage && (
         <div className="p-4 bg-gray-50 space-y-4 border-l-4 border-l-blue-700">
           <p className="form-gov-hint">
-            Le nom d'usage permet de faire figurer sur la carte d'identite le nom de votre conjoint(e)
+            Le nom d'usage permet de faire figurer sur la carte d'identité le nom de votre conjoint(e)
             ou le nom de l'un de vos parents, en plus de votre nom de naissance.
           </p>
 

@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      label: 'Demarches en cours',
+      label: 'Démarches en cours',
       value: processes?.filter(p => p.status !== 'COMPLETED' && p.status !== 'CANCELED').length || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ export default function DashboardPage() {
       ),
     },
     {
-      label: 'Demarches terminees',
+      label: 'Démarches terminées',
       value: processes?.filter(p => p.status === 'COMPLETED').length || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,11 +89,11 @@ export default function DashboardPage() {
         {/* Abonnement */}
         <SubscriptionCard />
 
-        {/* Demarches recentes */}
+        {/* Démarches récentes */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Demarches recentes</CardTitle>
+              <CardTitle>Démarches récentes</CardTitle>
               <Link href="/espace-membre/mes-demarches">
                 <Button variant="ghost" size="sm">
                   Voir tout
@@ -134,9 +134,9 @@ export default function DashboardPage() {
                 <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-gray-500 mb-4">Aucune demarche en cours</p>
+                <p className="text-gray-500 mb-4">Aucune démarche en cours</p>
                 <Link href="/nouvelle-demarche">
-                  <Button>Commencer une demarche</Button>
+                  <Button>Commencer une démarche</Button>
                 </Link>
               </div>
             )}
@@ -180,8 +180,8 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">Nouvelle demarche</p>
-                    <p className="text-xs text-gray-500">Commencer une procedure</p>
+                    <p className="font-medium text-gray-900 text-sm">Nouvelle démarche</p>
+                    <p className="text-xs text-gray-500">Commencer une procédure</p>
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 text-sm">Mes documents</p>
-                    <p className="text-xs text-gray-500">Acceder a mes fichiers</p>
+                    <p className="text-xs text-gray-500">Accéder à mes fichiers</p>
                   </div>
                 </div>
               </div>

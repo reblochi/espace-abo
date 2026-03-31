@@ -14,7 +14,7 @@ export function StepContact() {
           Vos coordonnees
         </h2>
         <p className="form-gov-hint">
-          Vos coordonnees sont necessaires pour traiter votre demande et vous envoyer votre carte d'identite.
+          Vos coordonnees sont necessaires pour traiter votre demande et vous envoyer votre carte d'identité.
         </p>
       </div>
 

@@ -44,7 +44,7 @@ export default function AdminSubscriptionsPage() {
   const columns = [
     {
       key: 'reference',
-      label: 'Reference',
+      label: 'Référence',
       render: (item: Record<string, unknown>) => (
         <span className="font-medium">{String(item.reference)}</span>
       ),

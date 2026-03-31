@@ -1,4 +1,4 @@
-// Etape 1: Motif de la demande de carte d'identite
+// Etape 1: Motif de la demande de carte d'identité
 
 'use client';
 
@@ -23,7 +23,7 @@ export function StepRequestType() {
           Pourquoi faites-vous cette demande ?
         </h2>
         <p className="form-gov-hint">
-          Selectionnez le motif de votre demande de carte d'identite
+          Selectionnez le motif de votre demande de carte d'identité
         </p>
       </div>
 

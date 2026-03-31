@@ -30,7 +30,7 @@ export interface RegistrationCertificateFormProps {
   onSubmit: (data: RegistrationCertificateInput, paymentMode?: PaymentMode) => Promise<void>;
   onTaxCalculation?: (taxes: RegistrationCertificateTaxes | null) => void;
   initialData?: Partial<RegistrationCertificateInput>;
-  processReference?: string;
+  processRéférence?: string;
 }
 
 type Step = {
@@ -84,7 +84,7 @@ export function RegistrationCertificateForm({
   onSubmit,
   onTaxCalculation,
   initialData,
-  processReference,
+  processRéférence,
 }: RegistrationCertificateFormProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = React.useState(0);
@@ -234,7 +234,7 @@ export function RegistrationCertificateForm({
       case 'vehicle':
         return <StepVehicle taxes={taxes} isCalculating={isCalculatingTaxes} />;
       case 'documents':
-        return <StepDocuments processReference={processReference} />;
+        return <StepDocuments processRéférence={processRéférence} />;
       case 'summary':
         return (
           <StepSummary

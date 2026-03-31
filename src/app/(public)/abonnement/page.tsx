@@ -106,7 +106,7 @@ function AbonnementContent() {
             Simplifiez vos demarches administratives
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Un abonnement, des demarches illimitees. Plus besoin de payer a chaque demande.
+            Un abonnement, des démarches illimitées. Plus besoin de payer a chaque demande.
           </p>
         </div>
       </section>
@@ -327,7 +327,7 @@ function AbonnementContent() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p>&copy; {new Date().getFullYear()} SAF - Service d'Aide aux Formalites. Tous droits reserves.</p>
+          <p>&copy; {new Date().getFullYear()} SAF - Service d'Aide aux Formalités. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

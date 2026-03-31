@@ -215,7 +215,7 @@ function ConfirmUnsubscribeForm() {
               <div className="mb-6 space-y-3">
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Reference</span>
+                    <span className="text-gray-500">Référence</span>
                     <span className="font-medium text-gray-900">{subscriptionInfo.reference}</span>
                   </div>
                   <div className="flex justify-between text-sm">

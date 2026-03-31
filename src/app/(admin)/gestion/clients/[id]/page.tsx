@@ -183,7 +183,7 @@ export default function AdminClientDetailPage() {
           {sub ? (
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Reference</dt>
+                <dt className="text-gray-500">Référence</dt>
                 <dd>{sub.reference}</dd>
               </div>
               <div className="flex justify-between">
@@ -273,7 +273,7 @@ export default function AdminClientDetailPage() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-400">Aucune demarche</p>
+            <p className="text-sm text-gray-400">Aucune démarche</p>
           )}
         </Card>
 

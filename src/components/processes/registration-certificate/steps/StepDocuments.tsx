@@ -21,7 +21,7 @@ interface UploadedFile {
 }
 
 interface StepDocumentsProps {
-  processReference?: string;
+  processRéférence?: string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -30,7 +30,7 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
 }
 
-export function StepDocuments({ processReference }: StepDocumentsProps) {
+export function StepDocuments({ processRéférence }: StepDocumentsProps) {
   const { watch } = useFormContext<RegistrationCertificateInput>();
   const [uploadedFiles, setUploadedFiles] = React.useState<Record<string, UploadedFile[]>>({});
   const [error, setError] = React.useState<string | null>(null);
@@ -92,13 +92,13 @@ export function StepDocuments({ processReference }: StepDocumentsProps) {
     }));
 
     // Upload vers l'API
-    if (processReference) {
+    if (processRéférence) {
       try {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('fileType', docId);
 
-        const response = await fetch(`/api/processes/${processReference}/files`, {
+        const response = await fetch(`/api/processes/${processRéférence}/files`, {
           method: 'POST',
           body: formData,
         });

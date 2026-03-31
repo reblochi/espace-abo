@@ -9,11 +9,11 @@ import { showComingSoonToast } from '@/components/ui/coming-soon';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  processReference: string;
+  processRéférence: string;
 }
 
-export function ContactSupportModal({ isOpen, onClose, processReference }: Props) {
-  const [subject, setSubject] = useState(`Question sur la demarche ${processReference}`);
+export function ContactSupportModal({ isOpen, onClose, processRéférence }: Props) {
+  const [subject, setSubject] = useState(`Question sur la demarche ${processRéférence}`);
   const [message, setMessage] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,9 +26,9 @@ export function ContactSupportModal({ isOpen, onClose, processReference }: Props
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reference
+            Référence
           </label>
-          <Input value={processReference} disabled />
+          <Input value={processRéférence} disabled />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

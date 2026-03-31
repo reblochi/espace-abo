@@ -12,7 +12,7 @@ const CATEGORIES = [
   { value: 'espaces_verts', label: 'Espaces verts', icon: '🌳' },
   { value: 'stationnement', label: 'Stationnement', icon: '🅿️' },
   { value: 'nuisances', label: 'Bruit et nuisances', icon: '🔊' },
-  { value: 'securite', label: 'Securite', icon: '⚠️' },
+  { value: 'securite', label: 'Sécurité', icon: '⚠️' },
   { value: 'autre', label: 'Autre', icon: '📋' },
 ];
 

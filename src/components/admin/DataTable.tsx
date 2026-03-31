@@ -30,7 +30,7 @@ export function DataTable<T extends Record<string, unknown>>({
   data,
   keyField = 'id',
   onRowClick,
-  emptyMessage = 'Aucun resultat',
+  emptyMessage = 'Aucun résultat',
   pagination,
 }: DataTableProps<T>) {
   if (data.length === 0) {
@@ -81,7 +81,7 @@ export function DataTable<T extends Record<string, unknown>>({
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
           <p className="text-sm text-gray-500">
-            {pagination.total} resultat{pagination.total > 1 ? 's' : ''}
+            {pagination.total} résultat{pagination.total > 1 ? 's' : ''}
           </p>
           <div className="flex gap-1">
             <button

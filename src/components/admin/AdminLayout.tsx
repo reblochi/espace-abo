@@ -105,7 +105,7 @@ export function AdminLayout({ children, role }: Props) {
                 onClick={() => logout()}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                Deconnexion
+                Déconnexion
               </button>
             </div>
           </div>

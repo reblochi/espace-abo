@@ -49,7 +49,7 @@ export function ProcessCard({ process }: Props) {
         <CardContent>
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex justify-between">
-              <span>Reference</span>
+              <span>Référence</span>
               <span className="font-medium text-gray-900 font-mono text-xs">{process.reference}</span>
             </div>
             <div className="flex justify-between">

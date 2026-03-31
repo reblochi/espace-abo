@@ -1,4 +1,4 @@
-// Page embed pour le formulaire carte d'identite
+// Page embed pour le formulaire carte d'identité
 // Utilisee dans le widget JS pour integration sur sites partenaires
 
 import { Suspense } from 'react';

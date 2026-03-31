@@ -1,4 +1,4 @@
-// Client component pour le formulaire carte d'identite en mode embed
+// Client component pour le formulaire carte d'identité en mode embed
 // Affiche directement le formulaire, sans authentification requise
 
 'use client';
@@ -30,7 +30,7 @@ export function EmbedIdentityCardForm() {
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          Demande de carte d&apos;identite
+          Demande de carte d&apos;identité
         </h2>
         <p className="text-gray-500 text-sm">
           Remplissez le formulaire ci-dessous pour effectuer votre demande.
@@ -55,7 +55,7 @@ export function EmbedIdentityCardForm() {
       />
 
       <p className="text-xs text-gray-400 text-center mt-6">
-        Service fourni par SAF - Service d'Aide aux Formalites
+        Service fourni par SAF - Service d'Aide aux Formalités
       </p>
     </div>
   );

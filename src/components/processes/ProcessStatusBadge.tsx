@@ -13,11 +13,11 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   PENDING_PAYMENT: { label: 'En attente paiement', variant: 'warning' },
   PAYMENT_PROCESSING: { label: 'Paiement en cours', variant: 'info' },
   PAYMENT_FAILED: { label: 'Paiement echoue', variant: 'destructive' },
-  PAID: { label: 'Payee', variant: 'info' },
+  PAID: { label: 'Payée', variant: 'info' },
   SENT_TO_ADVERCITY: { label: 'En traitement', variant: 'info' },
   IN_PROGRESS: { label: 'En cours', variant: 'default' },
   AWAITING_INFO: { label: 'Info requise', variant: 'warning' },
-  COMPLETED: { label: 'Terminee', variant: 'success' },
+  COMPLETED: { label: 'Terminée', variant: 'success' },
   REFUNDED: { label: 'Remboursee', variant: 'secondary' },
   CANCELED: { label: 'Annulee', variant: 'destructive' },
 };

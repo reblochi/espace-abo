@@ -8,7 +8,7 @@ import { showComingSoonToast } from '@/components/ui/coming-soon';
 
 const categories = [
   { value: 'all', label: 'Tous' },
-  { value: 'identite', label: 'Identite' },
+  { value: 'identité', label: 'Identite' },
   { value: 'etat-civil', label: 'Etat civil' },
   { value: 'vehicule', label: 'Vehicule' },
   { value: 'domicile', label: 'Domicile' },
@@ -30,9 +30,9 @@ interface MockDocument {
 }
 
 const mockDocuments: MockDocument[] = [
-  { id: '1', name: 'Carte d\'identite', type: 'PDF', category: 'identite', date: '2024-03-15', expiresAt: '2034-03-15', validity: 'valid', size: '2.4 Mo' },
-  { id: '2', name: 'Passeport', type: 'PDF', category: 'identite', date: '2023-06-20', expiresAt: '2026-06-15', validity: 'warning', size: '3.1 Mo' },
-  { id: '3', name: 'Permis de conduire', type: 'JPG', category: 'identite', date: '2020-01-10', expiresAt: '2025-01-10', validity: 'expired', size: '1.8 Mo' },
+  { id: '1', name: 'Carte d\'identité', type: 'PDF', category: 'identité', date: '2024-03-15', expiresAt: '2034-03-15', validity: 'valid', size: '2.4 Mo' },
+  { id: '2', name: 'Passeport', type: 'PDF', category: 'identité', date: '2023-06-20', expiresAt: '2026-06-15', validity: 'warning', size: '3.1 Mo' },
+  { id: '3', name: 'Permis de conduire', type: 'JPG', category: 'identité', date: '2020-01-10', expiresAt: '2025-01-10', validity: 'expired', size: '1.8 Mo' },
   { id: '4', name: 'Acte de naissance', type: 'PDF', category: 'etat-civil', date: '2024-11-05', validity: 'valid', size: '0.8 Mo' },
   { id: '5', name: 'Livret de famille', type: 'PDF', category: 'etat-civil', date: '2022-09-12', validity: 'valid', size: '1.2 Mo' },
   { id: '6', name: 'Carte grise Peugeot 308', type: 'PDF', category: 'vehicule', date: '2024-07-22', validity: 'valid', size: '1.5 Mo' },
@@ -150,7 +150,7 @@ export default function CoffrefortPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
             <select className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-              <option>Piece d'identite</option>
+              <option>Piece d'identité</option>
               <option>Acte d'etat civil</option>
               <option>Document vehicule</option>
               <option>Justificatif de domicile</option>

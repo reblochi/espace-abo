@@ -4,7 +4,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Demarche en ligne',
+  title: 'Démarche en ligne',
   robots: 'noindex, nofollow',
 };
 

@@ -89,7 +89,7 @@ export function CancellationFlow({ isOpen, onClose, onConfirm, isCanceling, endD
               Offre speciale pour vous
             </h4>
             <p className="text-sm text-blue-700 mb-3">
-              Restez encore un mois et beneficiez de <strong>-50%</strong> sur votre prochaine echeance !
+              Restez encore un mois et bénéficiez de <strong>-50%</strong> sur votre prochaine échéance !
             </p>
             <p className="text-xs text-blue-600">
               Soit 4.95 EUR au lieu de 9.90 EUR pour le prochain mois

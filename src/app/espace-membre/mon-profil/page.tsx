@@ -201,13 +201,13 @@ export default function MonProfilPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mon profil</h1>
-        <p className="text-gray-500 mt-1">Gerez vos informations personnelles</p>
+        <p className="text-gray-500 mt-1">Gérez vos informations personnelles</p>
       </div>
 
       <Tabs defaultValue="informations">
         <TabsList>
           <TabsTrigger value="informations">Informations</TabsTrigger>
-          <TabsTrigger value="securite">Securite</TabsTrigger>
+          <TabsTrigger value="securite">Sécurité</TabsTrigger>
         </TabsList>
 
         {/* Onglet Informations */}
@@ -288,7 +288,7 @@ export default function MonProfilPage() {
           </Card>
         </TabsContent>
 
-        {/* Onglet Securite */}
+        {/* Onglet Sécurité */}
         <TabsContent value="securite">
           <div className="space-y-6">
             {/* Changement de mot de passe */}

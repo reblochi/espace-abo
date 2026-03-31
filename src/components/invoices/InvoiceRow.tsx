@@ -11,7 +11,7 @@ interface Props {
 }
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
-  PAID: { label: 'Payee', variant: 'success' },
+  PAID: { label: 'Payée', variant: 'success' },
   PENDING: { label: 'En attente', variant: 'secondary' },
   FAILED: { label: 'Echec', variant: 'destructive' },
   REFUNDED: { label: 'Remboursee', variant: 'secondary' },

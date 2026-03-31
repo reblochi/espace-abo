@@ -31,7 +31,7 @@ export function SubscriptionCard() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-500 mb-4">
-            Vous n'avez pas d'abonnement actif. Souscrivez pour beneficier de demarches illimitees.
+            Vous n'avez pas d'abonnement actif. Souscrivez pour bénéficier de démarches illimitées.
           </p>
           <Link href="/abonnement">
             <Button>S'abonner</Button>
@@ -57,7 +57,7 @@ export function SubscriptionCard() {
       <CardContent>
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Reference</span>
+            <span className="text-gray-500">Référence</span>
             <span className="font-medium">{subscription.reference}</span>
           </div>
           <div className="flex justify-between text-sm">
@@ -65,7 +65,7 @@ export function SubscriptionCard() {
             <span className="font-medium">{formatCurrency(subscription.amountCents)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Prochaine echeance</span>
+            <span className="text-gray-500">Prochaine échéance</span>
             <span>{formatDate(subscription.currentPeriodEnd)}</span>
           </div>
           {subscription.status === 'CANCELED' && subscription.endDate && (
@@ -79,7 +79,7 @@ export function SubscriptionCard() {
         <div className="mt-4 pt-4 border-t">
           <Link href="/espace-membre/mon-abonnement">
             <Button variant="outline" className="w-full">
-              Gerer mon abonnement
+              Gérer mon abonnement
             </Button>
           </Link>
         </div>

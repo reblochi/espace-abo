@@ -16,7 +16,7 @@ const documentCategories = [
 
 // Exemples de documents avec validite (fictifs pour la section rappels)
 const expiringDocs = [
-  { name: 'Carte d\'identite', expiresAt: '2026-06-15', status: 'warning' as const },
+  { name: 'Carte d\'identité', expiresAt: '2026-06-15', status: 'warning' as const },
   { name: 'Passeport', expiresAt: '2027-03-22', status: 'valid' as const },
   { name: 'Permis de conduire', expiresAt: '2025-12-01', status: 'expired' as const },
 ];

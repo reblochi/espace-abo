@@ -17,11 +17,11 @@ const typeLabels: Record<string, string> = {
   PROOF: 'Justificatif',
   ATTACHMENT: 'Piece jointe',
   RESULT: 'Resultat',
-  // Types d'identite
-  CNI: 'Carte d\'identite',
+  // Types d'identité
+  CNI: 'Carte d\'identité',
   PASSEPORT: 'Passeport',
   PERMIS: 'Permis de conduire',
-  PHOTO_IDENTITE: 'Photo d\'identite',
+  PHOTO_IDENTITE: 'Photo d\'identité',
   // Types vehicule
   CARTE_GRISE: 'Carte grise',
   CERTIFICAT_CESSION: 'Certificat de cession',

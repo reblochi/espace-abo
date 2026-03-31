@@ -106,7 +106,7 @@ function AbonnementSuccesContent() {
             {subscription && (
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Reference</span>
+                  <span className="text-gray-500">Référence</span>
                   <span className="font-medium">{subscription.reference}</span>
                 </div>
                 <div className="flex justify-between">
@@ -116,7 +116,7 @@ function AbonnementSuccesContent() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Prochaine echeance</span>
+                  <span className="text-gray-500">Prochaine échéance</span>
                   <span className="font-medium">
                     {new Date(subscription.currentPeriodEnd).toLocaleDateString('fr-FR')}
                   </span>

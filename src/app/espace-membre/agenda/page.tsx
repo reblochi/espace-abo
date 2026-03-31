@@ -64,7 +64,7 @@ export default function AgendaPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Agenda citoyen</h1>
           <p className="text-gray-500 mt-1">
-            Suivez vos echeances et rendez-vous importants
+            Suivez vos échéances et rendez-vous importants
           </p>
         </div>
         <div className="flex gap-2">

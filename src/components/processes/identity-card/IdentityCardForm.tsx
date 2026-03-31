@@ -1,4 +1,4 @@
-// Formulaire complet pour demande de carte d'identite
+// Formulaire complet pour demande de carte d'identité
 
 'use client';
 
@@ -43,7 +43,7 @@ const BASE_STEPS: Step[] = [
   {
     id: 'identity',
     title: 'Identite',
-    description: 'Informations du titulaire de la carte d\'identite',
+    description: 'Informations du titulaire de la carte d\'identité',
   },
   {
     id: 'parents',
@@ -283,7 +283,7 @@ export function IdentityCardForm({
 
       // Mode embed: endpoint public sans authentification
       if (isEmbed) {
-        const response = await fetch('/api/embed/carte-identite', {
+        const response = await fetch('/api/embed/carte-identité', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

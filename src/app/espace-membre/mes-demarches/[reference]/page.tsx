@@ -85,7 +85,7 @@ export default function ProcessDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               {processConfig?.label || processItem.type}
             </h1>
-            <p className="text-gray-500 mt-1">Reference: {processItem.reference}</p>
+            <p className="text-gray-500 mt-1">Référence: {processItem.reference}</p>
           </div>
           <ProcessStatusBadge status={processItem.status} />
         </div>
@@ -117,7 +117,7 @@ export default function ProcessDetailPage() {
             <CardContent>
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-sm text-gray-500">Type de demarche</dt>
+                  <dt className="text-sm text-gray-500">Type de démarche</dt>
                   <dd className="mt-1 font-medium text-gray-900">
                     {processConfig?.label || processItem.type}
                   </dd>
@@ -150,7 +150,7 @@ export default function ProcessDetailPage() {
                 </div>
                 {processItem.advercityRef && (
                   <div>
-                    <dt className="text-sm text-gray-500">Reference Advercity</dt>
+                    <dt className="text-sm text-gray-500">Référence Advercity</dt>
                     <dd className="mt-1 font-medium text-gray-900 font-mono text-sm">
                       {processItem.advercityRef}
                     </dd>
@@ -521,7 +521,7 @@ export default function ProcessDetailPage() {
       <ContactSupportModal
         isOpen={showContactModal}
         onClose={() => setShowContactModal(false)}
-        processReference={reference}
+        processRéférence={reference}
       />
     </div>
   );

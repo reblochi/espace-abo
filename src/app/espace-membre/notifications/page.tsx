@@ -16,8 +16,8 @@ interface NotifPref {
 const mockArticles = [
   {
     id: 'a1',
-    title: 'Carte d\'identite : les nouveaux delais de renouvellement',
-    excerpt: 'A partir du 1er avril 2026, les delais de renouvellement de la carte d\'identite sont modifies...',
+    title: 'Carte d\'identité : les nouveaux delais de renouvellement',
+    excerpt: 'A partir du 1er avril 2026, les delais de renouvellement de la carte d\'identité sont modifies...',
     date: '2026-03-03',
     category: 'Actualites',
   },

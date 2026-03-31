@@ -34,7 +34,7 @@ function ConfirmationDemarcheContent() {
   useEffect(() => {
     const verifyAndGetProcess = async () => {
       if (!reference) {
-        setError('Reference manquante');
+        setError('Référence manquante');
         setIsLoading(false);
         return;
       }
@@ -138,7 +138,7 @@ function ConfirmationDemarcheContent() {
             {process && (
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Reference</span>
+                  <span className="text-gray-500">Référence</span>
                   <span className="font-mono font-medium">{process.reference}</span>
                 </div>
                 <div className="flex justify-between">
@@ -296,7 +296,7 @@ function ConfirmationDemarcheContent() {
           </Link>
           <Link href="/nouvelle-demarche" className="block">
             <Button variant="outline" className="w-full">
-              Nouvelle demarche
+              Nouvelle démarche
             </Button>
           </Link>
         </div>

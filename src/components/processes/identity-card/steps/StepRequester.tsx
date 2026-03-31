@@ -46,7 +46,7 @@ export function StepRequester() {
           onChange={(e) => setValue('isTitulaire', e.target.checked)}
         />
         <label htmlFor="isTitulaire">
-          Je suis le titulaire de la carte d'identite
+          Je suis le titulaire de la carte d'identité
         </label>
       </div>
 

@@ -14,7 +14,7 @@ const statusFilters = [
   { value: 'IN_PROGRESS', label: 'En cours' },
   { value: 'PENDING_PAYMENT', label: 'A payer' },
   { value: 'AWAITING_INFO', label: 'Info requise' },
-  { value: 'COMPLETED', label: 'Terminees' },
+  { value: 'COMPLETED', label: 'Terminées' },
 ];
 
 export default function MesDemarchesPage() {
@@ -27,7 +27,7 @@ export default function MesDemarchesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes demarches</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Mes démarches</h1>
           <p className="text-gray-500 mt-1">
             Suivez l'avancement de vos procedures administratives
           </p>
@@ -37,7 +37,7 @@ export default function MesDemarchesPage() {
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Nouvelle demarche
+            Nouvelle démarche
           </Button>
         </Link>
       </div>
@@ -75,7 +75,7 @@ export default function MesDemarchesPage() {
           <Card>
             <CardContent className="py-4 text-center">
               <p className="text-2xl font-bold text-green-600">{stats.completed || 0}</p>
-              <p className="text-sm text-gray-500">Terminees</p>
+              <p className="text-sm text-gray-500">Terminées</p>
             </CardContent>
           </Card>
         </div>

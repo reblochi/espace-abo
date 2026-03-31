@@ -14,7 +14,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
     const content = (
       <Image
         src="/logo-saf.png"
-        alt="SAF - Service d'Aide aux Formalites"
+        alt="SAF - Service d'Aide aux Formalités"
         width={160}
         height={120}
         className={cn('object-contain', className)}
@@ -39,7 +39,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
         priority
       />
       <span className={cn('font-bold text-[#1a2e5a]', textSize)}>
-        SAF <span className="hidden sm:inline font-normal text-sm text-gray-500">Service d'Aide aux Formalites</span>
+        SAF <span className="hidden sm:inline font-normal text-sm text-gray-500">Service d'Aide aux Formalités</span>
       </span>
     </span>
   );

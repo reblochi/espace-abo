@@ -70,7 +70,7 @@ const navGroups: NavGroup[] = [
     label: 'Mes services',
     items: [
       {
-        name: 'Mes demarches',
+        name: 'Mes démarches',
         href: '/espace-membre/mes-demarches',
         icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +192,7 @@ export function MemberLayout({ children }: Props) {
                 onClick={() => logout()}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                Deconnexion
+                Déconnexion
               </button>
             </div>
           </div>

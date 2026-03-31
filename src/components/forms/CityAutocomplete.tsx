@@ -149,12 +149,12 @@ export function CityAutocomplete({
     }
   };
 
-  // Auto-selectionner le premier resultat quand on quitte le champ sans avoir clique
+  // Auto-selectionner le premier résultat quand on quitte le champ sans avoir clique
   const handleBlur = () => {
     // Petit delai pour laisser le temps au click sur une suggestion de se declencher
     setTimeout(() => {
       if (suggestions.length > 0 && !value) {
-        // Aucune selection explicite → prendre le premier resultat
+        // Aucune selection explicite → prendre le premier résultat
         onChange(suggestions[0]);
         setInputValue(`${suggestions[0].name} (${suggestions[0].postal_code})`);
       } else if (suggestions.length > 0 && value && inputValue !== `${value.name} (${value.postal_code})`) {
@@ -246,7 +246,7 @@ export function CityAutocomplete({
         </ul>
       )}
 
-      {/* Message "aucun resultat" */}
+      {/* Message "aucun résultat" */}
       {isOpen && !isLoading && suggestions.length === 0 && inputValue.length >= 2 && (
         <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-900 shadow-lg p-3 text-base text-gray-500">
           Aucune commune trouvee
