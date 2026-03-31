@@ -119,7 +119,10 @@ export default function AdminClientDetailPage() {
           {roleLabels[user.role] || user.role}
         </Badge>
       </div>
-      <p className="text-sm text-gray-500 mb-6">{user.email}</p>
+      <p className="text-sm text-gray-500 mb-6">
+        {user.reference && <span className="font-mono mr-2">{user.reference}</span>}
+        {user.email}
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informations personnelles */}
@@ -309,8 +312,8 @@ export default function AdminClientDetailPage() {
               {user.auditLogs.map((log: { id: string; action: string; createdAt: string; metadata: Record<string, unknown> | null }) => {
                 const actionLabels: Record<string, string> = {
                   refund_deadlines: 'Remboursement echeances',
-                  refund_and_cancel: 'Remboursement + desabonnement',
-                  cancel_subscription: 'Desabonnement',
+                  refund_and_cancel: 'Remboursement + désabonnement',
+                  cancel_subscription: 'Désabonnement',
                   create_credit_note: 'Creation avoir',
                   change_role: 'Changement de role',
                   anonymize_user: 'Anonymisation RGPD',

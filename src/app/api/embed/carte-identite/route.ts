@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { identityCardSchema } from '@/schemas/identity-card';
 import { generateReference } from '@/lib/utils';
+import { generateClientReference } from '@/lib/client-reference';
 import { checkProcessEligibility, consumeSubscriptionProcess } from '@/lib/subscription/process-eligibility';
 import { calculateStampTax } from '@/types/identity-card';
 import { PROCESS_TYPES_CONFIG } from '@/lib/process-types';
@@ -50,8 +51,10 @@ export async function POST(request: NextRequest) {
       const tempPassword = Math.random().toString(36).slice(-12);
       const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+      const clientRef = await generateClientReference();
       user = await prisma.user.create({
         data: {
+          reference: clientRef,
           email,
           firstName,
           lastName,

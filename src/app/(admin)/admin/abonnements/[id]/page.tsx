@@ -180,11 +180,11 @@ export default function AdminSubscriptionDetailPage() {
             <div className="mt-4">
               {!showCancelConfirm ? (
                 <Button variant="outline" onClick={() => setShowCancelConfirm(true)}>
-                  Desabonner
+                  Désabonner
                 </Button>
               ) : (
                 <div className="space-y-3 p-3 bg-red-50 rounded-lg">
-                  <p className="text-sm font-medium text-red-800">Confirmer la desabonnement</p>
+                  <p className="text-sm font-medium text-red-800">Confirmer le désabonnement</p>
                   <input
                     type="text"
                     value={cancelReason}
@@ -247,7 +247,7 @@ export default function AdminSubscriptionDetailPage() {
                   checked={alsoCancel}
                   onChange={(e) => setAlsoCancel(e.target.checked)}
                 />
-                Desabonner egalement ce client
+                Désabonner également ce client
               </label>
             )}
             <div className="flex gap-2">
@@ -255,7 +255,7 @@ export default function AdminSubscriptionDetailPage() {
                 onClick={() => refundMutation.mutate()}
                 disabled={refundMutation.isPending}
               >
-                {refundMutation.isPending ? 'Remboursement...' : alsoCancel ? 'Rembourser et desabonner' : 'Rembourser'}
+                {refundMutation.isPending ? 'Remboursement...' : alsoCancel ? 'Rembourser et désabonner' : 'Rembourser'}
               </Button>
               <Button variant="outline" onClick={() => { setSelectedDeadlines([]); setAlsoCancel(false); }}>
                 Annuler

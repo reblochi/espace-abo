@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { registerSchema } from '@/schemas';
 import { sendEmail } from '@/lib/email';
+import { generateClientReference } from '@/lib/client-reference';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
@@ -36,8 +37,10 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     // Creer l'utilisateur
+    const reference = await generateClientReference();
     const user = await prisma.user.create({
       data: {
+        reference,
         email,
         passwordHash,
         firstName,

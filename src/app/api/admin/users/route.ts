@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
           { firstName: { contains: search, mode: 'insensitive' } },
           { lastName: { contains: search, mode: 'insensitive' } },
           { id: search },
+          { reference: search },
           // Recherche par reference abo
           { subscription: { reference: { contains: search, mode: 'insensitive' } } },
         ],
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       where,
       select: {
         id: true,
+        reference: true,
         email: true,
         firstName: true,
         lastName: true,

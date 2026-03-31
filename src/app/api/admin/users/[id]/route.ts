@@ -19,6 +19,7 @@ export async function GET(
     where: { id },
     select: {
       id: true,
+      reference: true,
       email: true,
       firstName: true,
       lastName: true,

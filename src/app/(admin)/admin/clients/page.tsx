@@ -41,6 +41,13 @@ export default function AdminUsersPage() {
 
   const columns = [
     {
+      key: 'reference',
+      label: 'ID',
+      render: (item: Record<string, unknown>) => (
+        <span className="font-mono text-xs text-gray-500">{String(item.reference || '-')}</span>
+      ),
+    },
+    {
       key: 'name',
       label: 'Nom',
       render: (item: Record<string, unknown>) => (
