@@ -72,7 +72,7 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Erreur lors de l\'inscription');
       }
 
-      // Rediriger vers la connexion avec un message de succes
+      // Rediriger vers la connexion avec un message de succès
       router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -88,10 +88,10 @@ export default function RegisterPage() {
           <Logo size="lg" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Creer un compte
+          Créer un compte
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Deja un compte ?{' '}
+          Déjà un compte ?{' '}
           <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
             Se connecter
           </Link>
@@ -110,7 +110,7 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
-                  label="Prenom"
+                  label="Prénom"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
@@ -181,7 +181,7 @@ export default function RegisterPage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creation du compte...' : 'Creer mon compte'}
+                {isLoading ? 'Création du compte...' : 'Créer mon compte'}
               </Button>
             </form>
           </CardContent>

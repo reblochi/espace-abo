@@ -1,4 +1,4 @@
-// Page de demande de reinitialisation de mot de passe
+// Page de demande de réinitialisation de mot de passe
 
 'use client';
 
@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [succèss, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +33,13 @@ export default function ForgotPasswordPage() {
 
       setSuccess(true);
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (success) {
+  if (succèss) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -54,8 +54,8 @@ export default function ForgotPasswordPage() {
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <Card>
             <CardContent className="py-8 px-6">
-              <Alert variant="success" className="mb-4">
-                Si un compte existe avec l'adresse <strong>{email}</strong>, vous recevrez un email avec un lien pour reinitialiser votre mot de passe.
+              <Alert variant="succèss" className="mb-4">
+                Si un compte existe avec l'adresse <strong>{email}</strong>, vous recevrez un email avec un lien pour réinitialiser votre mot de passe.
               </Alert>
 
               <p className="text-sm text-gray-600 mb-4">
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
           Mot de passe oublie
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Entrez votre adresse email pour recevoir un lien de reinitialisation.
+          Entrez votre adresse email pour recevoir un lien de réinitialisation.
         </p>
       </div>
 

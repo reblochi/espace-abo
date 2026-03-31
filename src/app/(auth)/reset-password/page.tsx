@@ -1,4 +1,4 @@
-// Page de reinitialisation du mot de passe
+// Page de réinitialisation du mot de passe
 
 'use client';
 
@@ -18,7 +18,7 @@ function ResetPasswordForm() {
   const [isValidating, setIsValidating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [succèss, setSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Verifier le token au chargement
@@ -87,7 +87,7 @@ function ResetPasswordForm() {
         router.push('/login');
       }, 3000);
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +130,7 @@ function ResetPasswordForm() {
               </Alert>
 
               <p className="text-sm text-gray-600 mb-4">
-                Le lien de reinitialisation est peut-etre expire ou a deja ete utilise.
+                Le lien de réinitialisation est peut-être expiré ou a déjà été utilisé.
                 Veuillez faire une nouvelle demande.
               </p>
 
@@ -154,7 +154,7 @@ function ResetPasswordForm() {
   }
 
   // Succes
-  if (success) {
+  if (succèss) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -169,8 +169,8 @@ function ResetPasswordForm() {
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <Card>
             <CardContent className="py-8 px-6">
-              <Alert variant="success" className="mb-4">
-                Votre mot de passe a ete modifie avec succes.
+              <Alert variant="succèss" className="mb-4">
+                Votre mot de passe a été modifié avec succès.
               </Alert>
 
               <p className="text-sm text-gray-600 mb-4">
