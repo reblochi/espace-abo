@@ -78,7 +78,7 @@ function ConfirmUnsubscribeForm() {
       setSuccess(true);
       setEndDate(data.endDate);
     } catch {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +133,7 @@ function ConfirmUnsubscribeForm() {
                 </Link>
                 <Link href="/">
                   <Button variant="outline" className="w-full">
-                    Retour a l'accueil
+                    Retour à l'accueil
                   </Button>
                 </Link>
               </div>
@@ -175,7 +175,7 @@ function ConfirmUnsubscribeForm() {
 
               <Link href="/">
                 <Button variant="outline" className="w-full">
-                  Retour a l'accueil
+                  Retour à l'accueil
                 </Button>
               </Link>
             </CardContent>

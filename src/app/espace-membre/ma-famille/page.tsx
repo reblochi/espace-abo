@@ -37,7 +37,7 @@ export default function MaFamillePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Ma famille</h1>
           <p className="text-gray-500 mt-1">
-            Gerez les membres de votre foyer
+            Gérez les membres de votre foyer
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
@@ -113,8 +113,8 @@ export default function MaFamillePage() {
         <form onSubmit={(e) => { e.preventDefault(); setShowAddModal(false); showComingSoonToast(); }} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prenom</label>
-              <Input placeholder="Prenom" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+              <Input placeholder="Prénom" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>

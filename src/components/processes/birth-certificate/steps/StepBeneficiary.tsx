@@ -1,4 +1,4 @@
-// Etape 2: Informations du beneficiaire
+// Etape 2: Informations du bénéficiaire
 
 'use client';
 
@@ -73,7 +73,7 @@ export function StepBeneficiary() {
               'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
               errors.firstName && 'border-red-500 focus:ring-red-500'
             )}
-            placeholder="Prenom du beneficiaire"
+            placeholder="Prenom du bénéficiaire"
           />
           {errors.firstName && (
             <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
@@ -91,7 +91,7 @@ export function StepBeneficiary() {
               'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
               errors.lastName && 'border-red-500 focus:ring-red-500'
             )}
-            placeholder="Nom du beneficiaire"
+            placeholder="Nom du bénéficiaire"
           />
           {errors.lastName && (
             <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>

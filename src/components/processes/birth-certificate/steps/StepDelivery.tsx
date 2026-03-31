@@ -31,7 +31,7 @@ export function StepDelivery() {
             'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             deliveryErrors?.street && 'border-red-500 focus:ring-red-500'
           )}
-          placeholder="Numero et nom de rue"
+          placeholder="Numéro et nom de rue"
         />
         {deliveryErrors?.street && (
           <p className="mt-1 text-sm text-red-600">{deliveryErrors.street.message}</p>
@@ -86,7 +86,7 @@ export function StepDelivery() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm text-blue-700">
-            L'acte sera envoye par courrier a cette adresse sous 3 a 5 jours ouvres
+            L'acte sera envoyé par courrier à cette adresse sous 3 à 5 jours ouvrés
             apres validation de votre demande.
           </p>
         </div>

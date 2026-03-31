@@ -226,7 +226,7 @@ export function StepSummary({
               className="mt-0.5"
             />
             <span className="text-sm text-gray-700">
-              Je souscris a l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
+              Je souscris à l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
               resiliable a tout moment depuis mon espace membre, sans frais. *
             </span>
           </label>
@@ -235,7 +235,7 @@ export function StepSummary({
 
       {/* Delai */}
       <p className="text-xs text-gray-500">
-        Traitement sous 3 a 5 jours ouvres apres validation. Envoi par courrier a l'adresse indiquee.
+        Traitement sous 3 à 5 jours ouvrés apres validation. Envoi par courrier a l'adresse indiquée.
       </p>
     </div>
   );

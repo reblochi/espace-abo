@@ -110,7 +110,7 @@ export function StepDocuments({ processRéférence }: StepDocumentsProps) {
 
         const uploadedFile = await response.json();
 
-        // Mettre a jour avec l'ID reel
+        // Mettre à jour avec l'ID reel
         setUploadedFiles(prev => ({
           ...prev,
           [docId]: prev[docId].map(f =>

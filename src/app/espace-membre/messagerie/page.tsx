@@ -33,7 +33,7 @@ const mockConversations: Conversation[] = [
     unread: true,
     messages: [
       { id: 'm1', sender: 'user', content: 'Bonjour, je souhaiterais savoir ou en est ma demarche de carte grise.', date: '2026-03-01 10:30' },
-      { id: 'm2', sender: 'support', content: 'Bonjour ! Votre dossier est en cours de traitement par nos equipes. Vous devriez recevoir une mise a jour sous 48h.', date: '2026-03-01 14:15' },
+      { id: 'm2', sender: 'support', content: 'Bonjour ! Votre dossier est en cours de traitement par nos equipes. Vous devriez recevoir une mise à jour sous 48h.', date: '2026-03-01 14:15' },
       { id: 'm3', sender: 'user', content: 'Merci pour le retour, est-il possible d\'accelerer le traitement ?', date: '2026-03-02 09:00' },
       { id: 'm4', sender: 'support', content: 'Votre dossier est en cours de traitement prioritaire. Nous faisons notre maximum pour vous repondre dans les meilleurs delais.', date: '2026-03-03 11:30' },
     ],
@@ -58,7 +58,7 @@ const mockConversations: Conversation[] = [
     date: '2026-03-01',
     unread: false,
     messages: [
-      { id: 'm7', sender: 'user', content: 'Je souhaiterais etre rembourse pour la demarche DEM-2026-000008 qui a ete annulee.', date: '2026-03-01 08:45' },
+      { id: 'm7', sender: 'user', content: 'Je souhaiterais etre rembourse pour la demarche DEM-2026-000008 qui a été annulée.', date: '2026-03-01 08:45' },
       { id: 'm8', sender: 'support', content: 'Nous etudions votre demande de remboursement. Nous reviendrons vers vous sous 5 jours ouvres.', date: '2026-03-01 15:20' },
     ],
   },

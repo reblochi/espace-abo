@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
               <div className="space-y-3">
                 <Link href="/login">
                   <Button variant="outline" className="w-full">
-                    Retour a la connexion
+                    Retour à la connexion
                   </Button>
                 </Link>
               </div>
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
                 href="/login"
                 className="text-sm text-blue-600 hover:text-blue-500"
               >
-                Retour a la connexion
+                Retour à la connexion
               </Link>
             </div>
           </CardContent>

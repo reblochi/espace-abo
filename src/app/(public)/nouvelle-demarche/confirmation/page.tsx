@@ -56,7 +56,7 @@ function ConfirmationDemarcheContent() {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || 'Demarche non trouvee');
+          setError(data.error || 'Démarche non trouvée');
           return;
         }
 
@@ -203,13 +203,13 @@ function ConfirmationDemarcheContent() {
                     }
                   >
                     {process.status === 'PENDING_PAYMENT' && 'En attente de paiement'}
-                    {process.status === 'PAID' && 'Paye'}
+                    {process.status === 'PAID' && 'Payé'}
                     {process.status === 'SENT_TO_ADVERCITY' && 'En traitement'}
                     {process.status === 'IN_PROGRESS' && 'En cours'}
                     {process.status === 'AWAITING_INFO' && 'Info manquante'}
                     {process.status === 'COMPLETED' && 'Termine'}
                     {process.status === 'CANCELLED' && 'Annule'}
-                    {process.status === 'REFUNDED' && 'Rembourse'}
+                    {process.status === 'REFUNDED' && 'Remboursé'}
                   </Badge>
                 </div>
 
@@ -242,7 +242,7 @@ function ConfirmationDemarcheContent() {
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-blue-600">2</span>
                       </div>
-                      <span>Votre dossier est transmis a l'ANTS pour traitement</span>
+                      <span>Votre dossier est transmis à l'ANTS pour traitement</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -257,19 +257,19 @@ function ConfirmationDemarcheContent() {
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-blue-600">1</span>
                       </div>
-                      <span>Votre demande est transmise a la mairie concernee</span>
+                      <span>Votre demande est transmise à la mairie concernée</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-blue-600">2</span>
                       </div>
-                      <span>Vous recevrez un email a chaque mise a jour du statut</span>
+                      <span>Vous recevrez un email a chaque mise à jour du statut</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-blue-600">3</span>
                       </div>
-                      <span>Le document sera envoye a l'adresse indiquee (delai moyen: 5-10 jours)</span>
+                      <span>Le document sera envoyé à l'adresse indiquée (délai moyen: 5-10 jours)</span>
                     </li>
                   </>
                 )}

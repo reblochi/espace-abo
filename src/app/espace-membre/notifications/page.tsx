@@ -62,7 +62,7 @@ export default function NotificationsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
         <p className="text-gray-500 mt-1">
-          Gerez vos preferences de communication
+          Gérez vos préférences de communication
         </p>
       </div>
 

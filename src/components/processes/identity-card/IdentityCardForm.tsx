@@ -179,7 +179,7 @@ export function IdentityCardForm({
           valid = false;
         }
         if (!values.fatherFirstName?.trim()) {
-          setFieldError('fatherFirstName', { type: 'manual', message: 'Prenom du pere requis' });
+          setFieldError('fatherFirstName', { type: 'manual', message: 'Prénom du père requis' });
           valid = false;
         }
         if (!values.fatherBirthCity?.trim()) {
@@ -195,7 +195,7 @@ export function IdentityCardForm({
           valid = false;
         }
         if (!values.motherFirstName?.trim()) {
-          setFieldError('motherFirstName', { type: 'manual', message: 'Prenom de la mere requis' });
+          setFieldError('motherFirstName', { type: 'manual', message: 'Prénom de la mère requis' });
           valid = false;
         }
         if (!values.motherBirthCity?.trim()) {
@@ -385,7 +385,7 @@ export function IdentityCardForm({
         }
       }
     } catch {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }

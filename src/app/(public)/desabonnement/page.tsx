@@ -33,7 +33,7 @@ export default function UnsubscribePage() {
 
       setSuccess(true);
     } catch {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +64,7 @@ export default function UnsubscribePage() {
 
               <Link href="/">
                 <Button variant="outline" className="w-full">
-                  Retour a l'accueil
+                  Retour à l'accueil
                 </Button>
               </Link>
             </CardContent>
@@ -122,7 +122,7 @@ export default function UnsubscribePage() {
                 href="/"
                 className="text-sm text-blue-600 hover:text-blue-500"
               >
-                Retour a l'accueil
+                Retour à l'accueil
               </Link>
             </div>
           </CardContent>

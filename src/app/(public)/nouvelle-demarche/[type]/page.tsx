@@ -137,7 +137,7 @@ export default function FormulaireDemarchePage() {
                   <Button>Se connecter</Button>
                 </Link>
                 <Link href={`/register?callbackUrl=/nouvelle-demarche/${routeParams.type}`}>
-                  <Button variant="outline">Creer un compte</Button>
+                  <Button variant="outline">Créer un compte</Button>
                 </Link>
               </div>
             </CardContent>
@@ -391,7 +391,7 @@ export default function FormulaireDemarchePage() {
         }
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -514,7 +514,7 @@ export default function FormulaireDemarchePage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {step === 1 && 'Informations du beneficiaire'}
+              {step === 1 && 'Informations du bénéficiaire'}
               {step === 2 && 'Lieu et date'}
               {step === 3 && 'Adresse de livraison'}
             </CardTitle>
@@ -542,7 +542,7 @@ export default function FormulaireDemarchePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Prenom"
+                    label="Prénom"
                     value={formData.beneficiaryFirstName}
                     onChange={(e) =>
                       setFormData({ ...formData, beneficiaryFirstName: e.target.value })
@@ -564,7 +564,7 @@ export default function FormulaireDemarchePage() {
                     <p className="text-sm font-medium text-gray-700 mt-4">Conjoint</p>
                     <div className="grid grid-cols-2 gap-4">
                       <Input
-                        label="Prenom du conjoint"
+                        label="Prénom du conjoint"
                         value={formData.spouseFirstName}
                         onChange={(e) =>
                           setFormData({ ...formData, spouseFirstName: e.target.value })
@@ -637,7 +637,7 @@ export default function FormulaireDemarchePage() {
                       deliveryAddress: { ...formData.deliveryAddress, street: e.target.value },
                     })
                   }
-                  placeholder="Numero et nom de rue"
+                  placeholder="Numéro et nom de rue"
                   required
                 />
 

@@ -243,7 +243,7 @@ export function StepSummary({
               onChange={(e) => onSubscriptionConsentChange(e.target.checked)}
             />
             <label htmlFor="subscriptionConsent">
-              Je souscris a l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
+              Je souscris à l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
               resiliable a tout moment depuis mon espace membre, sans frais. *
             </label>
           </div>

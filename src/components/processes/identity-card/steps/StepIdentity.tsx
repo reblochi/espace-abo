@@ -109,10 +109,10 @@ export function StepIdentity() {
         )}
       </div>
 
-      {/* Prenom(s) */}
+      {/* Prénom(s) */}
       <div className="mb-6">
         <label className="form-gov-label">
-          Prenom(s) <span className="text-red-600">*</span>
+          Prénom(s) <span className="text-red-600">*</span>
         </label>
         <input
           type="text"

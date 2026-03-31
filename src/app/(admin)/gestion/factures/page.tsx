@@ -122,7 +122,7 @@ export default function AdminInvoicesPage() {
       <div className="flex gap-4 mb-4">
         <div className="flex-1 max-w-md">
           <SearchBar
-            placeholder="Rechercher par email, nom, numero..."
+            placeholder="Rechercher par email, nom, numéro..."
             onSearch={handleSearch}
           />
         </div>

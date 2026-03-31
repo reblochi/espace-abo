@@ -56,7 +56,7 @@ export default function AdminInvoiceDetailPage() {
   });
 
   if (isLoading) return <div className="text-gray-500">Chargement...</div>;
-  if (!invoice) return <div className="text-gray-500">Facture non trouvee</div>;
+  if (!invoice) return <div className="text-gray-500">Facture non trouvée</div>;
 
   const isCreditNote = invoice.type === 'CREDIT_NOTE';
 
@@ -170,7 +170,7 @@ export default function AdminInvoiceDetailPage() {
               </Button>
             ) : (
               <div>
-                <h2 className="font-medium text-gray-900 mb-3">Creer un avoir</h2>
+                <h2 className="font-medium text-gray-900 mb-3">Créer un avoir</h2>
                 <div className="space-y-3 max-w-md">
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Motif</label>

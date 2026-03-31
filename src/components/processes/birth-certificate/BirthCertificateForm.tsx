@@ -255,7 +255,7 @@ export function BirthCertificateForm({
         }
       }
     } catch {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }

@@ -55,7 +55,7 @@ export default function MonAbonnementPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mon abonnement</h1>
-          <p className="text-gray-500 mt-1">Gerez votre abonnement mensuel</p>
+          <p className="text-gray-500 mt-1">Gérez votre abonnement mensuel</p>
         </div>
 
         <Card>
@@ -94,13 +94,13 @@ export default function MonAbonnementPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mon abonnement</h1>
-        <p className="text-gray-500 mt-1">Gerez votre abonnement mensuel</p>
+        <p className="text-gray-500 mt-1">Gérez votre abonnement mensuel</p>
       </div>
 
       {/* Alertes */}
       {subscription.status === 'PAST_DUE' && (
         <Alert variant="error" title="Paiement en retard">
-          Votre dernier paiement a echoue. Veuillez mettre a jour votre moyen de paiement pour eviter l'interruption de service.
+          Votre dernier paiement a échoué. Veuillez mettre à jour votre moyen de paiement pour éviter l'interruption de service.
         </Alert>
       )}
 

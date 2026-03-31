@@ -99,12 +99,12 @@ export function StepRequester() {
               />
             </div>
             <div>
-              <label className="form-gov-label">Prenom</label>
+              <label className="form-gov-label">Prénom</label>
               <input
                 type="text"
                 {...register('requesterFirstName')}
                 className="form-gov-input"
-                placeholder="Prenom du demandeur"
+                placeholder="Prénom du demandeur"
               />
             </div>
           </div>
@@ -165,7 +165,7 @@ export function StepRequester() {
             className={`form-gov-input ${errors.telephone ? 'form-gov-error' : ''}`}
             placeholder="06 12 34 56 78"
           />
-          <p className="form-gov-hint">De preference un numero de portable</p>
+          <p className="form-gov-hint">De préférence un numéro de portable</p>
           {errors.telephone && (
             <p className="form-gov-error-msg">{errors.telephone.message}</p>
           )}
@@ -184,7 +184,7 @@ export function StepRequester() {
             type="text"
             {...register('deliveryAddress.street')}
             className={`form-gov-input ${deliveryErrors?.street ? 'form-gov-error' : ''}`}
-            placeholder="Numero et nom de rue"
+            placeholder="Numéro et nom de rue"
           />
           {deliveryErrors?.street && (
             <p className="form-gov-error-msg">{deliveryErrors.street.message}</p>

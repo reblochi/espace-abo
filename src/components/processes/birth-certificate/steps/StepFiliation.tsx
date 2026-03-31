@@ -94,7 +94,7 @@ export function StepFiliation() {
             {!fatherUnknown && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prenom</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
                   <input
                     type="text"
                     {...register('fatherFirstName')}
@@ -153,7 +153,7 @@ export function StepFiliation() {
             {!motherUnknown && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prenom</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
                   <input
                     type="text"
                     {...register('motherFirstName')}

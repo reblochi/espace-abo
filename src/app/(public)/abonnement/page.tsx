@@ -69,7 +69,7 @@ function AbonnementContent() {
         window.location.href = data.url;
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,7 @@ function AbonnementContent() {
       <div className="max-w-4xl mx-auto px-4">
         {canceled && (
           <Alert variant="warning" className="mb-8">
-            Votre paiement a ete annule. Vous pouvez reessayer quand vous le souhaitez.
+            Votre paiement a été annulé. Vous pouvez réessayer quand vous le souhaitez.
           </Alert>
         )}
         {error && (

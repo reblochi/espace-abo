@@ -147,7 +147,7 @@ export default function MonProfilPage() {
       await updateProfile(profileForm);
       setProfileSuccess(true);
     } catch (error) {
-      setProfileError('Une erreur est survenue lors de la mise a jour.');
+      setProfileError('Une erreur est survenue lors de la mise à jour.');
     }
   };
 
@@ -219,7 +219,7 @@ export default function MonProfilPage() {
             <CardContent>
               {profileSuccess && (
                 <Alert variant="success" className="mb-4">
-                  Vos informations ont ete mises a jour avec succes.
+                  Vos informations ont ete mises à jour avec succes.
                 </Alert>
               )}
               {profileError && (
@@ -231,7 +231,7 @@ export default function MonProfilPage() {
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
-                    label="Prenom"
+                    label="Prénom"
                     value={profileForm.firstName}
                     onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
                     required

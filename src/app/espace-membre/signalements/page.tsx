@@ -84,7 +84,7 @@ export default function SignalementsPage() {
       setDescription('');
       setAdresse('');
     } catch {
-      setError('Erreur de connexion. Veuillez reessayer.');
+      setError('Erreur de connexion. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }

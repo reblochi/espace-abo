@@ -21,7 +21,7 @@ export function StepContact() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="contact.firstName" className="form-gov-label">
-            Prenom du demandeur <span className="text-red-600">*</span>
+            Prénom du demandeur <span className="text-red-600">*</span>
           </label>
           <input
             id="contact.firstName"

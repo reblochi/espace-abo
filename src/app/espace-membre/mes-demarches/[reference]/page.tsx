@@ -127,7 +127,7 @@ export default function ProcessDetailPage() {
                   <dd className="mt-1 font-medium text-gray-900">{formatDate(processItem.createdAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Derniere mise a jour</dt>
+                  <dt className="text-sm text-gray-500">Derniere mise à jour</dt>
                   <dd className="mt-1 font-medium text-gray-900">{formatDate(processItem.updatedAt)}</dd>
                 </div>
                 {processItem.completedAt && (
