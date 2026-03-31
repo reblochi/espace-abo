@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -15,18 +18,29 @@ export default function HomePage() {
               <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="text-gray-600 hover:text-gray-900 font-medium text-sm"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/register"
-                className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors"
-              >
-                Créer un compte
-              </Link>
+              {session ? (
+                <Link
+                  href="/espace-membre"
+                  className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors"
+                >
+                  Mon espace
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-gray-600 hover:text-gray-900 font-medium text-sm"
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors"
+                  >
+                    Créer un compte
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
