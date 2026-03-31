@@ -1,4 +1,38 @@
 // Service de generation de factures PDF
+//
+// pdfkit cherche ses polices AFM dans node_modules/pdfkit/js/data/
+// Sur Vercel serverless ce dossier n'est pas inclus.
+// On copie les AFM depuis data/pdfkit/ (versionne) vers /tmp au runtime.
+
+import path from 'path';
+import fs from 'fs';
+
+// Preparer les polices AVANT d'importer pdfkit
+const sourceDir = path.join(process.cwd(), 'data', 'pdfkit');
+const targetDir = path.resolve('node_modules/pdfkit/js/data');
+if (!fs.existsSync(path.join(targetDir, 'Helvetica.afm')) && fs.existsSync(sourceDir)) {
+  // Copier vers /tmp puis creer un symlink
+  const tmpDir = '/tmp/pdfkit-data';
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+    for (const f of fs.readdirSync(sourceDir)) {
+      fs.copyFileSync(path.join(sourceDir, f), path.join(tmpDir, f));
+    }
+  }
+  // Creer le dossier parent si absent et symlinker
+  try {
+    fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+    fs.symlinkSync(tmpDir, targetDir);
+  } catch {
+    // Si symlink echoue, essayer copie directe
+    try {
+      fs.mkdirSync(targetDir, { recursive: true });
+      for (const f of fs.readdirSync(tmpDir)) {
+        fs.copyFileSync(path.join(tmpDir, f), path.join(targetDir, f));
+      }
+    } catch { /* read-only FS, on tente quand meme pdfkit */ }
+  }
+}
 
 import PDFDocument from 'pdfkit';
 import type { InvoiceWithRelations } from '@/types';
