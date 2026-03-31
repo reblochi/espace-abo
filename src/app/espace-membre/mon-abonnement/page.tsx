@@ -156,8 +156,8 @@ export default function MonAbonnementPage() {
               Votre abonnement a <strong>{formatCurrency(subscription.amountCents)}/mois</strong> vous donne un acces illimite a toutes nos demarches administratives et services associes.
             </p>
             <div className="bg-blue-50 rounded-lg p-4">
-              <p className="font-medium text-blue-800 mb-2">Le debit apparait sur votre releve sous :</p>
-              <p className="font-mono text-blue-900">MES DEMARCHES APP</p>
+              <p className="font-medium text-blue-800 mb-2">Le débit apparaît sur votre relevé sous :</p>
+              <p className="font-mono text-blue-900">France Guichet</p>
             </div>
             <p className="text-xs text-gray-400">
               Le prelevement est effectue automatiquement chaque mois a la date anniversaire de votre souscription.
