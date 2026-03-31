@@ -4,8 +4,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui';
-import { Spinner } from '@/components/ui';
 
 export interface City {
   id: number;
@@ -43,7 +41,7 @@ export function CityAutocomplete({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Synchroniser l'input avec la valeur selectionnee
   useEffect(() => {
@@ -151,12 +149,29 @@ export function CityAutocomplete({
     }
   };
 
+  // Auto-selectionner le premier resultat quand on quitte le champ sans avoir clique
+  const handleBlur = () => {
+    // Petit delai pour laisser le temps au click sur une suggestion de se declencher
+    setTimeout(() => {
+      if (suggestions.length > 0 && !value) {
+        // Aucune selection explicite → prendre le premier resultat
+        onChange(suggestions[0]);
+        setInputValue(`${suggestions[0].name} (${suggestions[0].postal_code})`);
+      } else if (suggestions.length > 0 && value && inputValue !== `${value.name} (${value.postal_code})`) {
+        // L'utilisateur a modifie le texte apres une selection → re-selectionner le premier
+        onChange(suggestions[0]);
+        setInputValue(`${suggestions[0].name} (${suggestions[0].postal_code})`);
+      }
+      setIsOpen(false);
+    }, 200);
+  };
+
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="form-gov-label">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-600 ml-1">*</span>}
         </label>
       )}
 
@@ -168,24 +183,23 @@ export function CityAutocomplete({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm pr-10',
-            'placeholder:text-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-red-500 focus:ring-red-500'
+            'form-gov-input pr-10',
+            disabled && 'opacity-50 cursor-not-allowed',
+            error && 'form-gov-error'
           )}
         />
 
         {/* Icone de recherche ou spinner */}
         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
           {isLoading ? (
-            <Spinner className="h-4 w-4 text-gray-400" />
+            <div className="w-5 h-5 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
           ) : (
             <svg
-              className="h-4 w-4 text-gray-400"
+              className="h-5 w-5 text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -201,12 +215,12 @@ export function CityAutocomplete({
         </div>
       </div>
 
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p className="form-gov-error-msg">{error}</p>}
 
       {/* Liste des suggestions */}
       {isOpen && suggestions.length > 0 && (
         <ul
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+          className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-900 shadow-lg max-h-60 overflow-auto"
           role="listbox"
         >
           {suggestions.map((city, index) => (
@@ -217,7 +231,7 @@ export function CityAutocomplete({
               role="option"
               aria-selected={highlightedIndex === index}
               className={cn(
-                'px-3 py-2 cursor-pointer text-sm',
+                'px-3 py-2.5 cursor-pointer text-base border-b border-gray-100 last:border-b-0',
                 highlightedIndex === index
                   ? 'bg-blue-50 text-blue-900'
                   : 'hover:bg-gray-50'
@@ -234,7 +248,7 @@ export function CityAutocomplete({
 
       {/* Message "aucun resultat" */}
       {isOpen && !isLoading && suggestions.length === 0 && inputValue.length >= 2 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-3 text-sm text-gray-500">
+        <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-900 shadow-lg p-3 text-base text-gray-500">
           Aucune commune trouvee
         </div>
       )}

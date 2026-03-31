@@ -1,39 +1,45 @@
-// API Route - Recherche de communes
-// Source de verite : API Advercity (table city)
-// Fallback : geo.api.gouv.fr (IDs differents, a utiliser uniquement si API Advercity indisponible)
+// API Route - Recherche de communes de naissance
+// Source unique : API Advercity (table city) — pas de fallback geo.api.gouv.fr
+// car les IDs doivent correspondre a la base Advercity (id_mairie)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { searchCities as searchCitiesAdvercity } from '@/lib/advercity';
 
-interface GeoApiCommune {
-  code: string;
-  nom: string;
-  codesPostaux: string[];
-  codeDepartement: string;
-  population?: number;
+interface CityResult {
+  id: number;
+  name: string;
+  postal_code: string;
+  department_code: string;
 }
 
-async function searchCitiesGeoApi(query: string, limit: number) {
-  const url = new URL('https://geo.api.gouv.fr/communes');
-  url.searchParams.set('nom', query);
-  url.searchParams.set('fields', 'code,nom,codesPostaux,codeDepartement,population');
-  url.searchParams.set('boost', 'population');
+// Normalise les abreviations courantes dans les noms de villes
+// St/Ste → Saint/Sainte
+function normalizeCityQuery(input: string): string {
+  let s = input.trim();
+  s = s.replace(/\bstes\b/gi, 'Saintes');
+  s = s.replace(/\bste\b/gi, 'Sainte');
+  s = s.replace(/\bst\b/gi, 'Saint');
+  return s;
+}
+
+async function searchCitiesAdvercity(query: string, limit: number): Promise<CityResult[]> {
+  const apiUrl = process.env.ADVERCITY_API_URL;
+  const token = process.env.ADVERCITY_API_TOKEN;
+  if (!apiUrl) return [];
+
+  const url = new URL('/api/external/cities', apiUrl);
+  url.searchParams.set('q', query.trim());
   url.searchParams.set('limit', String(limit));
 
   const response = await fetch(url.toString(), {
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
     signal: AbortSignal.timeout(5000),
   });
 
-  if (!response.ok) return null;
-
-  const communes: GeoApiCommune[] = await response.json();
-
-  return communes.map((c) => ({
-    id: parseInt(c.code, 10) || 0,
-    name: c.nom,
-    postal_code: c.codesPostaux[0] || '',
-    department_code: c.codeDepartement,
-  }));
+  if (!response.ok) return [];
+  return response.json();
 }
 
 export async function GET(request: NextRequest) {
@@ -47,33 +53,12 @@ export async function GET(request: NextRequest) {
     }
 
     const safeLimit = Math.min(limit, 20);
+    const normalized = normalizeCityQuery(query);
 
-    // Essayer API Advercity d'abord (source de verite, bons IDs)
-    try {
-      const cities = await searchCitiesAdvercity(query, safeLimit);
-      if (cities && cities.length > 0) {
-        return NextResponse.json(cities);
-      }
-    } catch {
-      // Fallback silencieux vers geo.api.gouv.fr
-    }
-
-    // Fallback: geo.api.gouv.fr (attention: IDs = codes INSEE, pas IDs Advercity)
-    try {
-      const cities = await searchCitiesGeoApi(query, safeLimit);
-      if (cities && cities.length > 0) {
-        return NextResponse.json(cities);
-      }
-    } catch {
-      // Les deux APIs ont echoue
-    }
-
-    return NextResponse.json([]);
+    const cities = await searchCitiesAdvercity(normalized, safeLimit);
+    return NextResponse.json(cities);
   } catch (error) {
     console.error('Erreur recherche communes:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la recherche' },
-      { status: 500 }
-    );
+    return NextResponse.json([]);
   }
 }
