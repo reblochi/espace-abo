@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useSubscription } from '@/hooks';
 import {
   Card,
@@ -160,8 +161,15 @@ export default function MonAbonnementPage() {
               <p className="font-mono text-blue-900">France Guichet</p>
             </div>
             <p className="text-xs text-gray-400">
-              Le prelevement est effectue automatiquement chaque mois a la date anniversaire de votre souscription.
+              Le prélèvement est effectué automatiquement chaque mois à la date anniversaire de votre souscription.
             </p>
+            {subscription.status !== 'CANCELED' && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Link href="/desabonnement" className="text-sm text-red-600 hover:text-red-800">
+                  Se désabonner
+                </Link>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

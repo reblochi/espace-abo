@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProfile, useAuth } from '@/hooks';
 import {
   Card,
@@ -123,8 +123,8 @@ export default function MonProfilPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Initialiser le formulaire avec les donnees du profil
-  useState(() => {
+  // Initialiser le formulaire quand le profil est chargé
+  useEffect(() => {
     if (profile) {
       setProfileForm({
         firstName: profile.firstName || '',
@@ -136,7 +136,7 @@ export default function MonProfilPage() {
         postalCode: profile.zipCode || '',
       });
     }
-  });
+  }, [profile]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
