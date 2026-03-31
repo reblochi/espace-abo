@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { generateReference } from '@/lib/utils';
+import { updateConsentStrongAuth } from '@/lib/consent';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -44,6 +45,28 @@ export async function GET(request: NextRequest) {
 
     const stripeSubscription = checkoutSession.subscription as Stripe.Subscription;
     const stripeCustomer = checkoutSession.customer as Stripe.Customer;
+
+    // Enrichir le consentement avec le résultat 3DS
+    const consentId = checkoutSession.metadata?.consentId;
+    if (consentId && stripeSubscription?.latest_invoice) {
+      try {
+        const invoiceId = typeof stripeSubscription.latest_invoice === 'string'
+          ? stripeSubscription.latest_invoice
+          : stripeSubscription.latest_invoice.id;
+        const invoice = await stripe.invoices.retrieve(invoiceId);
+        if (invoice.payment_intent) {
+          const piId = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent.id;
+          const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
+          const charge = pi.latest_charge as Stripe.Charge;
+          const threeDsResult = charge?.payment_method_details?.card?.three_d_secure?.result;
+          if (threeDsResult) {
+            await updateConsentStrongAuth(consentId, `3ds_${threeDsResult}`);
+          }
+        }
+      } catch (err) {
+        console.error('[Verify] Erreur enrichissement 3DS consent:', err);
+      }
+    }
 
     // Verifier si l'abonnement existe deja
     let subscription = await prisma.subscription.findUnique({

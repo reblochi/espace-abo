@@ -50,6 +50,7 @@ model User {
   subscription Subscription?
   processes    Process[]
   invoices     Invoice[]
+  consents     Consent[]
 
   @@map("users")
   @@schema("espace_abo")
@@ -511,5 +512,27 @@ model AdminAuditLog {
   createdAt  DateTime @default(now())
 
   @@map("admin_audit_logs")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// CONSENTEMENTS (preuve légale)
+// ============================================
+
+model Consent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // SUBSCRIPTION_CGV, PROCESS_CGV, PRIVACY_POLICY
+  version     String   // ex: "2026-03-31"
+  textHash    String   // SHA256 du texte au moment de l'acceptation
+  ipAddress   String?
+  userAgent   String?
+  strongAuth  String?  // "3ds_authenticated", "3ds_attempted", null — PSP-agnostique
+  consentedAt DateTime @default(now())
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@map("consents")
   @@schema("espace_abo")
 }

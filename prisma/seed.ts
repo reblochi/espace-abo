@@ -4,6 +4,7 @@
 import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
@@ -60,6 +61,7 @@ async function main() {
   }
 
   console.log('Nettoyage BDD...');
+  await prisma.consent.deleteMany();
   await prisma.adminAuditLog.deleteMany();
   await prisma.dispute.deleteMany();
   await prisma.subscriptionProcessUsage.deleteMany();
@@ -196,6 +198,21 @@ async function main() {
         status: 'PAID',
         paidAt: new Date(),
         deadlineId: deadline.id,
+      },
+    });
+
+    // Consentement CGV
+    const cgvText = 'CONDITIONS GÉNÉRALES DE VENTE — France Guichet (SAF) ...';
+    await prisma.consent.create({
+      data: {
+        userId: user.id,
+        type: 'SUBSCRIPTION_CGV',
+        version: '2026-03-31',
+        textHash: crypto.createHash('sha256').update(cgvText).digest('hex'),
+        ipAddress: `82.${randomInt(1, 254)}.${randomInt(1, 254)}.${randomInt(1, 254)}`,
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        strongAuth: Math.random() > 0.3 ? '3ds_authenticated' : '3ds_attempted',
+        consentedAt: new Date(confirmedSub.created * 1000),
       },
     });
 

@@ -83,6 +83,12 @@ export async function GET(
       })
     : [];
 
+  // Charger les consentements
+  const consents = await prisma.consent.findMany({
+    where: { userId: id },
+    orderBy: { consentedAt: 'desc' },
+  });
+
   // Charger l'historique des actions admin sur ce client
   const auditTargetIds = [id];
   if (user.subscription?.id) auditTargetIds.push(user.subscription.id);
@@ -94,5 +100,5 @@ export async function GET(
     take: 50,
   });
 
-  return NextResponse.json({ ...user, disputes, auditLogs });
+  return NextResponse.json({ ...user, disputes, consents, auditLogs });
 }

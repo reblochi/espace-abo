@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { generateReference } from '@/lib/utils';
+import { recordConsent } from '@/lib/consent';
 import {
   PROCESS_TYPES_CONFIG,
   getProcessTypeSlug,
@@ -283,6 +284,14 @@ export async function POST(request: NextRequest) {
       processReference: reference,
       processType: type,
     };
+
+    // Enregistrer le consentement CGV
+    await recordConsent({
+      userId: user.id,
+      type: paymentMode === 'subscription' ? 'SUBSCRIPTION_CGV' : 'PROCESS_CGV',
+      request,
+      metadata: { processId: newProcess.id, processReference: reference },
+    });
 
     let checkoutSession: Stripe.Checkout.Session;
 

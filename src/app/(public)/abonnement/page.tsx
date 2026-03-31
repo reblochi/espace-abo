@@ -35,6 +35,7 @@ function AbonnementContent() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acceptCgv, setAcceptCgv] = useState(false);
 
   const handleSubscribe = async (priceId: string) => {
     // Si non connecte, rediriger vers inscription
@@ -172,11 +173,25 @@ function AbonnementContent() {
                       </li>
                     ))}
                   </ul>
+                  <label className="flex items-start gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acceptCgv}
+                      onChange={(e) => setAcceptCgv(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      J&apos;accepte les{' '}
+                      <a href="/cgv" target="_blank" className="text-blue-600 underline">
+                        Conditions Générales de Vente
+                      </a>
+                    </span>
+                  </label>
                   <Button
                     className="w-full"
                     size="lg"
                     onClick={() => handleSubscribe(plan.priceId)}
-                    disabled={isLoading}
+                    disabled={isLoading || !acceptCgv}
                   >
                     {isLoading ? (
                       <>

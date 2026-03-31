@@ -304,6 +304,37 @@ export default function AdminClientDetailPage() {
           </Card>
         )}
 
+        {/* Consentements */}
+        {user.consents?.length > 0 && (
+          <Card className="p-4 lg:col-span-2">
+            <h2 className="font-medium text-gray-900 mb-3">Consentements</h2>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {user.consents.map((c: { id: string; type: string; version: string; textHash: string; ipAddress: string | null; strongAuth: string | null; consentedAt: string }) => {
+                const typeLabels: Record<string, string> = {
+                  SUBSCRIPTION_CGV: 'CGV Abonnement',
+                  PROCESS_CGV: 'CGV Démarche',
+                  PRIVACY_POLICY: 'Politique de confidentialité',
+                };
+                return (
+                  <div key={c.id} className="p-2 rounded bg-gray-50 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{typeLabels[c.type] || c.type} v{c.version}</span>
+                      <span className="text-xs text-gray-400">{formatDateTime(c.consentedAt)}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 space-x-3">
+                      {c.ipAddress && <span>IP : {c.ipAddress}</span>}
+                      {c.strongAuth && (
+                        <span className="text-green-600">Auth forte : {c.strongAuth}</span>
+                      )}
+                      <span className="font-mono">Hash : {c.textHash.slice(0, 16)}...</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
         {/* Historique des actions */}
         {user.auditLogs?.length > 0 && (
           <Card className="p-4 lg:col-span-2">

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { recordConsent } from '@/lib/consent';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -60,6 +61,14 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
     }
 
+    // Enregistrer le consentement CGV
+    const consent = await recordConsent({
+      userId: user.id,
+      type: 'SUBSCRIPTION_CGV',
+      request,
+      metadata: { priceId },
+    });
+
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
     // Creer la session Checkout
@@ -77,6 +86,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${baseUrl}/abonnement?canceled=true`,
       metadata: {
         userId: user.id,
+        consentId: consent.id,
       },
       subscription_data: {
         metadata: {
