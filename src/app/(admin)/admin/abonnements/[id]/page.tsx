@@ -70,6 +70,7 @@ export default function AdminSubscriptionDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'subscription', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user'] });
       setShowCancelConfirm(false);
     },
   });
@@ -86,6 +87,8 @@ export default function AdminSubscriptionDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'subscription', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'invoices'] });
       setSelectedDeadlines([]);
       setRefundReason('');
     },
