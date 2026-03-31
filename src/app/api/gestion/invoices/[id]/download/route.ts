@@ -39,11 +39,19 @@ export async function GET(
   }
 
   // Sinon generer a la volee
-  const pdfBuffer = await generateInvoicePdf(invoice);
-  return new NextResponse(new Uint8Array(pdfBuffer), {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${invoice.number}.pdf"`,
-    },
-  });
+  try {
+    const pdfBuffer = await generateInvoicePdf(invoice);
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${invoice.number}.pdf"`,
+      },
+    });
+  } catch (err) {
+    console.error('[Admin] Erreur génération PDF:', err);
+    return NextResponse.json(
+      { error: 'Erreur génération PDF', details: err instanceof Error ? err.message : 'Erreur inconnue' },
+      { status: 500 }
+    );
+  }
 }
