@@ -1,148 +1,300 @@
-// Page Mes Courriers
+// Page Mes courriers — modèles pré-remplis pour abonnés
 
 'use client';
 
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
-import { showComingSoonToast } from '@/components/ui/coming-soon';
-import { Progress } from '@/components/ui/progress';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useProfile } from '@/hooks';
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, Spinner, Alert } from '@/components/ui';
 
-const templates = [
-  {
-    id: '1',
-    title: 'Reclamation FAI',
-    description: 'Contester une facture ou signaler un dysfonctionnement',
-    icon: '📡',
-    category: 'Telecom',
-  },
-  {
-    id: '2',
-    title: 'Contestation PV',
-    description: 'Contester une amende de stationnement ou de circulation',
-    icon: '🚗',
-    category: 'Vehicule',
-  },
-  {
-    id: '3',
-    title: 'Resiliation contrat',
-    description: 'Resilier un abonnement, assurance ou contrat',
-    icon: '✂️',
-    category: 'General',
-  },
-  {
-    id: '4',
-    title: 'Lettre de mise en demeure',
-    description: 'Mise en demeure avant action juridique',
-    icon: '⚖️',
-    category: 'Juridique',
-  },
-  {
-    id: '5',
-    title: 'Demande de remboursement',
-    description: 'Demander le remboursement d\'un produit ou service',
-    icon: '💰',
-    category: 'General',
-  },
-  {
-    id: '6',
-    title: 'Courrier au proprietaire',
-    description: 'Signalement, demande de travaux, conge',
-    icon: '🏠',
-    category: 'Logement',
-  },
-];
+interface CourrierField {
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'date' | 'select';
+  required: boolean;
+  options?: string[];
+  placeholder?: string;
+}
 
-const mockHistory = [
-  { id: 'c1', title: 'Resiliation SFR', date: '2026-02-15', status: 'sent' },
-  { id: 'c2', title: 'Contestation PV Paris', date: '2026-01-20', status: 'sent' },
-];
+interface Template {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  fields: CourrierField[];
+  recommande?: boolean;
+}
+
+interface Courrier {
+  id: string;
+  templateId: string;
+  title: string;
+  createdAt: string;
+}
+
+const categoryLabels: Record<string, string> = {
+  resiliation: 'Résiliation',
+  administratif: 'Administratif',
+  logement: 'Logement',
+};
 
 export default function MesCourriersPage() {
+  const queryClient = useQueryClient();
+  const { profile } = useProfile();
+  const [activeCategory, setActiveCategory] = useState('resiliation');
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  // Charger les templates
+  const { data: templatesData } = useQuery({
+    queryKey: ['courrier-templates'],
+    queryFn: async () => {
+      const res = await fetch('/api/courriers/templates');
+      if (!res.ok) throw new Error('Erreur chargement');
+      return res.json();
+    },
+  });
+
+  // Charger l'historique + compteur
+  const { data: courriersData, isLoading } = useQuery({
+    queryKey: ['courriers'],
+    queryFn: async () => {
+      const res = await fetch('/api/courriers');
+      if (!res.ok) throw new Error('Erreur chargement');
+      return res.json();
+    },
+  });
+
+  const templates: Template[] = templatesData?.templates || [];
+  const courriers: Courrier[] = courriersData?.courriers || [];
+  const monthCount: number = courriersData?.monthCount || 0;
+  const monthlyLimit: number = courriersData?.monthlyLimit || 3;
+  const filteredTemplates = templates.filter((t) => t.category === activeCategory);
+  const quotaReached = monthCount >= monthlyLimit;
+
+  // Reset formulaire quand on change de template
+  useEffect(() => {
+    if (selectedTemplate) {
+      setFormData({});
+      setError(null);
+    }
+  }, [selectedTemplate]);
+
+  // Générer le courrier
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTemplate) throw new Error('Aucun modèle sélectionné');
+      const res = await fetch('/api/courriers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: selectedTemplate.id, data: formData }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur');
+      }
+      // Télécharger le PDF
+      const blob = await res.blob();
+      const courrierId = res.headers.get('X-Courrier-Id');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `courrier-${courrierId || 'document'}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courriers'] });
+      setSelectedTemplate(null);
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    generateMutation.mutate();
+  };
+
+  const updateField = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mes courriers</h1>
-        <p className="text-gray-500 mt-1">
-          Generez des courriers types personnalises en quelques clics
-        </p>
+        <p className="text-gray-500 mt-1">Générez des courriers types pré-remplis avec vos informations</p>
       </div>
 
-      {/* Compteur de courriers */}
+      {/* Jauge */}
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Courriers restants ce mois</span>
-            <span className="text-sm font-semibold text-gray-900">3/5</span>
+            <span className="text-sm font-medium text-gray-700">Courriers ce mois</span>
+            <span className="text-sm font-bold text-gray-900">{monthCount} / {monthlyLimit}</span>
           </div>
-          <Progress value={2} max={5} color="blue" size="md" />
-          <p className="text-xs text-gray-500 mt-1">
-            Vous pouvez generer 3 courriers supplementaires ce mois-ci
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Modeles disponibles */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Modeles disponibles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.map(template => (
-              <button
-                key={template.id}
-                onClick={() => showComingSoonToast()}
-                className="text-left p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{template.icon}</span>
-                  <div>
-                    <h3 className="font-medium text-gray-900 text-sm">{template.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{template.description}</p>
-                    <Badge variant="secondary" className="mt-2">{template.category}</Badge>
-                  </div>
-                </div>
-              </button>
-            ))}
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${quotaReached ? 'bg-red-500' : 'bg-blue-600'}`}
+              style={{ width: `${Math.min((monthCount / monthlyLimit) * 100, 100)}%` }}
+            />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Historique */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historique des courriers</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {mockHistory.length > 0 ? (
-            <div className="space-y-3">
-              {mockHistory.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.date}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="success">Envoye</Badge>
-                    <Button variant="ghost" size="sm" onClick={() => showComingSoonToast()}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <p className="text-gray-500">Aucun courrier envoye</p>
-            </div>
+          {quotaReached && (
+            <p className="text-xs text-red-600 mt-2">Limite mensuelle atteinte. Vos courriers seront disponibles le mois prochain.</p>
           )}
         </CardContent>
       </Card>
+
+      {/* Onglets catégories */}
+      <div className="flex gap-2">
+        {Object.entries(categoryLabels).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveCategory(key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeCategory === key
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Templates */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {filteredTemplates.map((template) => (
+          <Card
+            key={template.id}
+            className={`cursor-pointer hover:shadow-md transition-shadow ${quotaReached ? 'opacity-50' : ''}`}
+            onClick={() => !quotaReached && setSelectedTemplate(template)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-medium text-gray-900 text-sm">{template.title}</h3>
+                {template.recommande && (
+                  <Badge variant="default">AR</Badge>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">{template.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Historique */}
+      {courriers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Historique</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {courriers.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{c.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(c.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <a
+                    href={`/api/courriers/${c.id}/download`}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Télécharger
+                  </a>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal formulaire */}
+      {selectedTemplate && (
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedTemplate(null)}
+          title={selectedTemplate.title}
+          size="lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Infos expéditeur (pré-remplies) */}
+            <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+              <p className="font-medium text-gray-700 mb-1">Expéditeur (vos informations)</p>
+              <p>{profile?.firstName} {profile?.lastName}</p>
+              {profile?.address && <p>{profile.address}</p>}
+              {profile?.zipCode && profile?.city && <p>{profile.zipCode} {profile.city}</p>}
+            </div>
+
+            {/* Champs du template */}
+            {selectedTemplate.fields.map((field) => (
+              <div key={field.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label} {field.required && <span className="text-red-500">*</span>}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    value={formData[field.name] || ''}
+                    onChange={(e) => updateField(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                ) : field.type === 'select' ? (
+                  <select
+                    value={formData[field.name] || ''}
+                    onChange={(e) => updateField(field.name, e.target.value)}
+                    required={field.required}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Sélectionnez...</option>
+                    {field.options?.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type}
+                    value={formData[field.name] || ''}
+                    onChange={(e) => updateField(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                )}
+              </div>
+            ))}
+
+            {error && <Alert variant="error">{error}</Alert>}
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" type="button" className="flex-1" onClick={() => setSelectedTemplate(null)}>
+                Annuler
+              </Button>
+              <Button type="submit" className="flex-1" disabled={generateMutation.isPending}>
+                {generateMutation.isPending ? 'Génération...' : 'Générer le PDF'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

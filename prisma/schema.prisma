@@ -51,6 +51,7 @@ model User {
   processes    Process[]
   invoices     Invoice[]
   consents     Consent[]
+  courriers    Courrier[]
 
   @@map("users")
   @@schema("espace_abo")
@@ -534,5 +535,23 @@ model Consent {
   createdAt   DateTime @default(now())
 
   @@map("consents")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// COURRIERS TYPES
+// ============================================
+
+model Courrier {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  templateId String
+  title      String
+  data       Json
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+
+  @@map("courriers")
   @@schema("espace_abo")
 }
