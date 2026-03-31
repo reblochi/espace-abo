@@ -6,15 +6,15 @@ import { formatDate, formatCurrency } from './utils';
 import { uploadToStorage } from './storage';
 
 const COMPANY_INFO = {
-  name: process.env.COMPANY_NAME || 'France Guichet (SAF)',
-  address: process.env.COMPANY_ADDRESS || '123 Rue Example',
-  zipCode: process.env.COMPANY_ZIPCODE || '75001',
-  city: process.env.COMPANY_CITY || 'Paris',
-  country: 'France',
-  siret: process.env.COMPANY_SIRET || '123 456 789 00000',
-  tva: process.env.COMPANY_TVA || 'FR12345678901',
-  email: process.env.COMPANY_EMAIL || 'contact@franceguichet.fr',
-  phone: process.env.COMPANY_PHONE || '01 23 45 67 89',
+  name: 'SAF Service B.V.',
+  address: 'Herengracht 449A',
+  zipCode: '1017 BR',
+  city: 'Amsterdam',
+  country: 'Pays-Bas',
+  kvk: '94972788',
+  tva: 'NL867888246B01',
+  email: 'contact@franceguichet.fr',
+  phone: '01 23 45 67 89',
 };
 
 export async function generateInvoicePdf(invoice: InvoiceWithRelations): Promise<Buffer> {
@@ -50,9 +50,9 @@ export async function generateInvoicePdf(invoice: InvoiceWithRelations): Promise
   ey -= 15;
   page.drawText(COMPANY_INFO.address, { x: 50, y: ey, font, size: 9, color: gray });
   ey -= 13;
-  page.drawText(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`, { x: 50, y: ey, font, size: 9, color: gray });
+  page.drawText(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}, ${COMPANY_INFO.country}`, { x: 50, y: ey, font, size: 9, color: gray });
   ey -= 13;
-  page.drawText(`SIRET : ${COMPANY_INFO.siret}`, { x: 50, y: ey, font, size: 9, color: gray });
+  page.drawText(`KVK : ${COMPANY_INFO.kvk}`, { x: 50, y: ey, font, size: 9, color: gray });
   ey -= 13;
   page.drawText(`TVA : ${COMPANY_INFO.tva}`, { x: 50, y: ey, font, size: 9, color: gray });
 
@@ -125,8 +125,8 @@ export async function generateInvoicePdf(invoice: InvoiceWithRelations): Promise
 
   // --- Pied de page ---
   page.drawText(
-    `${COMPANY_INFO.name} - ${COMPANY_INFO.address}, ${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`,
-    { x: 100, y: 50, font, size: 8, color: gray }
+    `${COMPANY_INFO.name} - ${COMPANY_INFO.address}, ${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}, ${COMPANY_INFO.country} - KVK ${COMPANY_INFO.kvk}`,
+    { x: 50, y: 50, font, size: 7, color: gray }
   );
   page.drawText(
     `Email : ${COMPANY_INFO.email} - Tél : ${COMPANY_INFO.phone}`,

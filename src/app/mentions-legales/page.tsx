@@ -42,7 +42,7 @@ export default function MentionsLegalesPage() {
               <p><span className="font-medium text-gray-900">Numéro d&apos;immatriculation (RSIN) :</span> 869203708</p>
               <p><span className="font-medium text-gray-900">Numéro d&apos;établissement :</span> 000064994767</p>
               <p><span className="font-medium text-gray-900">Siège social :</span> Amsterdam, Pays-Bas</p>
-              <p><span className="font-medium text-gray-900">Adresse :</span> Willem Fenengastraat 16 E, 1096BN Amsterdam</p>
+              <p><span className="font-medium text-gray-900">Adresse :</span> Herengracht 449A, 1017 BR Amsterdam</p>
               <p><span className="font-medium text-gray-900">Date de création :</span> 3 mars 2026</p>
             </div>
           </section>

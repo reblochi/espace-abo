@@ -46,7 +46,7 @@ export default function ConditionsGeneralesPage() {
             <p className="mt-2">
               SAF Service B.V. est une société de droit néerlandais (Besloten Vennootschap),
               immatriculée sous le numéro RSIN 869203708, dont le siège social est situé
-              au Willem Fenengastraat 16 E, 1096BN Amsterdam, Pays-Bas.
+              au Herengracht 449A, 1017 BR Amsterdam, Pays-Bas.
             </p>
           </section>
 
@@ -370,7 +370,7 @@ export default function ConditionsGeneralesPage() {
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Via la page <Link href="/contact" className="text-[#1a2e5a] underline hover:no-underline">contact</Link> du Site</li>
-              <li>Par courrier : SAF Service B.V., Willem Fenengastraat 16 E, 1096BN Amsterdam, Pays-Bas</li>
+              <li>Par courrier : SAF Service B.V., Herengracht 449A, 1017 BR Amsterdam, Pays-Bas</li>
             </ul>
           </section>
         </div>
