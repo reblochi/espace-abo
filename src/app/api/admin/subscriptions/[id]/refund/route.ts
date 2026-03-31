@@ -64,9 +64,9 @@ export async function POST(
         },
       });
 
-      // 2. Rembourser via PSP
-      let pspRefundOk = false;
-      if (deadline.pspInvoiceId) {
+      // 2. Rembourser via PSP (skip si ID de test/fake)
+      const isFakeId = deadline.pspInvoiceId?.includes('fake');
+      if (deadline.pspInvoiceId && !isFakeId) {
         try {
           let paymentId = deadline.pspInvoiceId;
 
@@ -83,10 +83,9 @@ export async function POST(
             amountCents: deadline.amountCents,
             reason: reason || 'Admin refund',
           });
-          pspRefundOk = true;
         } catch (pspErr) {
           // PSP echoue : rollback la DB
-          console.error(`[Admin] Erreur PSP remboursement echeance ${deadline.id}:`, pspErr);
+          console.error(`[Admin] Erreur PSP remboursement échéance ${deadline.id}:`, pspErr);
           await prisma.subscriptionDeadline.update({
             where: { id: deadline.id },
             data: { paymentStatus: 'PAID', refundedAt: null, refundedAmount: null },
@@ -94,9 +93,6 @@ export async function POST(
           results.push({ deadlineId: deadline.id, success: false, error: 'Erreur remboursement PSP' });
           continue;
         }
-      } else {
-        // Pas d'ID PSP (ex: paiement manuel) : on rembourse seulement en compta
-        pspRefundOk = true;
       }
 
       // 3. Creer l'avoir

@@ -37,8 +37,9 @@ export async function POST(
     return NextResponse.json({ error: 'Abonnement deja annule' }, { status: 400 });
   }
 
-  // Annuler cote PSP
-  if (subscription.pspSubscriptionId) {
+  // Annuler cote PSP (skip si ID de test/fake)
+  const isFakeId = subscription.pspSubscriptionId?.includes('fake');
+  if (subscription.pspSubscriptionId && !isFakeId) {
     try {
       const adapter = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
       await adapter.cancelSubscription(subscription.pspSubscriptionId, immediate);
