@@ -55,9 +55,13 @@ export async function POST(
   const totalEligibleCents = eligibleDeadlines.reduce((sum, d) => sum + d.amountCents, 0);
 
   // Valider le montant custom
-  const refundAmountCents = customAmountCents
-    ? Math.min(customAmountCents, totalEligibleCents)
-    : totalEligibleCents;
+  if (customAmountCents && customAmountCents > totalEligibleCents) {
+    return NextResponse.json(
+      { error: `Montant (${(customAmountCents / 100).toFixed(2)} €) dépasse le total remboursable (${(totalEligibleCents / 100).toFixed(2)} €)` },
+      { status: 400 }
+    );
+  }
+  const refundAmountCents = customAmountCents || totalEligibleCents;
 
   if (refundAmountCents <= 0) {
     return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });

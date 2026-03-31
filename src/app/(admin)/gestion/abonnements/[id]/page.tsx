@@ -114,6 +114,7 @@ export default function AdminSubscriptionDetailPage() {
     setSelectedDeadlines((prev) =>
       prev.includes(deadlineId) ? prev.filter((id) => id !== deadlineId) : [...prev, deadlineId]
     );
+    setCustomAmount('');
   };
 
   return (
@@ -283,7 +284,7 @@ export default function AdminSubscriptionDetailPage() {
               >
                 {refundMutation.isPending ? 'Remboursement...' : alsoCancel ? 'Rembourser et désabonner' : 'Rembourser'}
               </Button>
-              <Button variant="outline" onClick={() => { setSelectedDeadlines([]); setAlsoCancel(false); }}>
+              <Button variant="outline" onClick={() => { setSelectedDeadlines([]); setAlsoCancel(false); setCustomAmount(''); setRefundReason(''); }}>
                 Annuler
               </Button>
             </div>
