@@ -1,4 +1,4 @@
-// Page de confirmation de desabonnement
+// Page de confirmation de désabonnement
 
 'use client';
 
@@ -38,7 +38,7 @@ function ConfirmUnsubscribeForm() {
         const data = await response.json();
 
         if (!data.valid) {
-          setTokenError(data.error || 'Lien invalide ou expire.');
+          setTokenError(data.error || 'Lien invalide ou expiré.');
         } else {
           setSubscriptionInfo({
             reference: data.reference,
@@ -93,7 +93,7 @@ function ConfirmUnsubscribeForm() {
             <Spinner className="h-8 w-8" />
           </div>
           <p className="mt-4 text-center text-gray-600">
-            Verification du lien en cours...
+            Vérification du lien en cours...
           </p>
         </div>
       </div>
@@ -121,12 +121,12 @@ function ConfirmUnsubscribeForm() {
               </Alert>
 
               <p className="text-sm text-gray-600 mb-4">
-                Ce lien de resiliation est peut-etre deja utilise ou invalide.
+                Ce lien de résiliation est peut-être déjà utilisé ou invalide.
                 Veuillez faire une nouvelle demande.
               </p>
 
               <div className="space-y-3">
-                <Link href="/desabonnement">
+                <Link href="/désabonnement">
                   <Button className="w-full">
                     Nouvelle demande
                   </Button>
@@ -153,7 +153,7 @@ function ConfirmUnsubscribeForm() {
             <Logo size="lg" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Abonnement resilie
+            Abonnement résilié
           </h2>
         </div>
 
@@ -166,11 +166,11 @@ function ConfirmUnsubscribeForm() {
 
               <p className="text-sm text-gray-600 mb-4">
                 Vos droits restent actifs jusqu'au <strong>{endDate}</strong>.
-                Vous pouvez continuer a utiliser vos services jusqu'a cette date.
+                Vous pouvez continuer à utiliser vos services jusqu'à cette date.
               </p>
 
               <p className="text-sm text-gray-600 mb-6">
-                Un email de confirmation vous a ete envoye.
+                Un email de confirmation vous a été envoyé.
               </p>
 
               <Link href="/">
@@ -193,7 +193,7 @@ function ConfirmUnsubscribeForm() {
           <Logo size="lg" linked={false} />
         </Link>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Confirmer la resiliation
+          Confirmer la résiliation
         </h2>
         {subscriptionInfo && (
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -229,7 +229,7 @@ function ConfirmUnsubscribeForm() {
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  En confirmant, votre abonnement sera resilie a la fin de la periode en cours.
+                  En confirmant, votre abonnement sera résilié a la fin de la période en cours.
                   Vous conserverez vos droits jusqu'au {subscriptionInfo.currentPeriodEnd}.
                 </p>
               </div>
@@ -241,7 +241,7 @@ function ConfirmUnsubscribeForm() {
                 className="w-full bg-red-600 hover:bg-red-700"
                 disabled={isLoading}
               >
-                {isLoading ? 'Resiliation en cours...' : 'Confirmer la resiliation'}
+                {isLoading ? 'Résiliation en cours...' : 'Confirmer la résiliation'}
               </Button>
 
               <Link href="/">

@@ -1,4 +1,4 @@
-// Page de demande de desabonnement
+// Page de demande de désabonnement
 
 'use client';
 
@@ -47,7 +47,7 @@ export default function UnsubscribePage() {
             <Logo size="lg" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Email envoye
+            Email envoyé
           </h2>
         </div>
 
@@ -55,11 +55,11 @@ export default function UnsubscribePage() {
           <Card>
             <CardContent className="py-8 px-6">
               <Alert variant="success" className="mb-4">
-                Si un abonnement actif est associe a l'adresse <strong>{email}</strong>, vous recevrez un email avec un lien pour confirmer la resiliation.
+                Si un abonnement actif est associée à l'adresse <strong>{email}</strong>, vous recevrez un email avec un lien pour confirmer la résiliation.
               </Alert>
 
               <p className="text-sm text-gray-600 mb-4">
-                Verifiez votre boite de reception et vos spams. Le lien contenu dans l'email vous permettra de confirmer votre demande.
+                Vérifiez votre boite de réception et vos spams. Le lien contenu dans l'email vous permettra de confirmer votre demande.
               </p>
 
               <Link href="/">
@@ -81,10 +81,10 @@ export default function UnsubscribePage() {
           <Logo size="lg" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Se desabonner
+          Se désabonner
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Entrez l'adresse email associee a votre abonnement pour recevoir un lien de resiliation.
+          Entrez l'adresse email associée à votre abonnement pour recevoir un lien de résiliation.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export default function UnsubscribePage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Envoi en cours...' : 'Recevoir le lien de resiliation'}
+                {isLoading ? 'Envoi en cours...' : 'Recevoir le lien de résiliation'}
               </Button>
             </form>
 

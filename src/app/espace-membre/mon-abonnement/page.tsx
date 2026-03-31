@@ -165,9 +165,12 @@ export default function MonAbonnementPage() {
             </p>
             {subscription.status !== 'CANCELED' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <Link href="/desabonnement" className="text-sm text-red-600 hover:text-red-800">
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
                   Se désabonner
-                </Link>
+                </button>
               </div>
             )}
           </div>

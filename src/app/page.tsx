@@ -85,6 +85,11 @@ export default async function HomePage() {
                   Découvrir l&apos;offre
                 </Link>
               </div>
+              <div className="mt-4">
+                <Link href="/desabonnement" className="text-sm text-gray-400 hover:text-gray-600 underline">
+                  Déjà abonné ? Se désabonner
+                </Link>
+              </div>
             </div>
 
             {/* Right - Image */}
