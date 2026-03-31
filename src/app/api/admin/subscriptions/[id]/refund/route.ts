@@ -24,7 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'Donnees invalides', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { deadlineIds, reason } = parsed.data;
+  const { deadlineIds, reason, cancelSubscription } = parsed.data;
 
   const subscription = await prisma.subscription.findUnique({
     where: { id },
@@ -113,13 +113,42 @@ export async function POST(
     }
   }
 
+  // Desabonner si demande
+  let canceled = false;
+  if (cancelSubscription && ['ACTIVE', 'PAST_DUE', 'PENDING'].includes(subscription.status)) {
+    if (subscription.pspSubscriptionId) {
+      try {
+        await adapter.cancelSubscription(subscription.pspSubscriptionId, true);
+      } catch (err) {
+        console.error('[Admin] Erreur annulation PSP apres remboursement:', err);
+      }
+    }
+    await prisma.$transaction([
+      prisma.subscription.update({
+        where: { id },
+        data: { status: 'CANCELED', canceledAt: new Date(), endDate: new Date() },
+      }),
+      prisma.subscriptionDeadline.updateMany({
+        where: { subscriptionId: id, status: 'UPCOMING' },
+        data: { status: 'CANCELED' },
+      }),
+    ]);
+    canceled = true;
+  }
+
   await logAdminAction(
     session.user.id,
-    'refund_deadlines',
+    cancelSubscription ? 'refund_and_cancel' : 'refund_deadlines',
     'Subscription',
     id,
-    { deadlineIds: eligibleDeadlines.map((d) => d.id), reason, results }
+    {
+      deadlineIds: eligibleDeadlines.map((d) => d.id),
+      reason,
+      results,
+      canceled,
+      performedBy: session.user.email,
+    }
   );
 
-  return NextResponse.json({ results });
+  return NextResponse.json({ results, canceled });
 }

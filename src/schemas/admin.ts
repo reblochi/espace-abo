@@ -51,6 +51,7 @@ export const adminCancelSubscriptionSchema = z.object({
 export const adminRefundDeadlinesSchema = z.object({
   deadlineIds: z.array(z.string()).min(1, 'Selectionnez au moins une echeance'),
   reason: z.string().optional(),
+  cancelSubscription: z.boolean().default(false),
 });
 
 // Creation avoir

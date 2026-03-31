@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks';
 import Link from 'next/link';
 
@@ -297,6 +297,43 @@ export default function AdminClientDetailPage() {
                   </div>
                 </Link>
               ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Historique des actions */}
+        {user.auditLogs?.length > 0 && (
+          <Card className="p-4 lg:col-span-2">
+            <h2 className="font-medium text-gray-900 mb-3">Historique</h2>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {user.auditLogs.map((log: { id: string; action: string; createdAt: string; metadata: Record<string, unknown> | null }) => {
+                const actionLabels: Record<string, string> = {
+                  refund_deadlines: 'Remboursement echeances',
+                  refund_and_cancel: 'Remboursement + desabonnement',
+                  cancel_subscription: 'Desabonnement',
+                  create_credit_note: 'Creation avoir',
+                  change_role: 'Changement de role',
+                  anonymize_user: 'Anonymisation RGPD',
+                  update_dispute_notes: 'Notes litige modifiees',
+                };
+                const meta = log.metadata || {};
+                const details: string[] = [];
+                if (meta.reason) details.push(String(meta.reason));
+                if (meta.performedBy) details.push(`par ${meta.performedBy}`);
+                if (meta.from && meta.to) details.push(`${meta.from} → ${meta.to}`);
+
+                return (
+                  <div key={log.id} className="flex items-start justify-between p-2 rounded bg-gray-50 text-sm">
+                    <div>
+                      <span className="font-medium">{actionLabels[log.action] || log.action}</span>
+                      {details.length > 0 && (
+                        <span className="text-gray-500 ml-2">{details.join(' — ')}</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400 whitespace-nowrap ml-4">{formatDateTime(log.createdAt)}</span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         )}

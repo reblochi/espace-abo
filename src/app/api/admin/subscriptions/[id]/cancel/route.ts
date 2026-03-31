@@ -73,7 +73,7 @@ export async function POST(
     'cancel_subscription',
     'Subscription',
     id,
-    { reason, immediate }
+    { reason, immediate, performedBy: session.user.email }
   );
 
   return NextResponse.json({ success: true, endDate });

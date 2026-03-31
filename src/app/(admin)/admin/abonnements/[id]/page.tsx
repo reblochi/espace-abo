@@ -48,6 +48,7 @@ export default function AdminSubscriptionDetailPage() {
   const [cancelImmediate, setCancelImmediate] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [alsoCancel, setAlsoCancel] = useState(false);
 
   const { data: sub, isLoading } = useQuery({
     queryKey: ['admin', 'subscription', id],
@@ -80,7 +81,11 @@ export default function AdminSubscriptionDetailPage() {
       const res = await fetch(`/api/admin/subscriptions/${id}/refund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deadlineIds: selectedDeadlines, reason: refundReason }),
+        body: JSON.stringify({
+          deadlineIds: selectedDeadlines,
+          reason: refundReason,
+          cancelSubscription: alsoCancel,
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       return res.json();
@@ -91,6 +96,7 @@ export default function AdminSubscriptionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'invoices'] });
       setSelectedDeadlines([]);
       setRefundReason('');
+      setAlsoCancel(false);
     },
   });
 
@@ -218,9 +224,15 @@ export default function AdminSubscriptionDetailPage() {
         {/* Actions remboursement */}
         {selectedDeadlines.length > 0 && (
           <Card className="p-4">
-            <h2 className="font-medium text-gray-900 mb-3">
-              Rembourser {selectedDeadlines.length} echeance{selectedDeadlines.length > 1 ? 's' : ''}
+            <h2 className="font-medium text-gray-900 mb-2">
+              Rembourser {selectedDeadlines.length} echeance{selectedDeadlines.length > 1 ? 's' : ''} sur {refundableDeadlines.length} payee{refundableDeadlines.length > 1 ? 's' : ''}
             </h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Montant total : {formatCurrency(selectedDeadlines.reduce((sum, did) => {
+                const d = refundableDeadlines.find((dl) => dl.id === did);
+                return sum + (d?.amountCents || 0);
+              }, 0))}
+            </p>
             <input
               type="text"
               value={refundReason}
@@ -228,14 +240,24 @@ export default function AdminSubscriptionDetailPage() {
               placeholder="Motif du remboursement"
               className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm mb-3"
             />
+            {isActive && (
+              <label className="flex items-center gap-2 text-sm mb-3">
+                <input
+                  type="checkbox"
+                  checked={alsoCancel}
+                  onChange={(e) => setAlsoCancel(e.target.checked)}
+                />
+                Desabonner egalement ce client
+              </label>
+            )}
             <div className="flex gap-2">
               <Button
                 onClick={() => refundMutation.mutate()}
                 disabled={refundMutation.isPending}
               >
-                {refundMutation.isPending ? 'Remboursement...' : 'Rembourser'}
+                {refundMutation.isPending ? 'Remboursement...' : alsoCancel ? 'Rembourser et desabonner' : 'Rembourser'}
               </Button>
-              <Button variant="outline" onClick={() => setSelectedDeadlines([])}>
+              <Button variant="outline" onClick={() => { setSelectedDeadlines([]); setAlsoCancel(false); }}>
                 Annuler
               </Button>
             </div>

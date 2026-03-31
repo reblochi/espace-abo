@@ -82,5 +82,16 @@ export async function GET(
       })
     : [];
 
-  return NextResponse.json({ ...user, disputes });
+  // Charger l'historique des actions admin sur ce client
+  const auditTargetIds = [id];
+  if (user.subscription?.id) auditTargetIds.push(user.subscription.id);
+  user.invoices.forEach((inv: { id: string }) => auditTargetIds.push(inv.id));
+
+  const auditLogs = await prisma.adminAuditLog.findMany({
+    where: { targetId: { in: auditTargetIds } },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return NextResponse.json({ ...user, disputes, auditLogs });
 }
