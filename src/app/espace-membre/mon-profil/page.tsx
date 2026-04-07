@@ -18,6 +18,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui';
+import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
 
 function RgpdSection() {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -109,7 +110,7 @@ export default function MonProfilPage() {
     phone: '',
     address: '',
     city: '',
-    postalCode: '',
+    zipCode: '',
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -133,7 +134,7 @@ export default function MonProfilPage() {
         phone: profile.phone || '',
         address: profile.address || '',
         city: profile.city || '',
-        postalCode: profile.zipCode || '',
+        zipCode: profile.zipCode || '',
       });
     }
   }, [profile]);
@@ -265,18 +266,12 @@ export default function MonProfilPage() {
                   onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Ville"
-                    value={profileForm.city}
-                    onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
-                  />
-                  <Input
-                    label="Code postal"
-                    value={profileForm.postalCode}
-                    onChange={(e) => setProfileForm({ ...profileForm, postalCode: e.target.value })}
-                  />
-                </div>
+                <PostalCityAutocomplete
+                  cpValue={profileForm.zipCode}
+                  cityValue={profileForm.city}
+                  onCpChange={(value) => setProfileForm({ ...profileForm, zipCode: value })}
+                  onCityChange={(value) => setProfileForm({ ...profileForm, city: value })}
+                />
 
                 <div className="pt-4">
                   <Button type="submit" disabled={isUpdating}>
