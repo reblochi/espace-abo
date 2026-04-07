@@ -45,10 +45,13 @@ export function CityAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  const formatCity = (city: City) =>
+    city.postal_code ? formatCity(city) : city.name;
+
   // Synchroniser l'input avec la valeur selectionnee
   useEffect(() => {
     if (value) {
-      setInputValue(`${value.name} (${value.postal_code})`);
+      setInputValue(formatCity(value));
     } else {
       setInputValue('');
     }
@@ -113,7 +116,7 @@ export function CityAutocomplete({
 
   const handleSelect = (city: City) => {
     onChange(city);
-    setInputValue(`${city.name} (${city.postal_code})`);
+    setInputValue(formatCity(city));
     setIsOpen(false);
     setSuggestions([]);
     inputRef.current?.blur();
@@ -158,11 +161,11 @@ export function CityAutocomplete({
       if (suggestions.length > 0 && !value) {
         // Aucune selection explicite → prendre le premier résultat
         onChange(suggestions[0]);
-        setInputValue(`${suggestions[0].name} (${suggestions[0].postal_code})`);
-      } else if (suggestions.length > 0 && value && inputValue !== `${value.name} (${value.postal_code})`) {
+        setInputValue(formatCity(suggestions[0]));
+      } else if (suggestions.length > 0 && value && inputValue !== formatCity(value)) {
         // L'utilisateur a modifie le texte apres une selection → re-selectionner le premier
         onChange(suggestions[0]);
-        setInputValue(`${suggestions[0].name} (${suggestions[0].postal_code})`);
+        setInputValue(formatCity(suggestions[0]));
       }
       setIsOpen(false);
     }, 200);
