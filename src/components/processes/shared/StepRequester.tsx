@@ -3,7 +3,7 @@
 import { useFormContext } from 'react-hook-form';
 import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
 
-export function SharedStepRequester() {
+export function SharedStepRequester({ hideIdentity = false }: { hideIdentity?: boolean } = {}) {
   const { register, watch, setValue, formState: { errors } } = useFormContext<{
     requesterLastName: string;
     requesterFirstName: string;
@@ -23,21 +23,23 @@ export function SharedStepRequester() {
       </div>
 
       {/* Identite demandeur */}
-      <div className="space-y-4">
-        <h3 className="form-gov-section-title">Votre identite</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="form-gov-label">Nom <span className="text-red-600">*</span></label>
-            <input type="text" {...register('requesterLastName')} className={`form-gov-input ${errors.requesterLastName ? 'form-gov-error' : ''}`} />
-            {errors.requesterLastName && <p className="form-gov-error-msg">{errors.requesterLastName.message as string}</p>}
-          </div>
-          <div>
-            <label className="form-gov-label">Prenom <span className="text-red-600">*</span></label>
-            <input type="text" {...register('requesterFirstName')} className={`form-gov-input ${errors.requesterFirstName ? 'form-gov-error' : ''}`} />
-            {errors.requesterFirstName && <p className="form-gov-error-msg">{errors.requesterFirstName.message as string}</p>}
+      {!hideIdentity && (
+        <div className="space-y-4">
+          <h3 className="form-gov-section-title">Votre identite</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-gov-label">Nom <span className="text-red-600">*</span></label>
+              <input type="text" {...register('requesterLastName')} className={`form-gov-input ${errors.requesterLastName ? 'form-gov-error' : ''}`} />
+              {errors.requesterLastName && <p className="form-gov-error-msg">{errors.requesterLastName.message as string}</p>}
+            </div>
+            <div>
+              <label className="form-gov-label">Prenom <span className="text-red-600">*</span></label>
+              <input type="text" {...register('requesterFirstName')} className={`form-gov-input ${errors.requesterFirstName ? 'form-gov-error' : ''}`} />
+              {errors.requesterFirstName && <p className="form-gov-error-msg">{errors.requesterFirstName.message as string}</p>}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Coordonnees */}
       <div className="space-y-4">

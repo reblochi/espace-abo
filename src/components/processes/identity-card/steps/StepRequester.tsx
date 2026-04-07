@@ -1,4 +1,6 @@
 // Etape 4: Demandeur et adresse de livraison
+// Utilise SharedStepRequester pour les coordonnees/adresse (meme UI que les actes d'etat civil)
+// + section specifique CNI pour titulaire/representant legal
 
 'use client';
 
@@ -6,14 +8,13 @@ import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { genderLabels } from '@/types/identity-card';
 import { DateSelect } from '@/components/forms';
-import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
+import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import type { IdentityCardInput } from '@/schemas/identity-card';
 
 export function StepRequester() {
-  const { register, watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
+  const { watch, setValue } = useFormContext<IdentityCardInput>();
 
   const isTitulaire = watch('isTitulaire');
-  const deliveryErrors = errors.deliveryAddress;
 
   // Quand "je suis le titulaire" est coche, copier les infos du titulaire
   useEffect(() => {
@@ -32,12 +33,6 @@ export function StepRequester() {
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Adresse de la personne concernee par le titre
-        </h2>
-      </div>
-
       {/* Checkbox titulaire */}
       <div className={`form-gov-checkbox-group ${isTitulaire ? 'checked' : ''}`}>
         <input
@@ -47,14 +42,14 @@ export function StepRequester() {
           onChange={(e) => setValue('isTitulaire', e.target.checked)}
         />
         <label htmlFor="isTitulaire">
-          Je suis le titulaire de la carte d'identité
+          Je suis le titulaire de la carte d'identite
         </label>
       </div>
 
       {/* Infos demandeur (si different du titulaire) */}
       {!isTitulaire && (
         <div className="p-4 bg-gray-50 space-y-4">
-          <h3 className="form-gov-section-title">Informations du demandeur</h3>
+          <h3 className="form-gov-section-title">Informations du representant legal</h3>
           <p className="form-gov-hint mb-4">
             Si le titulaire est mineur, renseignez les informations du representant legal.
           </p>
@@ -94,18 +89,18 @@ export function StepRequester() {
               <label className="form-gov-label">Nom</label>
               <input
                 type="text"
-                {...register('requesterLastName')}
+                value={watch('requesterLastName') || ''}
+                onChange={(e) => setValue('requesterLastName', e.target.value)}
                 className="form-gov-input"
-                placeholder="Nom du demandeur"
               />
             </div>
             <div>
-              <label className="form-gov-label">Prénom</label>
+              <label className="form-gov-label">Prenom</label>
               <input
                 type="text"
-                {...register('requesterFirstName')}
+                value={watch('requesterFirstName') || ''}
+                onChange={(e) => setValue('requesterFirstName', e.target.value)}
                 className="form-gov-input"
-                placeholder="Prénom du demandeur"
               />
             </div>
           </div>
@@ -120,87 +115,8 @@ export function StepRequester() {
         </div>
       )}
 
-      {/* Coordonnees */}
-      <div className="space-y-4">
-        <h3 className="form-gov-section-title">Coordonnees</h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="form-gov-label">
-              Email <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="email"
-              {...register('email')}
-              className={`form-gov-input ${errors.email ? 'form-gov-error' : ''}`}
-              placeholder="votre@email.fr"
-            />
-            {errors.email && (
-              <p className="form-gov-error-msg">{errors.email.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="form-gov-label">
-              Confirmation email <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="email"
-              {...register('emailConfirm')}
-              className={`form-gov-input ${errors.emailConfirm ? 'form-gov-error' : ''}`}
-              placeholder="Confirmez votre email"
-            />
-            {errors.emailConfirm && (
-              <p className="form-gov-error-msg">{errors.emailConfirm.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <label className="form-gov-label">
-            Telephone <span className="text-red-600">*</span>
-          </label>
-          <input
-            type="tel"
-            {...register('telephone')}
-            className={`form-gov-input ${errors.telephone ? 'form-gov-error' : ''}`}
-            placeholder="06 12 34 56 78"
-          />
-          <p className="form-gov-hint">De préférence un numéro de portable</p>
-          {errors.telephone && (
-            <p className="form-gov-error-msg">{errors.telephone.message}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Adresse de livraison */}
-      <div className="space-y-4">
-        <h3 className="form-gov-section-title">Adresse de livraison</h3>
-
-        <div>
-          <label className="form-gov-label">
-            Adresse <span className="text-red-600">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('deliveryAddress.street')}
-            className={`form-gov-input ${deliveryErrors?.street ? 'form-gov-error' : ''}`}
-            placeholder="Numéro et nom de rue"
-          />
-          {deliveryErrors?.street && (
-            <p className="form-gov-error-msg">{deliveryErrors.street.message}</p>
-          )}
-        </div>
-
-        <PostalCityAutocomplete
-          cpValue={watch('deliveryAddress.zipCode') || ''}
-          cityValue={watch('deliveryAddress.city') || ''}
-          onCpChange={(value) => setValue('deliveryAddress.zipCode', value, { shouldValidate: true })}
-          onCityChange={(value) => setValue('deliveryAddress.city', value, { shouldValidate: true })}
-          cpError={deliveryErrors?.zipCode?.message}
-          cityError={deliveryErrors?.city?.message}
-          required
-        />
-      </div>
+      {/* Coordonnees + adresse de livraison (composant partage) */}
+      <SharedStepRequester hideIdentity />
     </div>
   );
 }
