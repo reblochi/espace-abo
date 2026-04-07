@@ -136,26 +136,18 @@ export function StepSummary({
       {/* Tarification - non-abonnes */}
       {!isSubscriber && (
         <div className="space-y-4">
-          {/* Detail des frais */}
-          <div className="bg-gray-50 border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Frais de traitement</h3>
-            <div className="flex justify-between items-baseline">
-              <span className="text-base text-gray-900">Traitement de votre demarche</span>
-              {pricing.paymentMode === 'subscription' ? (
-                <span className="text-base font-semibold text-green-700">Inclus</span>
-              ) : (
-                <span className={`text-base font-semibold ${paymentMode === 'subscription' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                  {formatPrice(basePrice)}
-                </span>
-              )}
-            </div>
-            {stampTax > 0 && (
-              <div className="flex justify-between items-baseline mt-2">
+          {/* Timbre fiscal si applicable (detail separe) */}
+          {stampTax > 0 && (
+            <div className="bg-gray-50 border border-gray-200 p-5">
+              <div className="flex justify-between items-baseline">
                 <span className="text-base text-gray-900">Timbre fiscal (obligatoire)</span>
                 <span className="text-base font-semibold text-gray-900">{formatPrice(stampTax)}</span>
               </div>
-            )}
-          </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Le timbre fiscal est une taxe reglementaire qui reste a votre charge.
+              </p>
+            </div>
+          )}
 
           {/* Mode 'subscription' : abo force, texte informatif */}
           {pricing.paymentMode === 'subscription' && (
@@ -202,18 +194,12 @@ export function StepSummary({
                 </div>
                 <div className="flex-1">
                   <p className="text-base text-gray-900 leading-snug">
-                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois
-                    au lieu de payer {formatPrice(basePrice)} pour cette demarche.
+                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois.
                     L'abonnement inclut le traitement illimite de mes demarches administratives.
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
                     Sans engagement — resiliable a tout moment depuis mon espace personnel, sans frais ni justificatif.
                   </p>
-                  {paymentMode === 'subscription' && savings > 0 && (
-                    <p className="text-sm font-semibold text-green-700 mt-2">
-                      Economie immediate de {formatPrice(savings)} sur cette demarche
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -226,27 +212,15 @@ export function StepSummary({
       {/* Total */}
       <div className="bg-gray-50 px-5 py-4 flex justify-between items-center border-l-4 border-l-blue-700">
         <span className="font-semibold text-base text-gray-900">Total a payer</span>
-        <div className="text-right">
-          <span className="text-xl font-bold text-blue-700">
-            {isSubscriber ? (
-              stampTax > 0 ? formatPrice(stampTax) : <span className="text-green-700">Inclus</span>
-            ) : paymentMode === 'subscription' ? (
-              formatPrice(SUBSCRIPTION_MONTHLY_PRICE + stampTax)
-            ) : (
-              formatPrice(totalBasePrice)
-            )}
-          </span>
-          {!isSubscriber && paymentMode === 'subscription' && (
-            <span className="block text-sm text-green-700 font-semibold">
-              au lieu de {formatPrice(totalBasePrice)}
-            </span>
+        <span className="font-semibold text-base text-gray-900">
+          {isSubscriber ? (
+            stampTax > 0 ? formatPrice(stampTax) : <span className="text-green-700">Inclus</span>
+          ) : paymentMode === 'subscription' ? (
+            formatPrice(SUBSCRIPTION_MONTHLY_PRICE + stampTax)
+          ) : (
+            formatPrice(totalBasePrice)
           )}
-          {isSubscriber && stampTax === 0 && (
-            <span className="block text-sm text-green-700 font-semibold">
-              Economie de {formatPrice(basePrice)}
-            </span>
-          )}
-        </div>
+        </span>
       </div>
 
       {/* Consentements */}

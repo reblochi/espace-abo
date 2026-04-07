@@ -38,8 +38,6 @@ export function StepSummary({
   const { watch, setValue, formState: { errors } } = useFormContext<DeathCertificateInput>();
   const formData = watch();
 
-  const savings = basePrice - SUBSCRIPTION_MONTHLY_PRICE;
-
   const allConsentsAccepted = watch('consents.acceptTerms')
     && watch('consents.acceptDataProcessing')
     && watch('consents.certifyAccuracy');
@@ -98,21 +96,6 @@ export function StepSummary({
       {/* Tarification - non-abonnes */}
       {!isSubscriber && (
         <div className="space-y-4">
-          {/* Detail des frais */}
-          <div className="bg-gray-50 border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Frais de traitement</h3>
-            <div className="flex justify-between items-baseline">
-              <span className="text-base text-gray-900">Traitement de votre demarche</span>
-              {pricing.paymentMode === 'subscription' ? (
-                <span className="text-base font-semibold text-green-700">Inclus</span>
-              ) : (
-                <span className={`text-base font-semibold ${paymentMode === 'subscription' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                  {formatPrice(basePrice)}
-                </span>
-              )}
-            </div>
-          </div>
-
           {/* Mode 'subscription' : abo force, texte informatif */}
           {pricing.paymentMode === 'subscription' && (
             <div className="border-2 border-blue-700 bg-blue-50/50 p-5">
@@ -158,18 +141,12 @@ export function StepSummary({
                 </div>
                 <div className="flex-1">
                   <p className="text-base text-gray-900 leading-snug">
-                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois
-                    au lieu de payer {formatPrice(basePrice)} pour cette demarche.
+                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois.
                     L'abonnement inclut le traitement illimite de mes demarches administratives.
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
                     Sans engagement — resiliable a tout moment depuis mon espace personnel, sans frais ni justificatif.
                   </p>
-                  {paymentMode === 'subscription' && savings > 0 && (
-                    <p className="text-sm font-semibold text-green-700 mt-2">
-                      Economie immediate de {formatPrice(savings)} sur cette demarche
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -183,25 +160,15 @@ export function StepSummary({
       <div className="bg-gray-50 px-5 py-4 flex justify-between items-center border-l-4 border-l-blue-700">
         <span className="font-semibold text-base text-gray-900">Total a payer</span>
         <div className="text-right">
-          <span className="text-xl font-bold text-blue-700">
+          <span className="font-semibold text-base text-gray-900">
             {isSubscriber ? (
-              <span className="text-green-700">Inclus</span>
+              'Inclus'
             ) : paymentMode === 'subscription' ? (
               formatPrice(SUBSCRIPTION_MONTHLY_PRICE)
             ) : (
               formatPrice(basePrice)
             )}
           </span>
-          {!isSubscriber && paymentMode === 'subscription' && (
-            <span className="block text-sm text-green-700 font-semibold">
-              au lieu de {formatPrice(basePrice)}
-            </span>
-          )}
-          {isSubscriber && (
-            <span className="block text-sm text-green-700 font-semibold">
-              Economie de {formatPrice(basePrice)}
-            </span>
-          )}
         </div>
       </div>
 
