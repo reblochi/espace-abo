@@ -158,10 +158,28 @@ export function BirthCertificateForm({
 
   const { handleSubmit, trigger } = methods;
 
-  // Pre-remplir les infos du demandeur depuis le profil
+  // Pre-remplir les infos depuis le profil (beneficiaire = demandeur par defaut)
   React.useEffect(() => {
     if (!profile) return;
     const current = methods.getValues();
+    // Beneficiaire
+    if (!current.firstName) methods.setValue('firstName', profile.firstName || '');
+    if (!current.lastName) methods.setValue('lastName', profile.lastName || '');
+    if (profile.birthDate && !current.birthDate) {
+      methods.setValue('birthDate', new Date(profile.birthDate).toISOString().split('T')[0]);
+    }
+    if (profile.birthCountryId && !current.birthCountryId) {
+      methods.setValue('birthCountryId', profile.birthCountryId);
+    }
+    if (profile.birthCityId && !current.birthCityId) {
+      methods.setValue('birthCityId', profile.birthCityId);
+    }
+    if (profile.birthCityName && !current.birthCityName) {
+      methods.setValue('birthCityName', profile.birthCityName);
+    }
+    // Filiation : demandeur = titulaire (la personne elle-meme)
+    if (!current.claimerType) methods.setValue('claimerType', 'titulaire');
+    // Demandeur
     if (!current.requesterFirstName) methods.setValue('requesterFirstName', profile.firstName || '');
     if (!current.requesterLastName) methods.setValue('requesterLastName', profile.lastName || '');
     if (!current.email) methods.setValue('email', profile.email || '');

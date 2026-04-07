@@ -134,10 +134,19 @@ export function MarriageCertificateForm({
   const { handleSubmit, trigger, watch } = methods;
   const recordType = watch('recordType');
 
-  // Pre-remplir les infos du demandeur depuis le profil
+  // Pre-remplir les infos depuis le profil (epoux 1 = demandeur par defaut)
   React.useEffect(() => {
     if (!profile) return;
     const current = methods.getValues();
+    // Epoux 1 (beneficiaire)
+    if (!current.firstName) methods.setValue('firstName', profile.firstName || '');
+    if (!current.lastName) methods.setValue('lastName', profile.lastName || '');
+    if (profile.birthDate && !current.birthDate) {
+      methods.setValue('birthDate', new Date(profile.birthDate).toISOString().split('T')[0]);
+    }
+    // Filiation : demandeur = titulaire
+    if (!current.claimerType) methods.setValue('claimerType', 'titulaire');
+    // Demandeur
     if (!current.requesterFirstName) methods.setValue('requesterFirstName', profile.firstName || '');
     if (!current.requesterLastName) methods.setValue('requesterLastName', profile.lastName || '');
     if (!current.email) methods.setValue('email', profile.email || '');
