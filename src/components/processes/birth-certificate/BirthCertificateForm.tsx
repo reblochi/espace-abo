@@ -18,6 +18,7 @@ import { RecordType, FRANCE_COUNTRY_ID } from '@/types/birth-certificate';
 import { useFormTracking } from '@/hooks/useFormTracking';
 
 // Import des etapes
+import { getPricingProfile } from '@/lib/process-types';
 import { StepActType } from './steps/StepActType';
 import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepFiliation } from './steps/StepFiliation';
@@ -77,13 +78,16 @@ const SUMMARY_STEP: Step = {
 
 export function BirthCertificateForm({
   isSubscriber = false,
-  basePrice,
+  basePrice: rawBasePrice,
   embedPartner,
   pricingCode,
   onComplete,
   onCheckout,
 }: BirthCertificateFormProps) {
   const isEmbed = !!embedPartner;
+  const isDirectAccess = embedPartner === 'direct';
+  const pricing = getPricingProfile(pricingCode);
+  const basePrice = pricing.basePrice;
 
   // Construire les etapes: en mode embed, ajouter l'etape Coordonnees avant le recap
   const STEPS = React.useMemo(() => {
@@ -104,8 +108,10 @@ export function BirthCertificateForm({
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>('subscription');
-  const [subscriptionConsent, setSubscriptionConsent] = React.useState(false);
+  const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
+  const initialPaymentMode: PaymentMode = pricing.paymentMode === 'one_time' ? 'one_time' : 'subscription';
+  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>(initialPaymentMode);
+  const [subscriptionConsent, setSubscriptionConsent] = React.useState(pricing.paymentMode === 'subscription');
 
   const methods = useForm<BirthCertificateInput>({
     resolver: zodResolver(birthCertificateSchema),
@@ -144,27 +150,38 @@ export function BirthCertificateForm({
         certifyAccuracy: false as unknown as true,
       },
     },
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const { handleSubmit, trigger } = methods;
 
-  // Track step changes + history pour bouton retour navigateur
+  // Track step changes + hash pour bouton retour navigateur
+  // Note: on utilise le hash (#step-N) au lieu de pushState car Next.js App Router
+  // intercepte pushState et declenche des fetches RSC en boucle
   React.useEffect(() => {
     tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
     if (currentStep > 0) {
-      window.history.pushState({ formStep: currentStep }, '');
+      const hash = `#step-${currentStep}`;
+      if (window.location.hash !== hash) {
+        window.location.hash = hash;
+      }
+    } else if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Intercepter le bouton retour du navigateur
   React.useEffect(() => {
-    const handlePopState = () => {
-      if (currentStep > 0) {
-        setCurrentStep((prev) => Math.max(0, prev - 1));
+    const handleHashChange = () => {
+      const match = window.location.hash.match(/^#step-(\d+)$/);
+      const hashStep = match ? parseInt(match[1], 10) : 0;
+      if (hashStep < currentStep) {
+        setError(null);
+        setCurrentStep(hashStep);
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, [currentStep]);
 
   // Champs a valider par etape (dynamique selon mode embed)
@@ -196,6 +213,32 @@ export function BirthCertificateForm({
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
       tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
+
+      // Verifier si l'email correspond a un abonne
+      // au moment de quitter l'etape contact
+      const stepId = STEPS[currentStep].id;
+      if (stepId === 'delivery' || stepId === 'contact') {
+        const values = methods.getValues();
+        const emailToCheck = stepId === 'contact' ? values.contact?.email : undefined;
+        const phoneToCheck = undefined;
+        // Pour l'etape contact, verifier si l'email correspond a un abonne
+        if (emailToCheck) {
+          try {
+            const res = await fetch('/api/embed/check-subscriber', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: emailToCheck, phone: phoneToCheck }),
+            });
+            const data = await res.json();
+            if (data.isSubscriber) {
+              setDetectedSubscriber(true);
+            }
+          } catch {
+            // Silencieux en cas d'erreur reseau
+          }
+        }
+      }
+
       setCurrentStep(currentStep + 1);
       scrollFormTop();
     }
@@ -203,6 +246,12 @@ export function BirthCertificateForm({
 
   const handlePrevious = () => {
     if (currentStep > 0) {
+      setError(null);
+      // Si on revient sur l'etape delivery ou contact, re-verifier l'abonnement au prochain "Suivant"
+      const targetStepId = STEPS[currentStep - 1]?.id;
+      if (targetStepId === 'delivery' || targetStepId === 'contact') {
+        setDetectedSubscriber(false);
+      }
       setCurrentStep(currentStep - 1);
       scrollFormTop();
     }
@@ -246,14 +295,16 @@ export function BirthCertificateForm({
       }
 
       // Mode connecte standard
+      const effectiveSubscriber = isSubscriber || detectedSubscriber;
+
       // Validation du consentement abonnement si mode subscription
-      if (!isSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
+      if (!effectiveSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
         setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
         setIsSubmitting(false);
         return;
       }
 
-      if (isSubscriber) {
+      if (effectiveSubscriber) {
         // Creer directement la demarche (deja abonne)
         const response = await fetch('/api/processes', {
           method: 'POST',
@@ -324,8 +375,9 @@ export function BirthCertificateForm({
       case 'summary':
         return (
           <StepSummary
-            isSubscriber={isSubscriber}
+            isSubscriber={isSubscriber || detectedSubscriber}
             basePrice={basePrice}
+            pricing={pricing}
             paymentMode={paymentMode}
             onPaymentModeChange={setPaymentMode}
             subscriptionConsent={subscriptionConsent}
@@ -339,7 +391,7 @@ export function BirthCertificateForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         {/* Progress bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -417,10 +469,27 @@ export function BirthCertificateForm({
               Suivant
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="button" disabled={isSubmitting} onClick={() => {
+              handleSubmit(handleFormSubmit, (validationErrors) => {
+                const messages: string[] = [];
+                const flatErrors = (obj: Record<string, unknown>): void => {
+                  for (const [, val] of Object.entries(obj)) {
+                    if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
+                      messages.push((val as { message: string }).message);
+                    } else if (val && typeof val === 'object') {
+                      flatErrors(val as Record<string, unknown>);
+                    }
+                  }
+                };
+                flatErrors(validationErrors as Record<string, unknown>);
+                if (messages.length > 0) {
+                  setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+                }
+              })();
+            }}>
               {isSubmitting ? (
                 'Traitement...'
-              ) : isSubscriber ? (
+              ) : isSubscriber || detectedSubscriber ? (
                 'Valider ma demande'
               ) : paymentMode === 'subscription' ? (
                 'Souscrire et valider ma demande'

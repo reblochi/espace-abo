@@ -12,16 +12,15 @@ import {
   RecordType,
   FRANCE_COUNTRY_ID,
 } from '@/types/birth-certificate';
-import { formatPrice } from '@/lib/process-types';
+import { formatPrice, type PricingProfile } from '@/lib/process-types';
 import type { BirthCertificateInput } from '@/schemas/birth-certificate';
 
 export type PaymentMode = 'subscription' | 'one_time';
 
-const SUBSCRIPTION_MONTHLY_PRICE = 990; // 9,90 EUR en centimes
-
 interface StepSummaryProps {
   isSubscriber: boolean;
   basePrice: number; // en centimes
+  pricing: PricingProfile;
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
   subscriptionConsent: boolean;
@@ -31,11 +30,13 @@ interface StepSummaryProps {
 export function StepSummary({
   isSubscriber,
   basePrice,
+  pricing,
   paymentMode,
   onPaymentModeChange,
   subscriptionConsent,
   onSubscriptionConsentChange,
 }: StepSummaryProps) {
+  const SUBSCRIPTION_MONTHLY_PRICE = pricing.subscriptionMonthlyPrice;
   const { watch, setValue, formState: { errors } } = useFormContext<BirthCertificateInput>();
   const formData = watch();
 
@@ -96,61 +97,81 @@ export function StepSummary({
         </SummaryCard>
       </div>
 
-      {/* Choix formule - non-abonnes */}
+      {/* Tarification - non-abonnes */}
       {!isSubscriber && (
-        <div>
-          <h3 className="font-medium text-gray-900 mb-2">Formule de traitement</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Abonnement */}
-            <button
-              type="button"
-              onClick={() => onPaymentModeChange('subscription')}
-              className={cn(
-                'text-left rounded-lg border-2 p-4 transition-all',
-                paymentMode === 'subscription'
-                  ? 'border-blue-600 bg-blue-50/40'
-                  : 'border-gray-200 hover:border-gray-300'
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <RadioDot selected={paymentMode === 'subscription'} />
-                  <span className="font-medium text-gray-900">Abonnement</span>
-                </div>
-                <span className="text-xs font-medium bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
-                  Recommande
-                </span>
-              </div>
-              <p className="text-xl font-bold text-gray-900 ml-7">
-                9,90 EUR<span className="text-sm font-normal text-gray-500">/mois</span>
+        <div className="space-y-4">
+          {/* Mode 'subscription' : abo force, texte informatif */}
+          {pricing.paymentMode === 'subscription' && (
+            <div className="border-2 border-blue-600 bg-blue-50/40 p-4 rounded-lg">
+              <p className="text-base text-gray-900 leading-snug">
+                Le traitement de votre demarche est realise dans le cadre du <strong>Service d'Assistance Administrative</strong> ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois).
+                L'abonnement inclut le traitement illimite de vos demarches administratives.
               </p>
-              <p className="text-xs text-gray-500 ml-7 mt-0.5">Demarche incluse - Sans engagement</p>
-              {savings > 0 && (
-                <p className="text-xs font-medium text-green-700 ml-7 mt-1">
-                  Economie de {formatPrice(savings)}
-                </p>
-              )}
-            </button>
+              <p className="text-sm text-gray-500 mt-2">
+                Sans engagement — resiliable a tout moment depuis votre espace personnel, sans frais ni justificatif.
+              </p>
+            </div>
+          )}
 
-            {/* Paiement unique */}
-            <button
-              type="button"
-              onClick={() => onPaymentModeChange('one_time')}
-              className={cn(
-                'text-left rounded-lg border-2 p-4 transition-all',
-                paymentMode === 'one_time'
-                  ? 'border-blue-600 bg-blue-50/40'
-                  : 'border-gray-200 hover:border-gray-300'
-              )}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <RadioDot selected={paymentMode === 'one_time'} />
-                <span className="font-medium text-gray-900">Paiement unique</span>
+          {/* Mode 'both' : checkbox pour choisir */}
+          {pricing.paymentMode === 'both' && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Formule de traitement</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Abonnement */}
+                <button
+                  type="button"
+                  onClick={() => onPaymentModeChange('subscription')}
+                  className={cn(
+                    'text-left rounded-lg border-2 p-4 transition-all',
+                    paymentMode === 'subscription'
+                      ? 'border-blue-600 bg-blue-50/40'
+                      : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <RadioDot selected={paymentMode === 'subscription'} />
+                      <span className="font-medium text-gray-900">Abonnement</span>
+                    </div>
+                    <span className="text-xs font-medium bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
+                      Recommande
+                    </span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 ml-7">
+                    {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}<span className="text-sm font-normal text-gray-500">/mois</span>
+                  </p>
+                  <p className="text-xs text-gray-500 ml-7 mt-0.5">Demarche incluse - Sans engagement</p>
+                  {savings > 0 && (
+                    <p className="text-xs font-medium text-green-700 ml-7 mt-1">
+                      Economie de {formatPrice(savings)}
+                    </p>
+                  )}
+                </button>
+
+                {/* Paiement unique */}
+                <button
+                  type="button"
+                  onClick={() => onPaymentModeChange('one_time')}
+                  className={cn(
+                    'text-left rounded-lg border-2 p-4 transition-all',
+                    paymentMode === 'one_time'
+                      ? 'border-blue-600 bg-blue-50/40'
+                      : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <RadioDot selected={paymentMode === 'one_time'} />
+                    <span className="font-medium text-gray-900">Paiement unique</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(basePrice)}</p>
+                  <p className="text-xs text-gray-500 ml-7 mt-0.5">Cette demarche uniquement</p>
+                </button>
               </div>
-              <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(basePrice)}</p>
-              <p className="text-xs text-gray-500 ml-7 mt-0.5">Cette demarche uniquement</p>
-            </button>
-          </div>
+            </div>
+          )}
+
+          {/* Mode 'one_time' : pas de proposition d'abo, rien a afficher */}
         </div>
       )}
 
