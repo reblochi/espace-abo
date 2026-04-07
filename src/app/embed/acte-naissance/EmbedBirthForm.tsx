@@ -78,7 +78,7 @@ export function EmbedBirthForm() {
       />
 
       <p className="text-xs text-gray-400 text-center mt-6">
-        Service fourni par SAF - Service d'Aide aux Formalités
+        Service fourni par FranceGuichet - Service d'Aide aux Formalites
       </p>
     </div>
   );

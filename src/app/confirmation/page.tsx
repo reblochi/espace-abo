@@ -102,7 +102,7 @@ function ConfirmationContent() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Service fourni par SAF - Service d'Aide aux Formalites</p>
+          <p>Service fourni par FranceGuichet - Service d'Aide aux Formalites</p>
         </div>
       </div>
     </div>

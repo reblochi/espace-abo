@@ -9,8 +9,8 @@ export default function ConditionsGeneralesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">
@@ -41,10 +41,10 @@ export default function ConditionsGeneralesPage() {
               Les présentes Conditions Générales d&apos;Utilisation et de Vente (ci-après « CGU/CGV »)
               ont pour objet de définir les modalités d&apos;accès et d&apos;utilisation du site
               espace-abo.mesdemarchesapp.fr (ci-après « le Site ») et des services proposés
-              par SAF Service B.V. (ci-après « SAF Service » ou « le Prestataire »).
+              par FranceGuichet (ci-après « FranceGuichet » ou « le Prestataire »).
             </p>
             <p className="mt-2">
-              SAF Service B.V. est une société de droit néerlandais (Besloten Vennootschap),
+              FranceGuichet est une société de droit néerlandais (Besloten Vennootschap),
               immatriculée sous le numéro RSIN 869203708, dont le siège social est situé
               au Herengracht 449A, 1017 BR Amsterdam, Pays-Bas.
             </p>
@@ -69,7 +69,7 @@ export default function ConditionsGeneralesPage() {
               et s&apos;engage à les respecter.
             </p>
             <p className="mt-2">
-              SAF Service se réserve le droit de modifier les présentes conditions à tout moment.
+              FranceGuichet se réserve le droit de modifier les présentes conditions à tout moment.
               Les Membres seront informés par email de toute modification substantielle au moins
               30 jours avant son entrée en vigueur. La poursuite de l&apos;utilisation du Site après
               cette notification vaut acceptation des nouvelles conditions.
@@ -78,7 +78,7 @@ export default function ConditionsGeneralesPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 4 — Description des services</h2>
-            <p>SAF Service propose les services suivants :</p>
+            <p>FranceGuichet propose les services suivants :</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>La réalisation de démarches administratives pour le compte du Membre (actes d&apos;état civil, carte grise, casier judiciaire, etc.)</li>
               <li>Le suivi en temps réel de l&apos;avancement des procédures</li>
@@ -89,15 +89,15 @@ export default function ConditionsGeneralesPage() {
               <li>Des fiches pratiques de vie citoyenne</li>
             </ul>
             <p className="mt-3">
-              SAF Service agit en tant qu&apos;intermédiaire entre le Membre et les administrations
+              FranceGuichet agit en tant qu&apos;intermédiaire entre le Membre et les administrations
               compétentes. Les documents officiels sont délivrés exclusivement par lesdites
-              administrations. SAF Service ne se substitue en aucun cas à un service public
+              administrations. FranceGuichet ne se substitue en aucun cas à un service public
               et ne garantit pas les délais de traitement des administrations.
             </p>
             <p className="mt-2">
               Certaines fonctionnalités de l&apos;espace citoyen (prix des carburants, informations
               sur les services publics) sont fournies à titre informatif et peuvent être sujettes
-              à des mises à jour non instantanées. SAF Service ne saurait être tenu responsable
+              à des mises à jour non instantanées. FranceGuichet ne saurait être tenu responsable
               d&apos;éventuelles inexactitudes dans ces données.
             </p>
           </section>
@@ -111,11 +111,11 @@ export default function ConditionsGeneralesPage() {
               <li>Fournir des informations exactes, complètes et à jour lors de l&apos;inscription</li>
               <li>Mettre à jour ses informations en cas de changement</li>
               <li>Préserver la confidentialité de ses identifiants de connexion</li>
-              <li>Informer immédiatement SAF Service en cas d&apos;utilisation non autorisée de son compte</li>
+              <li>Informer immédiatement FranceGuichet en cas d&apos;utilisation non autorisée de son compte</li>
             </ul>
             <p className="mt-2">
               Chaque compte est strictement personnel. Le Membre est responsable de toute
-              activité effectuée depuis son compte. SAF Service se réserve le droit de suspendre
+              activité effectuée depuis son compte. FranceGuichet se réserve le droit de suspendre
               ou supprimer tout compte en cas de violation des présentes conditions, d&apos;utilisation
               frauduleuse ou de fourniture d&apos;informations inexactes.
             </p>
@@ -129,10 +129,10 @@ export default function ConditionsGeneralesPage() {
               <li>Ne pas fournir d&apos;informations fausses ou trompeuses dans le cadre de ses démarches</li>
               <li>Ne pas utiliser le service de signalement citoyen de manière abusive ou malveillante</li>
               <li>Ne pas tenter de contourner les mesures de sécurité du Site</li>
-              <li>Respecter les droits de propriété intellectuelle de SAF Service</li>
+              <li>Respecter les droits de propriété intellectuelle de FranceGuichet</li>
             </ul>
             <p className="mt-2">
-              En cas de manquement à ces obligations, SAF Service pourra suspendre l&apos;accès
+              En cas de manquement à ces obligations, FranceGuichet pourra suspendre l&apos;accès
               au compte sans préavis et sans remboursement des sommes déjà versées.
             </p>
           </section>
@@ -140,12 +140,12 @@ export default function ConditionsGeneralesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 7 — Disponibilité du service</h2>
             <p>
-              SAF Service s&apos;efforce d&apos;assurer l&apos;accessibilité du Site 24 heures sur 24,
+              FranceGuichet s&apos;efforce d&apos;assurer l&apos;accessibilité du Site 24 heures sur 24,
               7 jours sur 7. Toutefois, l&apos;accès peut être temporairement interrompu pour des
               raisons de maintenance, de mise à jour ou en cas de force majeure.
             </p>
             <p className="mt-2">
-              SAF Service ne garantit pas un fonctionnement ininterrompu du Site et ne saurait
+              FranceGuichet ne garantit pas un fonctionnement ininterrompu du Site et ne saurait
               être tenu responsable des dommages résultant d&apos;une indisponibilité temporaire
               du service.
             </p>
@@ -155,7 +155,7 @@ export default function ConditionsGeneralesPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 8 — Propriété intellectuelle</h2>
             <p>
               L&apos;ensemble des éléments du Site (textes, images, logos, interface, code source,
-              base de données) est la propriété exclusive de SAF Service B.V. et est protégé
+              base de données) est la propriété exclusive de FranceGuichet et est protégé
               par le droit de la propriété intellectuelle.
             </p>
             <p className="mt-2">
@@ -179,7 +179,7 @@ export default function ConditionsGeneralesPage() {
             </ul>
             <p className="mt-3">
               Les tarifs sont indiqués en euros, toutes taxes comprises (TVA incluse au taux
-              applicable). SAF Service se réserve le droit de modifier ses tarifs à tout moment.
+              applicable). FranceGuichet se réserve le droit de modifier ses tarifs à tout moment.
               Toute modification sera communiquée aux Abonnés au moins 30 jours avant son
               application. Les démarches en cours au moment de la modification restent au
               tarif initial.
@@ -190,14 +190,14 @@ export default function ConditionsGeneralesPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 10 — Paiement</h2>
             <p>
               Le paiement s&apos;effectue en ligne par carte bancaire via notre prestataire de
-              paiement sécurisé (Stripe). SAF Service ne stocke aucune donnée bancaire.
+              paiement sécurisé (Stripe). FranceGuichet ne stocke aucune donnée bancaire.
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li><span className="font-medium text-gray-900">À la carte :</span> le paiement est exigible au moment de la validation de la démarche</li>
               <li><span className="font-medium text-gray-900">Abonnement :</span> le paiement est prélevé automatiquement au début de chaque période mensuelle</li>
             </ul>
             <p className="mt-2">
-              En cas d&apos;échec du paiement, SAF Service se réserve le droit de suspendre l&apos;accès
+              En cas d&apos;échec du paiement, FranceGuichet se réserve le droit de suspendre l&apos;accès
               aux services jusqu&apos;à régularisation. Une facture est mise à disposition dans
               l&apos;espace membre après chaque paiement.
             </p>
@@ -252,17 +252,17 @@ export default function ConditionsGeneralesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 13 — Exécution des démarches</h2>
             <p>
-              Après validation et paiement d&apos;une démarche, SAF Service s&apos;engage à la transmettre
+              Après validation et paiement d&apos;une démarche, FranceGuichet s&apos;engage à la transmettre
               à l&apos;administration compétente dans un délai de 48 heures ouvrées.
             </p>
             <p className="mt-2">
               Le Membre est informé de l&apos;avancement de sa démarche via son espace membre et
               par notifications email. Les délais de traitement dépendent exclusivement des
-              administrations concernées et ne sont pas du ressort de SAF Service.
+              administrations concernées et ne sont pas du ressort de FranceGuichet.
             </p>
             <p className="mt-2">
               En cas de rejet d&apos;une démarche par l&apos;administration pour motif non imputable
-              au Membre (erreur de traitement de SAF Service), une nouvelle démarche sera
+              au Membre (erreur de traitement de FranceGuichet), une nouvelle démarche sera
               effectuée gratuitement.
             </p>
           </section>
@@ -270,10 +270,10 @@ export default function ConditionsGeneralesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 14 — Responsabilité</h2>
             <p>
-              SAF Service s&apos;engage à exécuter ses obligations avec diligence et professionnalisme.
+              FranceGuichet s&apos;engage à exécuter ses obligations avec diligence et professionnalisme.
               Sa responsabilité se limite à une obligation de moyens.
             </p>
-            <p className="mt-2">SAF Service ne saurait être tenu responsable :</p>
+            <p className="mt-2">FranceGuichet ne saurait être tenu responsable :</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Des retards ou refus émanant des administrations compétentes</li>
               <li>Des erreurs résultant d&apos;informations inexactes ou incomplètes fournies par le Membre</li>
@@ -282,7 +282,7 @@ export default function ConditionsGeneralesPage() {
               <li>De l&apos;exactitude des informations fournies par des sources tierces (prix des carburants, horaires des services publics)</li>
             </ul>
             <p className="mt-2">
-              En tout état de cause, la responsabilité de SAF Service est limitée au montant
+              En tout état de cause, la responsabilité de FranceGuichet est limitée au montant
               des sommes effectivement versées par le Membre au cours des 12 derniers mois.
             </p>
           </section>
@@ -296,7 +296,7 @@ export default function ConditionsGeneralesPage() {
               dans un délai de 30 jours suivant la réalisation de la prestation.
             </p>
             <p className="mt-2">
-              SAF Service s&apos;engage à accuser réception de toute réclamation dans un délai de
+              FranceGuichet s&apos;engage à accuser réception de toute réclamation dans un délai de
               48 heures ouvrées et à apporter une réponse dans un délai de 15 jours ouvrés.
             </p>
           </section>
@@ -309,7 +309,7 @@ export default function ConditionsGeneralesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 16 — Données personnelles</h2>
             <p>
-              SAF Service collecte et traite des données personnelles dans le cadre de la
+              FranceGuichet collecte et traite des données personnelles dans le cadre de la
               fourniture de ses services, conformément au Règlement Général sur la Protection
               des Données (RGPD) et à la loi néerlandaise sur la protection des données (AVG).
             </p>
@@ -370,7 +370,7 @@ export default function ConditionsGeneralesPage() {
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Via la page <Link href="/contact" className="text-[#1a2e5a] underline hover:no-underline">contact</Link> du Site</li>
-              <li>Par courrier : SAF Service B.V., Herengracht 449A, 1017 BR Amsterdam, Pays-Bas</li>
+              <li>Par courrier : FranceGuichet, Herengracht 449A, 1017 BR Amsterdam, Pays-Bas</li>
             </ul>
           </section>
         </div>

@@ -8,8 +8,8 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">
@@ -134,7 +134,7 @@ export default function ContactPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-gray-900 text-sm mb-1">Par courrier</h3>
-            <p className="text-sm text-gray-500">SAF Service B.V.<br />Willem Fenengastraat 16 E<br />1096BN Amsterdam, Pays-Bas</p>
+            <p className="text-sm text-gray-500">FranceGuichet<br />Willem Fenengastraat 16 E<br />1096BN Amsterdam, Pays-Bas</p>
           </div>
         </div>
       </div>

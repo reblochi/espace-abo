@@ -9,8 +9,8 @@ export default function MentionsLegalesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link
@@ -37,7 +37,7 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Éditeur du site</h2>
             <div className="bg-gray-50 rounded-xl p-6 space-y-2">
-              <p><span className="font-medium text-gray-900">Raison sociale :</span> SAF Service B.V.</p>
+              <p><span className="font-medium text-gray-900">Raison sociale :</span> FranceGuichet</p>
               <p><span className="font-medium text-gray-900">Forme juridique :</span> Besloten Vennootschap (société à responsabilité limitée)</p>
               <p><span className="font-medium text-gray-900">Numéro d&apos;immatriculation (RSIN) :</span> 869203708</p>
               <p><span className="font-medium text-gray-900">Numéro d&apos;établissement :</span> 000064994767</p>
@@ -66,7 +66,7 @@ export default function MentionsLegalesPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Propriété intellectuelle</h2>
             <p>
               L&apos;ensemble du contenu de ce site (textes, images, logos, éléments graphiques) est la propriété
-              de SAF Service B.V. ou de ses partenaires. Toute reproduction, même partielle, est interdite
+              de FranceGuichet ou de ses partenaires. Toute reproduction, même partielle, est interdite
               sans autorisation préalable.
             </p>
           </section>

@@ -6,12 +6,12 @@ const faqs = [
     category: 'Général',
     questions: [
       {
-        q: 'Qu\'est-ce que SAF Service ?',
-        a: 'SAF Service est un espace citoyen en ligne qui vous permet de réaliser vos démarches administratives (actes d\'état civil, carte grise, casier judiciaire...), de retrouver vos services publics de proximité, de comparer les prix des carburants et de signaler des problèmes dans votre quartier.',
+        q: 'Qu\'est-ce que FranceGuichet ?',
+        a: 'FranceGuichet est un espace citoyen en ligne qui vous permet de réaliser vos démarches administratives (actes d\'état civil, carte grise, casier judiciaire...), de retrouver vos services publics de proximité, de comparer les prix des carburants et de signaler des problèmes dans votre quartier.',
       },
       {
-        q: 'SAF Service est-il un service public ?',
-        a: 'Non. SAF Service est un service privé d\'aide aux démarches administratives. Nous agissons en tant qu\'intermédiaire entre vous et les administrations compétentes. Les documents officiels sont délivrés directement par les administrations.',
+        q: 'FranceGuichet est-il un service public ?',
+        a: 'Non. FranceGuichet est un service privé d\'aide aux démarches administratives. Nous agissons en tant qu\'intermédiaire entre vous et les administrations compétentes. Les documents officiels sont délivrés directement par les administrations.',
       },
       {
         q: 'Mes données sont-elles protégées ?',
@@ -28,7 +28,7 @@ const faqs = [
       },
       {
         q: 'Combien de temps prend une démarche ?',
-        a: 'SAF Service transmet votre demande à l\'administration compétente sous 48 heures ouvrées. Les délais de traitement dépendent ensuite de l\'administration concernée et varient généralement de quelques jours à plusieurs semaines.',
+        a: 'FranceGuichet transmet votre demande à l\'administration compétente sous 48 heures ouvrées. Les délais de traitement dépendent ensuite de l\'administration concernée et varient généralement de quelques jours à plusieurs semaines.',
       },
       {
         q: 'Que se passe-t-il si ma démarche est refusée ?',
@@ -87,8 +87,8 @@ export default function FAQPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">

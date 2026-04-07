@@ -9,8 +9,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SAF - Service d\'Aide aux Formalités',
-  description: 'Simplifiez vos demarches administratives avec SAF Service',
+  title: 'FranceGuichet - Service d\'Aide aux Formalites',
+  description: 'Simplifiez vos demarches administratives avec FranceGuichet',
 };
 
 export default function RootLayout({

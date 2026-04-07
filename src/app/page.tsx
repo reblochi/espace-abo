@@ -1,4 +1,4 @@
-// Page d'accueil SAF - Service d'Aide aux Formalités
+// Page d'accueil FranceGuichet
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,8 +14,8 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </div>
             <div className="flex items-center gap-3">
               {session ? (
@@ -259,7 +259,7 @@ export default async function HomePage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/apercu-espace-membre.png"
-                alt="Aperçu de l'espace membre SAF"
+                alt="Aperçu de l'espace membre FranceGuichet"
                 className="w-full h-auto"
               />
             </div>

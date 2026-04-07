@@ -9,8 +9,8 @@ export default function PolitiqueConfidentialitePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo-saf.png" alt="SAF" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-[#1a2e5a]">SAF</span>
+              <Image src="/logo-saf.png" alt="FranceGuichet" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">
@@ -32,7 +32,7 @@ export default function PolitiqueConfidentialitePage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Responsable du traitement</h2>
             <p>
-              Le responsable du traitement des données personnelles est SAF Service B.V.,
+              Le responsable du traitement des données personnelles est FranceGuichet,
               dont le siège social est situé au Willem Fenengastraat 16 E, 1096BN Amsterdam, Pays-Bas.
               Numéro RSIN : 869203708.
             </p>

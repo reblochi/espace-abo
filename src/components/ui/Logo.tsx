@@ -14,7 +14,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
     const content = (
       <Image
         src="/logo-saf.png"
-        alt="SAF - Service d'Aide aux Formalités"
+        alt="FranceGuichet - Service d'Aide aux Formalites"
         width={160}
         height={120}
         className={cn('object-contain', className)}
@@ -24,7 +24,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
     return linked ? <Link href="/">{content}</Link> : content;
   }
 
-  // sm/md = icone + texte "SAF" pour headers
+  // sm/md = icone + texte "FranceGuichet" pour headers
   const iconSize = size === 'sm' ? 28 : 36;
   const textSize = size === 'sm' ? 'text-lg' : 'text-xl';
 
@@ -32,14 +32,14 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
     <span className={cn('flex items-center gap-2', className)}>
       <Image
         src="/logo-saf.png"
-        alt="SAF"
+        alt="FranceGuichet"
         width={iconSize}
         height={iconSize}
         className="object-contain"
         priority
       />
       <span className={cn('font-bold text-[#1a2e5a]', textSize)}>
-        SAF <span className="hidden sm:inline font-normal text-sm text-gray-500">Service d'Aide aux Formalités</span>
+        FranceGuichet <span className="hidden sm:inline font-normal text-sm text-gray-500">Service d'Aide aux Formalites</span>
       </span>
     </span>
   );

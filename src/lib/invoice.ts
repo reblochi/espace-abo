@@ -6,7 +6,7 @@ import { formatDate, formatCurrency } from './utils';
 import { uploadToStorage } from './storage';
 
 const COMPANY_INFO = {
-  name: 'SAF Service B.V.',
+  name: 'FranceGuichet',
   address: 'Herengracht 449A',
   zipCode: '1017 BR',
   city: 'Amsterdam',

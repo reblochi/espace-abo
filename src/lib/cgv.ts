@@ -5,9 +5,9 @@ import crypto from 'crypto';
 
 export const CGV_VERSION = '2026-03-31';
 
-export const CGV_TEXT = `CONDITIONS GÉNÉRALES DE VENTE — France Guichet (SAF)
+export const CGV_TEXT = `CONDITIONS GÉNÉRALES DE VENTE — FranceGuichet
 
-Le service France Guichet (SAF - Service d'Aide aux Formalités) est un service privé d'assistance aux démarches administratives. Il n'est affilié à aucune administration publique.
+Le service FranceGuichet - Service d'Aide aux Formalites est un service privé d'assistance aux démarches administratives. Il n'est affilié à aucune administration publique.
 
 1. OBJET
 Le présent contrat a pour objet de définir les conditions dans lesquelles France Guichet fournit un service d'assistance aux démarches administratives, soit à l'unité, soit via un abonnement mensuel.
