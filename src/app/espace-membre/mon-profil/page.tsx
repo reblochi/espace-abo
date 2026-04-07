@@ -12,6 +12,7 @@ import {
   CardContent,
   Button,
   Input,
+  Select,
   Alert,
   Spinner,
   Tabs,
@@ -19,7 +20,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui';
-import { CityAutocomplete, type City, DateSelect } from '@/components/forms';
+import { CityAutocomplete, type City } from '@/components/forms';
 import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
 import { FRANCE_COUNTRY_ID } from '@/types/birth-certificate';
 
@@ -264,10 +265,11 @@ export default function MonProfilPage() {
                   />
                 </div>
 
-                <DateSelect
+                <Input
                   label="Date de naissance"
+                  type="date"
                   value={profileForm.birthDate}
-                  onChange={(val) => setProfileForm({ ...profileForm, birthDate: val })}
+                  onChange={(e) => setProfileForm({ ...profileForm, birthDate: e.target.value })}
                 />
               </CardContent>
             </Card>
@@ -278,30 +280,28 @@ export default function MonProfilPage() {
                 <CardTitle>Lieu de naissance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pays de naissance</label>
-                  <select
-                    value={profileForm.birthCountryId === FRANCE_COUNTRY_ID ? '' : String(profileForm.birthCountryId || '')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        setProfileForm({ ...profileForm, birthCountryId: FRANCE_COUNTRY_ID, birthCityId: undefined, birthCityName: '' });
-                      } else {
-                        setProfileForm({ ...profileForm, birthCountryId: parseInt(val, 10), birthCityId: undefined, birthCityName: '' });
-                      }
-                      setBirthCity(null);
-                    }}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {countriesWithFrance.map((c) => (
-                      <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  label="Pays de naissance"
+                  value={profileForm.birthCountryId === FRANCE_COUNTRY_ID ? '' : String(profileForm.birthCountryId || '')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setProfileForm({ ...profileForm, birthCountryId: FRANCE_COUNTRY_ID, birthCityId: undefined, birthCityName: '' });
+                    } else {
+                      setProfileForm({ ...profileForm, birthCountryId: parseInt(val, 10), birthCityId: undefined, birthCityName: '' });
+                    }
+                    setBirthCity(null);
+                  }}
+                >
+                  {countriesWithFrance.map((c) => (
+                    <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
+                  ))}
+                </Select>
 
                 {profileForm.birthCountryId === FRANCE_COUNTRY_ID ? (
                   <CityAutocomplete
                     label="Commune de naissance"
+                    variant="default"
                     value={birthCity}
                     onChange={(city) => {
                       setBirthCity(city);

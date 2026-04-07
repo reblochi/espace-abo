@@ -21,6 +21,7 @@ export interface CityAutocompleteProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  variant?: 'gov' | 'default';
 }
 
 export function CityAutocomplete({
@@ -32,6 +33,7 @@ export function CityAutocomplete({
   required,
   disabled,
   className,
+  variant = 'gov',
 }: CityAutocompleteProps) {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<City[]>([]);
@@ -169,7 +171,7 @@ export function CityAutocomplete({
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {label && (
-        <label className="form-gov-label">
+        <label className={variant === 'gov' ? 'form-gov-label' : 'block text-sm font-medium text-gray-700 mb-1'}>
           {label}
           {required && <span className="text-red-600 ml-1">*</span>}
         </label>
@@ -187,9 +189,12 @@ export function CityAutocomplete({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'form-gov-input pr-10',
+            variant === 'gov'
+              ? 'form-gov-input pr-10'
+              : 'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10',
             disabled && 'opacity-50 cursor-not-allowed',
-            error && 'form-gov-error'
+            variant === 'gov' && error && 'form-gov-error',
+            variant !== 'gov' && error && 'border-red-500 focus:ring-red-500'
           )}
         />
 
@@ -215,12 +220,15 @@ export function CityAutocomplete({
         </div>
       </div>
 
-      {error && <p className="form-gov-error-msg">{error}</p>}
+      {error && <p className={variant === 'gov' ? 'form-gov-error-msg' : 'mt-1 text-sm text-red-500'}>{error}</p>}
 
       {/* Liste des suggestions */}
       {isOpen && suggestions.length > 0 && (
         <ul
-          className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-900 shadow-lg max-h-60 overflow-auto"
+          className={cn(
+            'absolute z-50 w-full mt-1 bg-white shadow-lg max-h-60 overflow-auto',
+            variant === 'gov' ? 'border-2 border-gray-900' : 'border border-gray-300 rounded-md'
+          )}
           role="listbox"
         >
           {suggestions.map((city, index) => (
