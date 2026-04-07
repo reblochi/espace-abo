@@ -362,6 +362,7 @@ export default function MonProfilPage() {
                   cityValue={profileForm.city}
                   onCpChange={(value) => setProfileForm({ ...profileForm, zipCode: value })}
                   onCityChange={(value) => setProfileForm({ ...profileForm, city: value })}
+                  variant="default"
                 />
               </CardContent>
             </Card>

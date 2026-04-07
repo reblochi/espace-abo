@@ -24,6 +24,7 @@ export interface PostalCityAutocompleteProps {
   cpError?: string;
   cityError?: string;
   required?: boolean;
+  variant?: 'gov' | 'default';
 }
 
 const VICOPO_URL = '/api/vicopo';
@@ -36,7 +37,14 @@ export function PostalCityAutocomplete({
   cpError,
   cityError,
   required = false,
+  variant = 'gov',
 }: PostalCityAutocompleteProps) {
+  const isGov = variant === 'gov';
+  const labelClass = isGov ? 'form-gov-label' : 'block text-sm font-medium text-gray-700 mb-1';
+  const inputClass = isGov ? 'form-gov-input' : 'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+  const errorInputClass = isGov ? 'form-gov-error' : 'border-red-500 focus:ring-red-500';
+  const errorMsgClass = isGov ? 'form-gov-error-msg' : 'mt-1 text-sm text-red-500';
+  const dropdownClass = isGov ? 'border-2 border-gray-900' : 'border border-gray-300 rounded-md';
   const [suggestions, setSuggestions] = useState<VicopoCity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeField, setActiveField] = useState<'cp' | 'city' | null>(null);
@@ -119,7 +127,7 @@ export function PostalCityAutocomplete({
     <div ref={wrapperRef} className="grid grid-cols-3 gap-4">
       {/* Code Postal */}
       <div className="relative">
-        <label className="form-gov-label">
+        <label className={labelClass}>
           Code postal {required && <span className="text-red-600">*</span>}
         </label>
         <input
@@ -133,18 +141,18 @@ export function PostalCityAutocomplete({
           placeholder="Ex: 75001"
           maxLength={5}
           autoComplete="off"
-          className={`form-gov-input ${cpError ? 'form-gov-error' : ''}`}
+          className={`${inputClass} ${cpError ? errorInputClass : ''}`}
         />
-        {cpError && <p className="form-gov-error-msg">{cpError}</p>}
+        {cpError && <p className={errorMsgClass}>{cpError}</p>}
 
         {/* Suggestions sous le champ CP */}
         {isOpen && activeField === 'cp' && suggestions.length > 0 && (
-          <ul className="absolute z-50 w-[calc(100%+200%+1rem)] mt-1 bg-white border-2 border-gray-900 shadow-lg max-h-60 overflow-auto">
+          <ul className={`absolute z-50 w-[calc(100%+200%+1rem)] mt-1 bg-white shadow-lg max-h-60 overflow-auto ${dropdownClass}`}>
             {suggestions.map((item, index) => (
               <li
                 key={`${item.code}-${index}`}
                 onClick={() => handleSelect(item)}
-                className="px-3 py-2.5 cursor-pointer hover:bg-blue-50 text-base border-b border-gray-100 last:border-b-0"
+                className="px-3 py-2.5 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0"
               >
                 <strong>{item.code}</strong> — {item.city}
               </li>
@@ -155,7 +163,7 @@ export function PostalCityAutocomplete({
 
       {/* Ville */}
       <div className="col-span-2 relative">
-        <label className="form-gov-label">
+        <label className={labelClass}>
           Ville {required && <span className="text-red-600">*</span>}
         </label>
         <div className="relative">
@@ -170,7 +178,7 @@ export function PostalCityAutocomplete({
             placeholder="Ex: Paris"
             maxLength={45}
             autoComplete="off"
-            className={`form-gov-input ${cityError ? 'form-gov-error' : ''}`}
+            className={`${inputClass} ${cityError ? errorInputClass : ''}`}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -178,16 +186,16 @@ export function PostalCityAutocomplete({
             </div>
           )}
         </div>
-        {cityError && <p className="form-gov-error-msg">{cityError}</p>}
+        {cityError && <p className={errorMsgClass}>{cityError}</p>}
 
         {/* Suggestions sous le champ Ville */}
         {isOpen && activeField === 'city' && suggestions.length > 0 && (
-          <ul className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-900 shadow-lg max-h-60 overflow-auto">
+          <ul className={`absolute z-50 w-full mt-1 bg-white shadow-lg max-h-60 overflow-auto ${dropdownClass}`}>
             {suggestions.map((item, index) => (
               <li
                 key={`${item.code}-${index}`}
                 onClick={() => handleSelect(item)}
-                className="px-3 py-2.5 cursor-pointer hover:bg-blue-50 text-base border-b border-gray-100 last:border-b-0"
+                className="px-3 py-2.5 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0"
               >
                 <strong>{item.code}</strong> — {item.city}
               </li>
