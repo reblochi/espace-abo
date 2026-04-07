@@ -105,7 +105,7 @@ function RgpdSection() {
 
 export default function MonProfilPage() {
   const { user, logout } = useAuth();
-  const { profile, isLoading, updateProfile, isUpdating } = useProfile();
+  const { profile, isLoading, updateProfileAsync, isUpdating } = useProfile();
 
   const { countriesWithFrance } = useCountries();
   const [birthCity, setBirthCity] = useState<City | null>(null);
@@ -164,10 +164,10 @@ export default function MonProfilPage() {
     setProfileSuccess(false);
 
     try {
-      await updateProfile(profileForm);
+      await updateProfileAsync(profileForm);
       setProfileSuccess(true);
     } catch (error) {
-      setProfileError('Une erreur est survenue lors de la mise à jour.');
+      setProfileError(error instanceof Error ? error.message : 'Une erreur est survenue lors de la mise a jour.');
     }
   };
 
