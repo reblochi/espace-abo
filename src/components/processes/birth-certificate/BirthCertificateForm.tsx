@@ -149,10 +149,23 @@ export function BirthCertificateForm({
 
   const { handleSubmit, trigger } = methods;
 
-  // Track step changes
+  // Track step changes + history pour bouton retour navigateur
   React.useEffect(() => {
     tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
+    if (currentStep > 0) {
+      window.history.pushState({ formStep: currentStep }, '');
+    }
   }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  React.useEffect(() => {
+    const handlePopState = () => {
+      if (currentStep > 0) {
+        setCurrentStep((prev) => Math.max(0, prev - 1));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentStep]);
 
   // Champs a valider par etape (dynamique selon mode embed)
   const stepFieldsMap: Record<string, (keyof BirthCertificateInput)[]> = {

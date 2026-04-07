@@ -281,10 +281,27 @@ export function IdentityCardForm({
     return true;
   };
 
-  // Track step changes
+  // Track step changes + history pour bouton retour navigateur
   React.useEffect(() => {
     tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
+    // Pousser un state dans l'historique pour chaque etape (sauf la premiere)
+    if (currentStep > 0) {
+      window.history.pushState({ formStep: currentStep }, '');
+    }
   }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Intercepter le bouton retour du navigateur
+  React.useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // Si on est sur une etape > 0, revenir a l'etape precedente
+      if (currentStep > 0) {
+        setError(null);
+        setCurrentStep((prev) => Math.max(0, prev - 1));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentStep]);
 
   // Scroll en haut — fonctionne en page directe ET en iframe
   const scrollFormTop = () => {
