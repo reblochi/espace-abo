@@ -5,6 +5,7 @@
 import * as React from 'react';
 import { useSession } from 'next-auth/react';
 import { useForm, FormProvider } from 'react-hook-form';
+import { useProfile } from '@/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,7 @@ export function MarriageCertificateForm({
   onCheckout,
 }: MarriageCertificateFormProps) {
   const { data: session } = useSession();
+  const { profile } = useProfile();
   const isEmbed = !!embedPartner;
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
@@ -132,18 +134,19 @@ export function MarriageCertificateForm({
   const { handleSubmit, trigger, watch } = methods;
   const recordType = watch('recordType');
 
-  // Pre-remplir les infos du demandeur depuis la session
+  // Pre-remplir les infos du demandeur depuis le profil
   React.useEffect(() => {
-    if (!session?.user) return;
-    const nameParts = session.user.name?.split(' ') || [];
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    if (!profile) return;
     const current = methods.getValues();
-    if (!current.requesterFirstName) methods.setValue('requesterFirstName', firstName);
-    if (!current.requesterLastName) methods.setValue('requesterLastName', lastName);
-    if (!current.email) methods.setValue('email', session.user.email || '');
-    if (!current.emailConfirm) methods.setValue('emailConfirm', session.user.email || '');
-  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!current.requesterFirstName) methods.setValue('requesterFirstName', profile.firstName || '');
+    if (!current.requesterLastName) methods.setValue('requesterLastName', profile.lastName || '');
+    if (!current.email) methods.setValue('email', profile.email || '');
+    if (!current.emailConfirm) methods.setValue('emailConfirm', profile.email || '');
+    if (!current.telephone && profile.phone) methods.setValue('telephone', profile.phone);
+    if (!current.deliveryAddress?.street && profile.address) methods.setValue('deliveryAddress.street', profile.address);
+    if (!current.deliveryAddress?.zipCode && profile.zipCode) methods.setValue('deliveryAddress.zipCode', profile.zipCode);
+    if (!current.deliveryAddress?.city && profile.city) methods.setValue('deliveryAddress.city', profile.city);
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Etapes avec/sans parents selon type d'acte
   const showParentSteps = recordType === RecordType.COPIE_INTEGRALE

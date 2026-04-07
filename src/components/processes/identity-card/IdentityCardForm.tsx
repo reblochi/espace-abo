@@ -5,6 +5,7 @@
 import * as React from 'react';
 import { useSession } from 'next-auth/react';
 import { useForm, FormProvider } from 'react-hook-form';
+import { useProfile } from '@/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   identityCardSchema,
@@ -90,6 +91,7 @@ export function IdentityCardForm({
   onCheckout,
 }: IdentityCardFormProps) {
   const { data: session } = useSession();
+  const { profile } = useProfile();
   const isEmbed = !!embedPartner;
   const isDirectAccess = embedPartner === 'direct'; // Acces direct sans auth (pas un embed externe)
   const pricing = getPricingProfile(pricingCode);
@@ -186,18 +188,32 @@ export function IdentityCardForm({
 
   const { handleSubmit, trigger, getValues, setError: setFieldError, formState: { errors: formErrors } } = methods;
 
-  // Pre-remplir les infos depuis la session
+  // Pre-remplir les infos depuis le profil
   React.useEffect(() => {
-    if (!session?.user) return;
-    const nameParts = session.user.name?.split(' ') || [];
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    if (!profile) return;
     const current = methods.getValues();
-    if (!current.nom) methods.setValue('nom', lastName);
-    if (!current.prenom) methods.setValue('prenom', firstName);
-    if (!current.email) methods.setValue('email', session.user.email || '');
-    if (!current.emailConfirm) methods.setValue('emailConfirm', session.user.email || '');
-  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!current.nom) methods.setValue('nom', profile.lastName || '');
+    if (!current.prenom) methods.setValue('prenom', profile.firstName || '');
+    if (!current.email) methods.setValue('email', profile.email || '');
+    if (!current.emailConfirm) methods.setValue('emailConfirm', profile.email || '');
+    if (!current.telephone && profile.phone) methods.setValue('telephone', profile.phone);
+    if (!current.deliveryAddress?.street && profile.address) methods.setValue('deliveryAddress.street', profile.address);
+    if (!current.deliveryAddress?.zipCode && profile.zipCode) methods.setValue('deliveryAddress.zipCode', profile.zipCode);
+    if (!current.deliveryAddress?.city && profile.city) methods.setValue('deliveryAddress.city', profile.city);
+    // Naissance
+    if (profile.birthDate && !current.birthDate) {
+      methods.setValue('birthDate', new Date(profile.birthDate).toISOString().split('T')[0]);
+    }
+    if (profile.birthCountryId && !current.birthCountryId) {
+      methods.setValue('birthCountryId', profile.birthCountryId);
+    }
+    if (profile.birthCityId && !current.birthCityId) {
+      methods.setValue('birthCityId', profile.birthCityId);
+    }
+    if (profile.birthCityName && !current.birthCityName) {
+      methods.setValue('birthCityName', profile.birthCityName);
+    }
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Validation de l'etape courante (champs individuels + validations cross-champs)
   const validateCurrentStep = async (): Promise<boolean> => {
