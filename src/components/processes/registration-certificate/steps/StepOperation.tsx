@@ -66,7 +66,7 @@ export function StepOperation() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {OPERATION_TYPES.map((type) => (
           <button
-            key={type.id}
+            key={`op-${type.id}`}
             type="button"
             onClick={() => setValue('operation.typeId', type.id, { shouldValidate: true })}
             className={cn(
