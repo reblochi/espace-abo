@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Alert, Spinner, Logo } from '@/components/ui';
 import { CityAutocomplete, type City } from '@/components/forms';
@@ -20,8 +20,10 @@ import { IdentityCardForm } from '@/components/processes/identity-card';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pricingCode = searchParams.get('pricing') || undefined;
 
   // Convertir le type URL vers le code
   const typeSlug = routeParams.type;
@@ -109,7 +111,7 @@ export default function FormulaireDemarchePage() {
   // Pour les formulaires qui necessitent une session (carte grise, mariage, deces),
   // afficher un message de connexion si non authentifie
   // ================================================
-  const needsAuth = typeCode !== 'CIVIL_STATUS_BIRTH';
+  const needsAuth = !['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD'].includes(typeCode);
   if (needsAuth && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -297,6 +299,8 @@ export default function FormulaireDemarchePage() {
           <IdentityCardForm
             isSubscriber={hasActiveSubscription}
             basePrice={processConfig.basePrice}
+            embedPartner={!isAuthenticated ? 'direct' : undefined}
+            pricingCode={pricingCode}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}

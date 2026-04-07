@@ -14,6 +14,7 @@ const embedSubmitSchema = z.object({
   partner: z.string(),
   paymentMode: z.enum(['subscription', 'one_time']),
   subscriptionConsent: z.boolean().optional(),
+  pricingCode: z.string().optional(),
   data: birthCertificateSchema,
 });
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { partner, paymentMode, data } = parsed.data;
+    const { partner, paymentMode, pricingCode, data } = parsed.data;
 
     // Les coordonnees sont obligatoires en mode embed
     if (!data.contact) {
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
           amountCents: 0, // Inclus dans l'abonnement
           isFromSubscription: true,
           data: data as any,
+          partner,
+          pricingCode: pricingCode ?? null,
+          source: 'embed',
           updatedAt: new Date(),
         },
       });
@@ -109,6 +113,9 @@ export async function POST(request: NextRequest) {
         status: 'PENDING_PAYMENT',
         amountCents: basePrice,
         data: data as any,
+        partner,
+        pricingCode: pricingCode ?? null,
+        source: 'embed',
         updatedAt: new Date(),
       },
     });

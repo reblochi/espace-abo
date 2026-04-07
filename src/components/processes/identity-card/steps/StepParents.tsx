@@ -3,6 +3,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { DateSelect } from '@/components/forms';
 import { useCountries } from '@/hooks/useCountries';
 import type { IdentityCardInput } from '@/schemas/identity-card';
 
@@ -79,17 +80,14 @@ export function StepParents() {
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="form-gov-label">
-                  Date de naissance
-                </label>
-                <input
-                  type="date"
-                  {...register('fatherBirthDate')}
-                  className={`form-gov-input ${errors.fatherBirthDate ? 'form-gov-error' : ''}`}
+                <DateSelect
+                  label="Date de naissance"
+                  value={watch('fatherBirthDate') || ''}
+                  onChange={(val) => setValue('fatherBirthDate', val, { shouldValidate: true })}
+                  error={errors.fatherBirthDate?.message}
+                  minYear={1800}
+                  required
                 />
-                {errors.fatherBirthDate && (
-                  <p className="form-gov-error-msg">{errors.fatherBirthDate.message}</p>
-                )}
               </div>
               <div>
                 <label className="form-gov-label">
@@ -183,17 +181,14 @@ export function StepParents() {
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="form-gov-label">
-                  Date de naissance
-                </label>
-                <input
-                  type="date"
-                  {...register('motherBirthDate')}
-                  className={`form-gov-input ${errors.motherBirthDate ? 'form-gov-error' : ''}`}
+                <DateSelect
+                  label="Date de naissance"
+                  value={watch('motherBirthDate') || ''}
+                  onChange={(val) => setValue('motherBirthDate', val, { shouldValidate: true })}
+                  error={errors.motherBirthDate?.message}
+                  minYear={1800}
+                  required
                 />
-                {errors.motherBirthDate && (
-                  <p className="form-gov-error-msg">{errors.motherBirthDate.message}</p>
-                )}
               </div>
               <div>
                 <label className="form-gov-label">

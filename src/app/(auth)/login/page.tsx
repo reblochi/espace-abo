@@ -2,16 +2,26 @@
 
 'use client';
 
-import { Suspense, useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, Button, Input, Alert, Spinner, Logo } from '@/components/ui';
 
+// Routes qui ne necessitent plus d'authentification
+const PUBLIC_PROCESS_ROUTES = ['/nouvelle-demarche/carte-identite', '/nouvelle-demarche/acte-naissance'];
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/espace-membre';
+
+  // Si le callbackUrl pointe vers un formulaire public, rediriger directement
+  React.useEffect(() => {
+    if (PUBLIC_PROCESS_ROUTES.some(route => callbackUrl.startsWith(route))) {
+      router.replace(callbackUrl);
+    }
+  }, [callbackUrl, router]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

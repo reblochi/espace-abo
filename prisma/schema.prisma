@@ -202,6 +202,11 @@ model Process {
   // Si via abonnement (gratuit)
   isFromSubscription Boolean @default(false)
 
+  // Tracking / attribution
+  partner     String? // Code partenaire (fridefont, direct, etc.)
+  pricingCode String? // Profil pricing (A, B, C, default)
+  source      String? // Point d'entree: "direct", "embed", "widget"
+
   // Donnees specifiques (JSON)
   data Json
 
@@ -553,5 +558,81 @@ model Courrier {
   createdAt  DateTime @default(now())
 
   @@map("courriers")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// PROFILS TARIFICATION (AB testing)
+// ============================================
+
+model PricingProfile {
+  id                       String   @id @default(cuid())
+  code                     String   @unique // ex: "default", "A", "B"
+  label                    String // Description interne
+  paymentMode              String // "both" | "subscription" | "one_time"
+  subscriptionMonthlyPrice Int // en centimes
+  basePrice                Int  @default(3990) // Prix a l'acte en centimes (ex: 3990 = 39,90 EUR)
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  formConfigs FormConfig[]
+
+  @@map("pricing_profiles")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// CONFIGURATION FORMULAIRES (par type + partenaire)
+// ============================================
+
+model FormConfig {
+  id               String         @id @default(cuid())
+  formType         ProcessType // IDENTITY_CARD, CIVIL_STATUS_BIRTH, etc.
+  partner          String         @default("default") // Code partenaire ou "default"
+  pricingProfileId String
+  pricingProfile   PricingProfile @relation(fields: [pricingProfileId], references: [id])
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([formType, partner])
+  @@map("form_configs")
+  @@schema("espace_abo")
+}
+
+// ============================================
+// ANALYTICS FORMULAIRES
+// ============================================
+
+model FormEvent {
+  id          String        @id @default(cuid())
+  sessionId   String // UUID genere cote client par session formulaire
+  formType    ProcessType
+  stepIndex   Int
+  stepName    String
+  event       FormEventType
+  partner     String?
+  pricingCode String?
+  source      String? // "direct" | "embed" | "widget"
+  processId   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([formType, event])
+  @@index([formType, stepIndex])
+  @@index([createdAt])
+  @@map("form_events")
+  @@schema("espace_abo")
+}
+
+enum FormEventType {
+  FORM_STARTED
+  STEP_ENTERED
+  STEP_COMPLETED
+  FORM_COMPLETED
+  FORM_ABANDONED
+
   @@schema("espace_abo")
 }

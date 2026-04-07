@@ -13,16 +13,15 @@ import {
   type RequestMotifValue,
   type NationalityReasonValue,
 } from '@/types/identity-card';
-import { formatPrice } from '@/lib/process-types';
+import { formatPrice, type PricingProfile } from '@/lib/process-types';
 import type { IdentityCardInput } from '@/schemas/identity-card';
 
 export type PaymentMode = 'subscription' | 'one_time';
 
-const SUBSCRIPTION_MONTHLY_PRICE = 990; // 9,90 EUR en centimes
-
 interface StepSummaryProps {
   isSubscriber: boolean;
   basePrice: number;
+  pricing: PricingProfile;
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
   subscriptionConsent: boolean;
@@ -32,11 +31,13 @@ interface StepSummaryProps {
 export function StepSummary({
   isSubscriber,
   basePrice,
+  pricing,
   paymentMode,
   onPaymentModeChange,
   subscriptionConsent,
   onSubscriptionConsentChange,
 }: StepSummaryProps) {
+  const SUBSCRIPTION_MONTHLY_PRICE = pricing.subscriptionMonthlyPrice;
   const { watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
   const formData = watch();
 
@@ -110,76 +111,111 @@ export function StepSummary({
         </SummaryCard>
       </div>
 
-      {/* Timbre fiscal */}
-      {stampTax > 0 && (
-        <div className="p-4 bg-amber-50 border-l-4 border-l-amber-500">
-          <div className="flex justify-between items-center">
-            <span className="text-base text-amber-900 font-semibold">Timbre fiscal</span>
-            <span className="text-base font-bold text-amber-900">{formatPrice(stampTax)}</span>
+      {/* Abonne avec timbre fiscal */}
+      {isSubscriber && stampTax > 0 && (
+        <div className="bg-gray-50 border border-gray-200 p-5">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Frais</h3>
+          <div className="flex justify-between items-baseline">
+            <span className="text-base text-gray-900">Traitement de votre demarche</span>
+            <span className="text-base font-semibold text-green-700">Inclus dans l'abonnement</span>
           </div>
-          <p className="form-gov-hint mt-1">
-            Obligatoire pour les demandes suite a un vol ou une perte.
+          <div className="flex justify-between items-baseline mt-2">
+            <span className="text-base text-gray-900">Timbre fiscal (obligatoire)</span>
+            <span className="text-base font-semibold text-gray-900">{formatPrice(stampTax)}</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Le timbre fiscal est une taxe reglementaire qui reste a votre charge.
           </p>
         </div>
       )}
 
-      {/* Choix formule - non-abonnes */}
+      {/* Tarification - non-abonnes */}
       {!isSubscriber && (
-        <div>
-          <h3 className="form-gov-section-title">Formule de traitement</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => onPaymentModeChange('subscription')}
-              className={`
-                text-left border-l-4 p-4 transition-all
-                ${paymentMode === 'subscription'
-                  ? 'border-l-blue-700 bg-blue-50'
-                  : 'border-l-transparent bg-gray-50 hover:bg-blue-50/50'
-                }
-              `}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <RadioDot selected={paymentMode === 'subscription'} />
-                  <span className="font-semibold text-base text-gray-900">Abonnement</span>
-                </div>
-                <span className="text-xs font-semibold bg-blue-700 text-white px-2 py-0.5">
-                  Recommande
+        <div className="space-y-4">
+          {/* Detail des frais */}
+          <div className="bg-gray-50 border border-gray-200 p-5">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Frais de traitement</h3>
+            <div className="flex justify-between items-baseline">
+              <span className="text-base text-gray-900">Traitement de votre demarche</span>
+              {pricing.paymentMode === 'subscription' ? (
+                <span className="text-base font-semibold text-green-700">Inclus</span>
+              ) : (
+                <span className={`text-base font-semibold ${paymentMode === 'subscription' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                  {formatPrice(basePrice)}
                 </span>
-              </div>
-              <p className="text-xl font-bold text-gray-900 ml-7">
-                9,90 EUR<span className="text-base font-normal text-gray-500">/mois</span>
-              </p>
-              <p className="form-gov-hint ml-7 mt-0.5">
-                Demarche incluse{stampTax > 0 ? ` + timbre fiscal ${formatPrice(stampTax)}` : ''} - Sans engagement
-              </p>
-              {savings > 0 && (
-                <p className="text-sm font-semibold text-green-700 ml-7 mt-1">
-                  Economie de {formatPrice(savings)}
-                </p>
               )}
-            </button>
+            </div>
+            {stampTax > 0 && (
+              <div className="flex justify-between items-baseline mt-2">
+                <span className="text-base text-gray-900">Timbre fiscal (obligatoire)</span>
+                <span className="text-base font-semibold text-gray-900">{formatPrice(stampTax)}</span>
+              </div>
+            )}
+          </div>
 
-            <button
-              type="button"
-              onClick={() => onPaymentModeChange('one_time')}
+          {/* Mode 'subscription' : abo force, texte informatif */}
+          {pricing.paymentMode === 'subscription' && (
+            <div className="border-2 border-blue-700 bg-blue-50/50 p-5">
+              <p className="text-base text-gray-900 leading-snug">
+                Le traitement de votre demarche est realise dans le cadre du <strong>Service d'Assistance Administrative</strong> ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois).
+                L'abonnement inclut le traitement illimite de vos demarches administratives.
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Sans engagement — resiliable a tout moment depuis votre espace personnel, sans frais ni justificatif.
+              </p>
+            </div>
+          )}
+
+          {/* Mode 'both' : checkbox pour choisir */}
+          {pricing.paymentMode === 'both' && (
+            <div
+              onClick={() => {
+                const next = paymentMode === 'subscription' ? 'one_time' : 'subscription';
+                onPaymentModeChange(next);
+                if (next === 'one_time') onSubscriptionConsentChange(false);
+                if (next === 'subscription') onSubscriptionConsentChange(true);
+              }}
               className={`
-                text-left border-l-4 p-4 transition-all
-                ${paymentMode === 'one_time'
-                  ? 'border-l-blue-700 bg-blue-50'
-                  : 'border-l-transparent bg-gray-50 hover:bg-blue-50/50'
+                cursor-pointer border-2 p-5 transition-all
+                ${paymentMode === 'subscription'
+                  ? 'border-blue-700 bg-blue-50/50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
                 }
               `}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <RadioDot selected={paymentMode === 'one_time'} />
-                <span className="font-semibold text-base text-gray-900">Paiement unique</span>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex-shrink-0">
+                  <div className={`
+                    w-5 h-5 border-2 flex items-center justify-center
+                    ${paymentMode === 'subscription' ? 'border-blue-700 bg-blue-700' : 'border-gray-400 bg-white'}
+                  `}>
+                    {paymentMode === 'subscription' && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base text-gray-900 leading-snug">
+                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois
+                    au lieu de payer {formatPrice(basePrice)} pour cette demarche.
+                    L'abonnement inclut le traitement illimite de mes demarches administratives.
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Sans engagement — resiliable a tout moment depuis mon espace personnel, sans frais ni justificatif.
+                  </p>
+                  {paymentMode === 'subscription' && savings > 0 && (
+                    <p className="text-sm font-semibold text-green-700 mt-2">
+                      Economie immediate de {formatPrice(savings)} sur cette demarche
+                    </p>
+                  )}
+                </div>
               </div>
-              <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(totalBasePrice)}</p>
-              <p className="form-gov-hint ml-7 mt-0.5">Cette demarche uniquement</p>
-            </button>
-          </div>
+            </div>
+          )}
+
+          {/* Mode 'one_time' : pas de proposition d'abo, rien a afficher */}
         </div>
       )}
 
@@ -227,26 +263,12 @@ export function StepSummary({
             <a href="/politique-confidentialite" target="_blank" className="text-blue-700 underline">
               politique de confidentialite
             </a>
-            {' '}et le traitement de mes donnees (RGPD). Je certifie l'exactitude des informations fournies. *
+            {' '}et le traitement de mes donnees personnelles conformement au RGPD.
+            Je certifie l'exactitude des informations fournies ci-dessus. *
           </label>
         </div>
         {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
           <p className="form-gov-error-msg">Vous devez accepter les conditions pour continuer.</p>
-        )}
-
-        {!isSubscriber && paymentMode === 'subscription' && (
-          <div className={`form-gov-checkbox-group ${subscriptionConsent ? 'checked' : ''}`}>
-            <input
-              type="checkbox"
-              id="subscriptionConsent"
-              checked={subscriptionConsent}
-              onChange={(e) => onSubscriptionConsentChange(e.target.checked)}
-            />
-            <label htmlFor="subscriptionConsent">
-              Je souscris à l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
-              resiliable a tout moment depuis mon espace membre, sans frais. *
-            </label>
-          </div>
         )}
       </div>
 
@@ -254,17 +276,6 @@ export function StepSummary({
       <p className="form-gov-hint">
         Traitement sous 10 a 15 jours ouvres apres validation. Un recepisse de demande vous sera envoye par email.
       </p>
-    </div>
-  );
-}
-
-function RadioDot({ selected }: { selected: boolean }) {
-  return (
-    <div className={`
-      w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-      ${selected ? 'border-blue-700' : 'border-gray-400'}
-    `}>
-      {selected && <div className="w-2.5 h-2.5 rounded-full bg-blue-700" />}
     </div>
   );
 }

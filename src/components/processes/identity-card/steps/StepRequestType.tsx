@@ -12,9 +12,17 @@ import type { IdentityCardInput } from '@/schemas/identity-card';
 
 const MOTIF_VALUES = Object.values(RequestMotif);
 
-export function StepRequestType() {
+export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
   const { watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
   const selectedMotif = watch('motif');
+
+  const handleSelect = (motif: RequestMotifValue) => {
+    setValue('motif', motif, { shouldValidate: true });
+    // Passer directement a l'etape suivante apres un court delai visuel
+    if (onSelect) {
+      setTimeout(onSelect, 200);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -31,7 +39,7 @@ export function StepRequestType() {
         {MOTIF_VALUES.map((motif) => (
           <label
             key={motif}
-            onClick={() => setValue('motif', motif, { shouldValidate: true })}
+            onClick={() => handleSelect(motif)}
             className={`
               flex items-center p-4 cursor-pointer transition-colors duration-150 border-l-4
               ${selectedMotif === motif
@@ -44,7 +52,7 @@ export function StepRequestType() {
               type="radio"
               value={motif}
               checked={selectedMotif === motif}
-              onChange={() => setValue('motif', motif, { shouldValidate: true })}
+              onChange={() => handleSelect(motif)}
               className="sr-only"
             />
             <div className={`

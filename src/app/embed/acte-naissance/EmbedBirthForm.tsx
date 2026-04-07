@@ -21,9 +21,32 @@ export function EmbedBirthForm() {
 
   const processConfig = getProcessTypeConfig('CIVIL_STATUS_BIRTH');
 
-  // Notifier le parent que le formulaire est charge
+  // Notifier le parent que le formulaire est charge + auto-resize
   useEffect(() => {
     postToParent('ready');
+
+    let lastHeight = 0;
+    const sendHeight = () => {
+      const height = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+      );
+      if (Math.abs(height - lastHeight) > 2) {
+        lastHeight = height;
+        postToParent('resize', { height });
+      }
+    };
+
+    const ro = new ResizeObserver(sendHeight);
+    ro.observe(document.body);
+    const mo = new MutationObserver(sendHeight);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    const interval = setInterval(sendHeight, 300);
+    sendHeight();
+
+    return () => { ro.disconnect(); mo.disconnect(); clearInterval(interval); };
   }, []);
 
   return (

@@ -16,6 +16,7 @@ import {
 } from '@/schemas/registration-certificate';
 import { OperationType, VehicleState } from '@/types/registration-certificate';
 import type { RegistrationCertificateTaxes } from '@/lib/taxes/registration-certificate';
+import { useFormTracking } from '@/hooks/useFormTracking';
 
 // Import des etapes
 import { StepOperation } from './steps/StepOperation';
@@ -27,6 +28,8 @@ import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface RegistrationCertificateFormProps {
   isSubscriber?: boolean;
+  pricingCode?: string; // Code profil pricing (AB testing)
+  partner?: string; // Partenaire embed
   onSubmit: (data: RegistrationCertificateInput, paymentMode?: PaymentMode) => Promise<void>;
   onTaxCalculation?: (taxes: RegistrationCertificateTaxes | null) => void;
   initialData?: Partial<RegistrationCertificateInput>;
@@ -81,12 +84,23 @@ const STEPS: Step[] = [
 
 export function RegistrationCertificateForm({
   isSubscriber = false,
+  pricingCode,
+  partner,
   onSubmit,
   onTaxCalculation,
   initialData,
   processRéférence,
 }: RegistrationCertificateFormProps) {
   const router = useRouter();
+
+  // Tracking analytics
+  const tracking = useFormTracking({
+    formType: 'REGISTRATION_CERT',
+    partner: partner || undefined,
+    pricingCode: pricingCode || undefined,
+    source: partner ? (partner === 'direct' ? 'direct' : 'embed') : 'direct',
+  });
+
   const [currentStep, setCurrentStep] = React.useState(0);
   const [taxes, setTaxes] = React.useState<RegistrationCertificateTaxes | null>(null);
   const [isCalculatingTaxes, setIsCalculatingTaxes] = React.useState(false);
@@ -178,6 +192,11 @@ export function RegistrationCertificateForm({
     onTaxCalculation,
   ]);
 
+  // Track step changes
+  React.useEffect(() => {
+    tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
+  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Validation de l'etape courante
   const validateCurrentStep = async (): Promise<boolean> => {
     const step = STEPS[currentStep];
@@ -189,18 +208,26 @@ export function RegistrationCertificateForm({
     return isValid;
   };
 
+  const scrollFormTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.parent !== window) {
+      window.parent.postMessage({ source: 'advercity-widget', type: 'scrollTop' }, '*');
+    }
+  };
+
   const handleNext = async () => {
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
+      tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
@@ -215,6 +242,7 @@ export function RegistrationCertificateForm({
         return;
       }
 
+      tracking.trackFormCompleted();
       await onSubmit(data, paymentMode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');

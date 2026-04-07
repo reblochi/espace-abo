@@ -4,6 +4,83 @@
 import type { ProcessType, FileType } from '@/types';
 
 // ============================================================
+// CONFIGURATION PRICING & MODES DE PAIEMENT
+// Centralise ici pour faciliter l'AB testing
+//
+// Usage :
+//   - Acces direct :  /nouvelle-demarche/carte-identite?pricing=B
+//   - Embed/iframe :  /embed/carte-identite?partner=fridefont&pricing=B
+//   - Widget JS :     window.ADVERCITY_CONFIG = { pricing: 'B' }
+//
+// Pour AB testing : creer un profil par variante, distribuer les
+// codes via UTM, partenaire, ou aleatoire cote widget/site.
+// ============================================================
+
+export type PaymentModeOption = 'subscription' | 'one_time' | 'both';
+
+export interface PricingProfile {
+  /** Identifiant du profil (passe en ?pricing=...) */
+  code: string;
+  /** Description interne (pour le suivi) */
+  label: string;
+  /** Mode de paiement propose aux non-abonnes */
+  paymentMode: PaymentModeOption;
+  /** Prix abonnement mensuel en centimes */
+  subscriptionMonthlyPrice: number;
+  /** Prix a l'acte en centimes (ex: 3990 = 39,90 EUR) */
+  basePrice: number;
+}
+
+/**
+ * Profils de pricing disponibles.
+ * Le premier profil est le profil par defaut.
+ */
+export const PRICING_PROFILES: PricingProfile[] = [
+  {
+    code: 'default',
+    label: 'Standard — checkbox abo + paiement a l\'acte',
+    paymentMode: 'both',
+    subscriptionMonthlyPrice: 990,
+    basePrice: 3990, // 39,90 EUR
+  },
+  {
+    code: 'A',
+    label: 'Variante A — abonnement uniquement',
+    paymentMode: 'subscription',
+    subscriptionMonthlyPrice: 990,
+    basePrice: 3990, // 39,90 EUR
+  },
+  {
+    code: 'B',
+    label: 'Variante B — paiement a l\'acte uniquement',
+    paymentMode: 'one_time',
+    subscriptionMonthlyPrice: 990,
+    basePrice: 3990, // 39,90 EUR
+  },
+  {
+    code: 'C',
+    label: 'Variante C — abo a 7,90 EUR + choix',
+    paymentMode: 'both',
+    subscriptionMonthlyPrice: 790,
+    basePrice: 3990, // 39,90 EUR
+  },
+];
+
+/** Profil par defaut (premier de la liste) */
+export const DEFAULT_PRICING_PROFILE = PRICING_PROFILES[0];
+
+/** Retrouver un profil par son code (insensible a la casse) */
+export function getPricingProfile(code?: string | null): PricingProfile {
+  if (!code) return DEFAULT_PRICING_PROFILE;
+  return PRICING_PROFILES.find(
+    (p) => p.code.toLowerCase() === code.toLowerCase()
+  ) || DEFAULT_PRICING_PROFILE;
+}
+
+/** Compat : PRICING_CONFIG pointe vers le profil par defaut */
+export const PRICING_CONFIG = DEFAULT_PRICING_PROFILE;
+
+// ============================================================
 // TYPES D'ACTES (pour etat civil)
 // ============================================================
 

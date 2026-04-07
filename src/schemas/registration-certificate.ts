@@ -28,7 +28,10 @@ export const duplicateReasonSchema = z.union([
 ]);
 
 // Civilite
-export const civilitySchema = z.enum(['M', 'MME']);
+export const civilitySchema = z.enum(['M', 'MME'], {
+  required_error: 'Veuillez selectionner la civilite',
+  invalid_type_error: 'Veuillez selectionner la civilite',
+});
 
 // Type d'immatriculation
 export const registrationTypeSchema = z.enum(['SIV', 'FNI']);

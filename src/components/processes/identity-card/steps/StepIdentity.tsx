@@ -2,9 +2,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { CityAutocomplete, type City } from '@/components/forms';
+import { CityAutocomplete, type City, DateSelect } from '@/components/forms';
 import {
   genderLabels,
   FRANCE_COUNTRY_ID,
@@ -27,6 +27,13 @@ export function StepIdentity() {
   const hasNomUsage = !!nomUsage && nomUsage.trim().length > 0;
 
   const { countriesWithFrance } = useCountries();
+
+  // Si ne en France, preselectionner la raison et la masquer
+  useEffect(() => {
+    if (isFrance) {
+      setValue('raisonFrancais', NationalityReason.PARENT_FRANCAIS, { shouldValidate: true });
+    }
+  }, [isFrance, setValue]);
 
   // Restaurer la ville selectionnee depuis les valeurs du form (survit au remount)
   const existingCityId = watch('birthCityId');
@@ -193,17 +200,13 @@ export function StepIdentity() {
 
       {/* Date de naissance */}
       <div className="mb-6">
-        <label className="form-gov-label">
-          Date de naissance <span className="text-red-600">*</span>
-        </label>
-        <input
-          type="date"
-          {...register('birthDate')}
-          className={`form-gov-input ${errors.birthDate ? 'form-gov-error' : ''}`}
+        <DateSelect
+          label="Date de naissance"
+          value={watch('birthDate') || ''}
+          onChange={(val) => setValue('birthDate', val, { shouldValidate: true })}
+          error={errors.birthDate?.message}
+          required
         />
-        {errors.birthDate && (
-          <p className="form-gov-error-msg">{errors.birthDate.message}</p>
-        )}
       </div>
 
       {/* Pays de naissance */}
@@ -277,38 +280,45 @@ export function StepIdentity() {
           <label className="form-gov-label">
             Taille (en cm) <span className="text-red-600">*</span>
           </label>
-          <input
-            type="number"
-            {...register('taille', { valueAsNumber: true })}
-            className={`form-gov-input ${errors.taille ? 'form-gov-error' : ''}`}
-            placeholder="170"
-            min={20}
-            max={280}
-          />
+          <select
+            value={watch('taille') || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setValue('taille', val ? parseInt(val, 10) : (undefined as unknown as number), { shouldValidate: true });
+            }}
+            className={`form-gov-select ${errors.taille ? 'form-gov-error' : ''}`}
+          >
+            <option value="">Selectionnez...</option>
+            {Array.from({ length: 261 }, (_, i) => i + 20).map((cm) => (
+              <option key={cm} value={cm}>{cm} cm</option>
+            ))}
+          </select>
           {errors.taille && (
             <p className="form-gov-error-msg">{errors.taille.message}</p>
           )}
         </div>
       </div>
 
-      {/* Raison nationalite francaise */}
-      <div className="mb-6">
-        <label className="form-gov-label">
-          Vous etes francais(e) parce que... <span className="text-red-600">*</span>
-        </label>
-        <select
-          {...register('raisonFrancais')}
-          className={`form-gov-select ${errors.raisonFrancais ? 'form-gov-error' : ''}`}
-        >
-          <option value="">Selectionnez une raison...</option>
-          {(Object.values(NationalityReason)).map((value) => (
-            <option key={value} value={value}>{nationalityReasonLabels[value]}</option>
-          ))}
-        </select>
-        {errors.raisonFrancais && (
-          <p className="form-gov-error-msg">{errors.raisonFrancais.message}</p>
-        )}
-      </div>
+      {/* Raison nationalite francaise — masque si ne en France */}
+      {!isFrance && (
+        <div className="mb-6">
+          <label className="form-gov-label">
+            Vous etes francais(e) parce que... <span className="text-red-600">*</span>
+          </label>
+          <select
+            {...register('raisonFrancais')}
+            className={`form-gov-select ${errors.raisonFrancais ? 'form-gov-error' : ''}`}
+          >
+            <option value="">Selectionnez une raison...</option>
+            {(Object.values(NationalityReason)).map((value) => (
+              <option key={value} value={value}>{nationalityReasonLabels[value]}</option>
+            ))}
+          </select>
+          {errors.raisonFrancais && (
+            <p className="form-gov-error-msg">{errors.raisonFrancais.message}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

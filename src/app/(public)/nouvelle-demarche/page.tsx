@@ -51,9 +51,12 @@ export default function NouvelleDemarchePage() {
     }
   }, [session, status]);
 
+  // Types de demarches accessibles sans authentification
+  const PUBLIC_PROCESS_TYPES = ['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD'];
+
   const handleSelectType = (config: ProcessTypeConfig) => {
     const slug = getProcessTypeSlug(config.code);
-    if (!session) {
+    if (!session && !PUBLIC_PROCESS_TYPES.includes(config.code)) {
       router.push(`/login?callbackUrl=/nouvelle-demarche/${slug}`);
       return;
     }

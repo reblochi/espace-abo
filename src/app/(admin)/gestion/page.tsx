@@ -4,6 +4,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { StatCard } from '@/components/admin/StatCard';
+import { AnalyticsSection } from '@/components/admin/AnalyticsSection';
 import { formatCurrency } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
@@ -63,6 +64,12 @@ export default function AdminDashboardPage() {
           label="Demarches totales"
           value={stats?.totalProcesses ?? 0}
         />
+      </div>
+
+      {/* Analytics formulaires */}
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Analytique formulaires</h2>
+        <AnalyticsSection />
       </div>
     </div>
   );

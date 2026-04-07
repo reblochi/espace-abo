@@ -18,12 +18,42 @@ function postToParent(type: string, data?: Record<string, unknown>) {
 export function EmbedIdentityCardForm() {
   const searchParams = useSearchParams();
   const partner = searchParams.get('partner') || 'default';
+  const pricingCode = searchParams.get('pricing') || undefined;
 
   const processConfig = getProcessTypeConfig('IDENTITY_CARD');
 
-  // Notifier le parent que le formulaire est charge
+  // Notifier le parent que le formulaire est charge + auto-resize
   useEffect(() => {
     postToParent('ready');
+
+    // Mesurer la hauteur reelle du contenu et l'envoyer au parent
+    let lastHeight = 0;
+    const sendHeight = () => {
+      // Prendre le max de toutes les mesures possibles pour ne rien couper
+      const height = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+      );
+      if (Math.abs(height - lastHeight) > 2) {
+        lastHeight = height;
+        postToParent('resize', { height });
+      }
+    };
+
+    // Observer les changements de taille du contenu
+    const ro = new ResizeObserver(sendHeight);
+    ro.observe(document.body);
+    // MutationObserver pour les changements DOM (autocomplete, erreurs, etc.)
+    const mo = new MutationObserver(sendHeight);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    // Polling de secours
+    const interval = setInterval(sendHeight, 300);
+    // Mesure initiale
+    sendHeight();
+
+    return () => { ro.disconnect(); mo.disconnect(); clearInterval(interval); };
   }, []);
 
   return (
@@ -41,6 +71,7 @@ export function EmbedIdentityCardForm() {
         isSubscriber={false}
         basePrice={processConfig?.basePrice ?? 3990}
         embedPartner={partner}
+        pricingCode={pricingCode}
         onComplete={(reference) => {
           postToParent('complete', { reference });
         }}

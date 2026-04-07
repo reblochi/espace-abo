@@ -83,6 +83,9 @@ const createProcessRequestSchema = z.object({
   isFromSubscription: z.boolean().default(false),
   asDraft: z.boolean().default(false), // Permet de creer un brouillon
   stampTaxCents: z.number().int().min(0).default(0), // Timbre fiscal (vol/perte CNI)
+  partner: z.string().optional(),
+  pricingCode: z.string().optional(),
+  source: z.string().optional(),
 });
 
 // POST /api/processes - Creer une demarche (brouillon ou directe)
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, data, isFromSubscription, asDraft, stampTaxCents } = result.data;
+    const { type, data, isFromSubscription, asDraft, stampTaxCents, partner, pricingCode, source } = result.data;
 
     // Verifier que le type existe
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -219,6 +222,9 @@ export async function POST(request: NextRequest) {
         isFromSubscription,
         data,
         mandatoryFileTypes,
+        partner: partner ?? null,
+        pricingCode: pricingCode ?? null,
+        source: source ?? null,
       },
     });
 

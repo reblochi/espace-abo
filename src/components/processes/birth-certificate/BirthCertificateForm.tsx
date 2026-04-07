@@ -15,6 +15,7 @@ import {
   type BirthCertificateInput,
 } from '@/schemas/birth-certificate';
 import { RecordType, FRANCE_COUNTRY_ID } from '@/types/birth-certificate';
+import { useFormTracking } from '@/hooks/useFormTracking';
 
 // Import des etapes
 import { StepActType } from './steps/StepActType';
@@ -28,6 +29,7 @@ export interface BirthCertificateFormProps {
   isSubscriber?: boolean;
   basePrice: number; // en centimes
   embedPartner?: string; // Si defini, mode embed sans auth
+  pricingCode?: string; // Code profil pricing (AB testing)
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -77,6 +79,7 @@ export function BirthCertificateForm({
   isSubscriber = false,
   basePrice,
   embedPartner,
+  pricingCode,
   onComplete,
   onCheckout,
 }: BirthCertificateFormProps) {
@@ -89,6 +92,15 @@ export function BirthCertificateForm({
     steps.push(SUMMARY_STEP);
     return steps;
   }, [isEmbed]);
+
+  // Tracking analytics
+  const tracking = useFormTracking({
+    formType: 'CIVIL_STATUS_BIRTH',
+    partner: embedPartner || undefined,
+    pricingCode: pricingCode || undefined,
+    source: isEmbed ? (embedPartner === 'direct' ? 'direct' : 'embed') : 'direct',
+  });
+
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -137,6 +149,11 @@ export function BirthCertificateForm({
 
   const { handleSubmit, trigger } = methods;
 
+  // Track step changes
+  React.useEffect(() => {
+    tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
+  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Champs a valider par etape (dynamique selon mode embed)
   const stepFieldsMap: Record<string, (keyof BirthCertificateInput)[]> = {
     actType: ['recordType', 'recordCount'],
@@ -155,18 +172,26 @@ export function BirthCertificateForm({
     return await trigger(fieldsToValidate);
   };
 
+  const scrollFormTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.parent !== window) {
+      window.parent.postMessage({ source: 'advercity-widget', type: 'scrollTop' }, '*');
+    }
+  };
+
   const handleNext = async () => {
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
+      tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
@@ -182,6 +207,8 @@ export function BirthCertificateForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             partner: embedPartner,
+            pricingCode,
+            source: isEmbed ? (embedPartner === 'direct' ? 'direct' : 'embed') : 'direct',
             paymentMode,
             subscriptionConsent,
             data,
@@ -196,8 +223,10 @@ export function BirthCertificateForm({
         }
 
         if (result.url) {
+          tracking.trackFormCompleted();
           onCheckout(result.url);
         } else if (result.reference) {
+          tracking.trackFormCompleted();
           onComplete(result.reference);
         }
         return;
@@ -219,6 +248,8 @@ export function BirthCertificateForm({
           body: JSON.stringify({
             type: 'CIVIL_STATUS_BIRTH',
             isFromSubscription: true,
+            pricingCode,
+            source: 'direct',
             data,
           }),
         });
@@ -230,6 +261,7 @@ export function BirthCertificateForm({
           return;
         }
 
+        tracking.trackFormCompleted(result.process?.id);
         onComplete(result.process.reference);
       } else {
         // Creer une session checkout (abonnement ou paiement unique)
@@ -239,6 +271,8 @@ export function BirthCertificateForm({
           body: JSON.stringify({
             type: 'CIVIL_STATUS_BIRTH',
             paymentMode,
+            pricingCode,
+            source: 'direct',
             data,
           }),
         });
@@ -251,6 +285,7 @@ export function BirthCertificateForm({
         }
 
         if (result.url) {
+          tracking.trackFormCompleted();
           onCheckout(result.url);
         }
       }

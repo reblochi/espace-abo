@@ -11,8 +11,10 @@ import {
   type IdentityCardInput,
 } from '@/schemas/identity-card';
 import { FRANCE_COUNTRY_ID, calculateStampTax } from '@/types/identity-card';
+import { useFormTracking } from '@/hooks/useFormTracking';
 
 // Import des etapes
+import { getPricingProfile } from '@/lib/process-types';
 import { StepRequestType } from './steps/StepRequestType';
 import { StepIdentity } from './steps/StepIdentity';
 import { StepParents } from './steps/StepParents';
@@ -24,6 +26,7 @@ export interface IdentityCardFormProps {
   isSubscriber?: boolean;
   basePrice: number; // en centimes
   embedPartner?: string; // Si defini, mode embed sans auth
+  pricingCode?: string; // Code profil pricing (AB testing)
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -71,26 +74,39 @@ const SUMMARY_STEP: Step = {
 
 export function IdentityCardForm({
   isSubscriber = false,
-  basePrice,
+  basePrice: rawBasePrice,
   embedPartner,
+  pricingCode,
   onComplete,
   onCheckout,
 }: IdentityCardFormProps) {
   const isEmbed = !!embedPartner;
+  const isDirectAccess = embedPartner === 'direct'; // Acces direct sans auth (pas un embed externe)
+  const pricing = getPricingProfile(pricingCode);
+  const basePrice = pricing.basePrice;
 
   const STEPS = React.useMemo(() => {
     const steps = [...BASE_STEPS];
-    if (isEmbed) steps.push(CONTACT_STEP);
+    if (isEmbed && !isDirectAccess) steps.push(CONTACT_STEP); // Contact step seulement pour les vrais embeds externes
     steps.push(SUMMARY_STEP);
     return steps;
-  }, [isEmbed]);
+  }, [isEmbed, isDirectAccess]);
+
+  // Tracking analytics
+  const tracking = useFormTracking({
+    formType: 'IDENTITY_CARD',
+    partner: embedPartner || undefined,
+    pricingCode: pricingCode || undefined,
+    source: isEmbed ? (isDirectAccess ? 'direct' : 'embed') : 'direct',
+  });
 
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = React.useState(false);
-  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>('subscription');
-  const [subscriptionConsent, setSubscriptionConsent] = React.useState(false);
+  const initialPaymentMode: PaymentMode = pricing.paymentMode === 'one_time' ? 'one_time' : 'subscription';
+  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>(initialPaymentMode);
+  const [subscriptionConsent, setSubscriptionConsent] = React.useState(pricing.paymentMode === 'subscription');
 
   const methods = useForm<IdentityCardInput>({
     resolver: zodResolver(identityCardSchema),
@@ -134,7 +150,7 @@ export function IdentityCardForm({
         city: '',
         country: 'FR',
       },
-      contact: isEmbed ? {
+      contact: (isEmbed && !isDirectAccess) ? {
         email: '',
         firstName: '',
         lastName: '',
@@ -172,7 +188,7 @@ export function IdentityCardForm({
         valid = false;
       }
 
-      // Pere non inconnu : nom, prenom, ville requis
+      // Pere non inconnu : nom, prenom, date naissance, ville requis
       if (!values.fatherUnknown) {
         if (!values.fatherLastName?.trim()) {
           setFieldError('fatherLastName', { type: 'manual', message: 'Nom du pere requis' });
@@ -182,13 +198,17 @@ export function IdentityCardForm({
           setFieldError('fatherFirstName', { type: 'manual', message: 'Prénom du père requis' });
           valid = false;
         }
+        if (!values.fatherBirthDate || values.fatherBirthDate.length < 10 || values.fatherBirthDate.includes('0000') || values.fatherBirthDate.includes('-00')) {
+          setFieldError('fatherBirthDate', { type: 'manual', message: 'Date de naissance du pere requise' });
+          valid = false;
+        }
         if (!values.fatherBirthCity?.trim()) {
           setFieldError('fatherBirthCity', { type: 'manual', message: 'Ville de naissance du pere requise' });
           valid = false;
         }
       }
 
-      // Mere non inconnue : nom, prenom, ville requis
+      // Mere non inconnue : nom, prenom, date naissance, ville requis
       if (!values.motherUnknown) {
         if (!values.motherLastName?.trim()) {
           setFieldError('motherLastName', { type: 'manual', message: 'Nom de la mere requis' });
@@ -196,6 +216,10 @@ export function IdentityCardForm({
         }
         if (!values.motherFirstName?.trim()) {
           setFieldError('motherFirstName', { type: 'manual', message: 'Prénom de la mère requis' });
+          valid = false;
+        }
+        if (!values.motherBirthDate || values.motherBirthDate.length < 10 || values.motherBirthDate.includes('0000') || values.motherBirthDate.includes('-00')) {
+          setFieldError('motherBirthDate', { type: 'manual', message: 'Date de naissance de la mere requise' });
           valid = false;
         }
         if (!values.motherBirthCity?.trim()) {
@@ -257,12 +281,27 @@ export function IdentityCardForm({
     return true;
   };
 
+  // Track step changes
+  React.useEffect(() => {
+    tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
+  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll en haut — fonctionne en page directe ET en iframe
+  const scrollFormTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Si dans une iframe, demander au parent de scroller l'iframe en vue
+    if (window.parent !== window) {
+      window.parent.postMessage({ source: 'advercity-widget', type: 'scrollTop' }, '*');
+    }
+  };
+
   const handleNext = async () => {
     setError(null);
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
+      tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
@@ -270,7 +309,7 @@ export function IdentityCardForm({
     if (currentStep > 0) {
       setError(null);
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollFormTop();
     }
   };
 
@@ -281,16 +320,30 @@ export function IdentityCardForm({
     try {
       const stampTax = calculateStampTax(data.motif, data.deliveryAddress?.zipCode);
 
-      // Mode embed: endpoint public sans authentification
+      // Mode embed ou acces direct sans auth: endpoint public
       if (isEmbed) {
-        const response = await fetch('/api/embed/carte-identité', {
+        // En acces direct, construire le contact depuis les champs du formulaire
+        const submitData = isDirectAccess
+          ? {
+              ...data,
+              contact: {
+                email: data.email,
+                firstName: data.isTitulaire ? data.prenom : data.requesterFirstName,
+                lastName: data.isTitulaire ? data.nom : data.requesterLastName,
+                phone: data.telephone,
+              },
+            }
+          : data;
+
+        const response = await fetch('/api/embed/carte-identite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             partner: embedPartner,
+            pricingCode,
             paymentMode,
             subscriptionConsent,
-            data,
+            data: submitData,
           }),
         });
 
@@ -302,19 +355,16 @@ export function IdentityCardForm({
         }
 
         if (result.url) {
+          tracking.trackFormCompleted();
           onCheckout(result.url);
         } else if (result.reference) {
+          tracking.trackFormCompleted();
           onComplete(result.reference);
         }
         return;
       }
 
       // Mode connecte standard
-      if (!isSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
-        setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
-        setIsSubmitting(false);
-        return;
-      }
 
       if (isSubscriber && stampTax === 0) {
         // Abonne sans timbre fiscal : creation directe
@@ -325,6 +375,8 @@ export function IdentityCardForm({
             type: 'IDENTITY_CARD',
             isFromSubscription: true,
             stampTaxCents: 0,
+            pricingCode,
+            source: 'direct',
             data,
           }),
         });
@@ -336,6 +388,7 @@ export function IdentityCardForm({
           return;
         }
 
+        tracking.trackFormCompleted();
         onComplete(result.process.reference);
       } else if (isSubscriber && stampTax > 0) {
         // Abonne avec timbre fiscal : passer par checkout pour payer le timbre
@@ -347,6 +400,8 @@ export function IdentityCardForm({
             paymentMode: 'one_time',
             isFromSubscription: true,
             stampTaxCents: stampTax,
+            pricingCode,
+            source: 'direct',
             data,
           }),
         });
@@ -359,6 +414,7 @@ export function IdentityCardForm({
         }
 
         if (result.url) {
+          tracking.trackFormCompleted();
           onCheckout(result.url);
         }
       } else {
@@ -369,6 +425,8 @@ export function IdentityCardForm({
             type: 'IDENTITY_CARD',
             paymentMode,
             stampTaxCents: stampTax,
+            pricingCode,
+            source: 'direct',
             data,
           }),
         });
@@ -381,6 +439,7 @@ export function IdentityCardForm({
         }
 
         if (result.url) {
+          tracking.trackFormCompleted();
           onCheckout(result.url);
         }
       }
@@ -397,7 +456,7 @@ export function IdentityCardForm({
   const renderStepContent = () => {
     switch (STEPS[currentStep].id) {
       case 'requestType':
-        return <StepRequestType />;
+        return <StepRequestType onSelect={handleNext} />;
       case 'identity':
         return <StepIdentity />;
       case 'parents':
@@ -411,6 +470,7 @@ export function IdentityCardForm({
           <StepSummary
             isSubscriber={isSubscriber}
             basePrice={basePrice}
+            pricing={pricing}
             paymentMode={paymentMode}
             onPaymentModeChange={setPaymentMode}
             subscriptionConsent={subscriptionConsent}

@@ -23,7 +23,10 @@ export const claimerTypeSchema = z.enum([
 ]);
 
 // Civilite
-export const genderSchema = z.enum(['MALE', 'FEMALE']);
+export const genderSchema = z.enum(['MALE', 'FEMALE'], {
+  required_error: 'Veuillez selectionner la civilite',
+  invalid_type_error: 'Veuillez selectionner la civilite',
+});
 
 // --- Schemas par etape ---
 

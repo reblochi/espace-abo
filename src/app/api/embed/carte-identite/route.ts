@@ -16,6 +16,7 @@ const embedSubmitSchema = z.object({
   partner: z.string(),
   paymentMode: z.enum(['subscription', 'one_time']),
   subscriptionConsent: z.boolean().optional(),
+  pricingCode: z.string().optional(),
   data: identityCardSchema,
 });
 
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { partner, paymentMode, data } = parsed.data;
+    const { partner, paymentMode, pricingCode, data } = parsed.data;
 
     // Les coordonnees sont obligatoires en mode embed
     if (!data.contact) {
@@ -44,8 +45,13 @@ export async function POST(request: NextRequest) {
 
     const { email, firstName, lastName, phone } = data.contact;
 
-    // Trouver ou creer l'utilisateur par email
+    // Trouver l'utilisateur par email OU par telephone
     let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user && phone) {
+      const normalizedPhone = phone.replace(/[\s\-.]/g, '');
+      user = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
+    }
 
     if (!user) {
       const tempPassword = Math.random().toString(36).slice(-12);
@@ -87,6 +93,9 @@ export async function POST(request: NextRequest) {
           amountCents: stampTax, // Seul le timbre fiscal reste a payer pour les abonnes
           isFromSubscription: true,
           data: data as any,
+          partner,
+          pricingCode: pricingCode ?? null,
+          source: 'embed',
           updatedAt: new Date(),
         },
       });
@@ -112,6 +121,9 @@ export async function POST(request: NextRequest) {
         status: 'PENDING_PAYMENT',
         amountCents: totalPrice,
         data: data as any,
+        partner,
+        pricingCode: pricingCode ?? null,
+        source: 'embed',
         updatedAt: new Date(),
       },
     });

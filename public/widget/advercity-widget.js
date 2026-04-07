@@ -24,6 +24,7 @@
   var userConfig = window.ADVERCITY_CONFIG || {};
   var BASE_URL = userConfig.baseUrl || 'https://espace-abo.mesdemarchesapp.fr';
   var PARTNER = userConfig.partner || 'default';
+  var PRICING = userConfig.pricing || '';
 
   // Types de demarches supportees
   var FORM_TYPES = {
@@ -194,7 +195,9 @@
     injectStyles();
 
     var partner = options.partner || PARTNER;
+    var pricing = options.pricing || PRICING;
     var url = BASE_URL + config.path + '?partner=' + encodeURIComponent(partner);
+    if (pricing) url += '&pricing=' + encodeURIComponent(pricing);
 
     // Creer l'overlay
     var overlay = document.createElement('div');
@@ -325,6 +328,19 @@
           window.location.href = data.url;
         }
         break;
+      case 'resize':
+        // Adapter la hauteur de l'iframe au contenu
+        if (activeOverlay && data.height) {
+          var iframe = activeOverlay.querySelector('iframe');
+          if (iframe) iframe.style.height = data.height + 'px';
+        }
+        break;
+      case 'scrollTop':
+        // Scroller la modale ou l'iframe en haut
+        if (activeOverlay) {
+          activeOverlay.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        break;
     }
   }
 
@@ -341,7 +357,8 @@
           e.preventDefault();
           var formType = btn.getAttribute('data-advercity');
           var partner = btn.getAttribute('data-advercity-partner') || PARTNER;
-          open(formType, { partner: partner });
+          var pricing = btn.getAttribute('data-advercity-pricing') || PRICING;
+          open(formType, { partner: partner, pricing: pricing });
         });
       })(buttons[i]);
     }

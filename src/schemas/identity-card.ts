@@ -31,7 +31,10 @@ const frenchPostalCodeSchema = z.string()
 // --- Schemas par etape ---
 
 // Civilite
-export const genderSchema = z.enum(['MALE', 'FEMALE']);
+export const genderSchema = z.enum(['MALE', 'FEMALE'], {
+  required_error: 'Veuillez selectionner votre civilite',
+  invalid_type_error: 'Veuillez selectionner votre civilite',
+});
 
 // Etape 1: Motif de la demande
 export const requestTypeStepSchema = z.object({
@@ -187,6 +190,11 @@ export const identityCardSchema = z.object({
   message: 'Prenom du pere requis',
   path: ['fatherFirstName'],
 })
+// Si pere non inconnu, date de naissance requise
+.refine((data) => data.fatherUnknown || (data.fatherBirthDate && data.fatherBirthDate.length >= 10), {
+  message: 'Date de naissance du pere requise',
+  path: ['fatherBirthDate'],
+})
 // Si pere non inconnu, ville de naissance requise
 .refine((data) => data.fatherUnknown || (data.fatherBirthCity && data.fatherBirthCity.trim().length > 0), {
   message: 'Ville de naissance du pere requise',
@@ -200,6 +208,11 @@ export const identityCardSchema = z.object({
 .refine((data) => data.motherUnknown || (data.motherFirstName && data.motherFirstName.trim().length > 0), {
   message: 'Prenom de la mere requis',
   path: ['motherFirstName'],
+})
+// Si mere non inconnue, date de naissance requise
+.refine((data) => data.motherUnknown || (data.motherBirthDate && data.motherBirthDate.length >= 10), {
+  message: 'Date de naissance de la mere requise',
+  path: ['motherBirthDate'],
 })
 // Si mere non inconnue, ville de naissance requise
 .refine((data) => data.motherUnknown || (data.motherBirthCity && data.motherBirthCity.trim().length > 0), {

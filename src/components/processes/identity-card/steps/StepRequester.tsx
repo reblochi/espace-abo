@@ -5,6 +5,7 @@
 import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { genderLabels } from '@/types/identity-card';
+import { DateSelect } from '@/components/forms';
 import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
 import type { IdentityCardInput } from '@/schemas/identity-card';
 
@@ -110,11 +111,10 @@ export function StepRequester() {
           </div>
 
           <div>
-            <label className="form-gov-label">Date de naissance</label>
-            <input
-              type="date"
-              {...register('requesterBirthDate')}
-              className="form-gov-input"
+            <DateSelect
+              label="Date de naissance"
+              value={watch('requesterBirthDate') || ''}
+              onChange={(val) => setValue('requesterBirthDate', val, { shouldValidate: true })}
             />
           </div>
         </div>

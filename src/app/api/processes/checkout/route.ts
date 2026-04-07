@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false } = body;
+    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false, partner = null, pricingCode = null, source = null } = body;
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -236,6 +236,9 @@ export async function POST(request: NextRequest) {
           isFromSubscription,
           data,
           mandatoryFileTypes,
+          partner,
+          pricingCode,
+          source,
         },
       });
 
