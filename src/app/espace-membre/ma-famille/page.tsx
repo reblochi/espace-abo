@@ -3,7 +3,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, Input } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, Input, Select } from '@/components/ui';
+import { CityAutocomplete, type City } from '@/components/forms';
 import { showComingSoonToast, ComingSoonSection } from '@/components/ui/coming-soon';
 
 interface FamilyMember {
@@ -12,14 +13,20 @@ interface FamilyMember {
   lastName: string;
   relation: string;
   birthDate: string;
+  birthCityName?: string;
   email?: string;
   phone?: string;
 }
 
+const formatDate = (d: string) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; }
+};
+
 const mockFamily: FamilyMember[] = [
-  { id: '1', firstName: 'Marie', lastName: 'Dupont', relation: 'Conjoint(e)', birthDate: '1990-05-12', email: 'marie.dupont@email.com', phone: '06 12 34 56 78' },
-  { id: '2', firstName: 'Lucas', lastName: 'Dupont', relation: 'Enfant', birthDate: '2015-09-03' },
-  { id: '3', firstName: 'Emma', lastName: 'Dupont', relation: 'Enfant', birthDate: '2018-11-21' },
+  { id: '1', firstName: 'Marie', lastName: 'Dupont', relation: 'Conjoint(e)', birthDate: '1990-05-12', birthCityName: 'Lyon', email: 'marie.dupont@email.com', phone: '06 12 34 56 78' },
+  { id: '2', firstName: 'Lucas', lastName: 'Dupont', relation: 'Enfant', birthDate: '2015-09-03', birthCityName: 'Saint-Etienne' },
+  { id: '3', firstName: 'Emma', lastName: 'Dupont', relation: 'Enfant', birthDate: '2018-11-21', birthCityName: 'Saint-Etienne' },
 ];
 
 const getInitials = (first: string, last: string) =>
@@ -29,6 +36,7 @@ const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500',
 
 export default function MaFamillePage() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [newMemberBirthCity, setNewMemberBirthCity] = useState<City | null>(null);
 
   return (
     <div className="space-y-6">
@@ -66,8 +74,11 @@ export default function MaFamillePage() {
               </div>
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Date de naissance</dt>
-                  <dd className="text-gray-900">{member.birthDate}</dd>
+                  <dt className="text-gray-500">Naissance</dt>
+                  <dd className="text-gray-900">
+                    {formatDate(member.birthDate)}
+                    {member.birthCityName && ` a ${member.birthCityName}`}
+                  </dd>
                 </div>
                 {member.email && (
                   <div className="flex justify-between">
@@ -112,37 +123,29 @@ export default function MaFamillePage() {
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Ajouter un membre de la famille" size="md">
         <form onSubmit={(e) => { e.preventDefault(); setShowAddModal(false); showComingSoonToast(); }} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-              <Input placeholder="Prénom" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-              <Input placeholder="Nom" />
-            </div>
+            <Input label="Prenom" placeholder="Prenom" />
+            <Input label="Nom" placeholder="Nom" />
+          </div>
+          <Select label="Lien de parente">
+            <option value="conjoint">Conjoint(e)</option>
+            <option value="enfant">Enfant</option>
+            <option value="parent">Parent</option>
+            <option value="frere_soeur">Frere/Soeur</option>
+            <option value="autre">Autre</option>
+          </Select>
+          <div>
+            <Input label="Date de naissance" type="date" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lien de parente</label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-              <option>Conjoint(e)</option>
-              <option>Enfant</option>
-              <option>Parent</option>
-              <option>Frere/Soeur</option>
-              <option>Autre</option>
-            </select>
+            <CityAutocomplete
+              label="Commune de naissance"
+              variant="default"
+              value={newMemberBirthCity}
+              onChange={setNewMemberBirthCity}
+            />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
-            <Input type="date" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email (optionnel)</label>
-            <Input type="email" placeholder="email@exemple.com" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Telephone (optionnel)</label>
-            <Input type="tel" placeholder="06 00 00 00 00" />
-          </div>
+          <Input label="Email (optionnel)" type="email" placeholder="email@exemple.com" />
+          <Input label="Telephone (optionnel)" type="tel" placeholder="06 00 00 00 00" />
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAddModal(false)}>
               Annuler
