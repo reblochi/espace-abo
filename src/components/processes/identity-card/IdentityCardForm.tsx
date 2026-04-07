@@ -379,6 +379,11 @@ export function IdentityCardForm({
   const handlePrevious = () => {
     if (currentStep > 0) {
       setError(null);
+      // Si on revient sur l'etape requester ou contact, re-verifier l'abonnement au prochain "Continuer"
+      const targetStepId = STEPS[currentStep - 1]?.id;
+      if (targetStepId === 'requester' || targetStepId === 'contact') {
+        setDetectedSubscriber(false);
+      }
       setCurrentStep(currentStep - 1);
       scrollFormTop();
     }
