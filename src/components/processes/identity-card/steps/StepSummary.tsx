@@ -122,98 +122,43 @@ export function StepSummary({
         </div>
       )}
 
-      {/* Tarification - non-abonnes */}
-      {!isSubscriber && (
-        <div className="space-y-4">
-          {/* Timbre fiscal si applicable (detail separe) */}
-          {stampTax > 0 && (
-            <div className="bg-gray-50 border border-gray-200 p-5">
-              <div className="flex justify-between items-baseline">
-                <span className="text-base text-gray-900">Timbre fiscal (obligatoire)</span>
-                <span className="text-base font-semibold text-gray-900">{formatPrice(stampTax)}</span>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Le timbre fiscal est une taxe reglementaire qui reste a votre charge.
-              </p>
-            </div>
-          )}
-
-          {/* Mode 'subscription' : abo force, texte informatif */}
-          {pricing.paymentMode === 'subscription' && (
-            <div className="border-2 border-blue-700 bg-blue-50/50 p-5">
-              <p className="text-base text-gray-900 leading-snug">
-                Le traitement de votre demarche est realise dans le cadre du <strong>Service d'Assistance Administrative</strong> ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois).
-                L'abonnement inclut le traitement illimite de vos demarches administratives.
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Sans engagement — resiliable a tout moment depuis votre espace personnel, sans frais ni justificatif.
-              </p>
-            </div>
-          )}
-
-          {/* Mode 'both' : checkbox pour choisir */}
-          {pricing.paymentMode === 'both' && (
-            <div
-              onClick={() => {
-                const next = paymentMode === 'subscription' ? 'one_time' : 'subscription';
-                onPaymentModeChange(next);
-                if (next === 'one_time') onSubscriptionConsentChange(false);
-                if (next === 'subscription') onSubscriptionConsentChange(true);
-              }}
-              className={`
-                cursor-pointer border-2 p-5 transition-all
-                ${paymentMode === 'subscription'
-                  ? 'border-blue-700 bg-blue-50/50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-                }
-              `}
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex-shrink-0">
-                  <div className={`
-                    w-5 h-5 border-2 flex items-center justify-center
-                    ${paymentMode === 'subscription' ? 'border-blue-700 bg-blue-700' : 'border-gray-400 bg-white'}
-                  `}>
-                    {paymentMode === 'subscription' && (
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <p className="text-base text-gray-900 leading-snug">
-                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois.
-                    L'abonnement inclut le traitement illimite de mes demarches administratives.
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Sans engagement — resiliable a tout moment depuis mon espace personnel, sans frais ni justificatif.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mode 'one_time' : pas de proposition d'abo, rien a afficher */}
+      {/* Timbre fiscal si applicable (abonne ou non) */}
+      {stampTax > 0 && (
+        <div className="bg-gray-50 border border-gray-200 p-5">
+          <div className="flex justify-between items-baseline">
+            <span className="text-base text-gray-900">Timbre fiscal (obligatoire)</span>
+            <span className="text-base font-semibold text-gray-900">{formatPrice(stampTax)}</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Le timbre fiscal est une taxe reglementaire qui reste a votre charge.
+          </p>
         </div>
       )}
 
-      {/* Total */}
-      <div className="bg-gray-50 px-5 py-4 flex justify-between items-center border-l-4 border-l-blue-700">
-        <span className="font-semibold text-base text-gray-900">Total a payer</span>
-        <span className="font-semibold text-base text-gray-900">
-          {isSubscriber ? (
-            stampTax > 0 ? formatPrice(stampTax) : <span className="text-green-700">Inclus</span>
-          ) : paymentMode === 'subscription' ? (
-            formatPrice(SUBSCRIPTION_MONTHLY_PRICE + stampTax)
-          ) : (
-            formatPrice(totalBasePrice)
-          )}
-        </span>
-      </div>
-
-      {/* Consentements — 3 cases separees */}
+      {/* Consentements */}
       <div className="space-y-3">
+        {/* Souscription — meme style que les autres cases */}
+        {!isSubscriber && pricing.paymentMode !== 'one_time' && (
+          <div className={`form-gov-checkbox-group ${paymentMode === 'subscription' ? 'checked' : ''}`}>
+            <input
+              type="checkbox"
+              id="subscriptionOpt"
+              checked={paymentMode === 'subscription'}
+              onChange={(e) => {
+                onPaymentModeChange(e.target.checked ? 'subscription' : 'one_time');
+                onSubscriptionConsentChange(e.target.checked);
+              }}
+            />
+            <label htmlFor="subscriptionOpt">
+              Je souscris au Service d'Assistance Administrative a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois.
+              L'abonnement inclut le traitement illimite de mes demarches, sans engagement, resiliable a tout moment.
+              {paymentMode !== 'subscription' && (
+                <span className="text-gray-400"> (Sans abonnement : {formatPrice(basePrice)}{stampTax > 0 ? ` + ${formatPrice(stampTax)} timbre fiscal` : ''})</span>
+              )}
+            </label>
+          </div>
+        )}
+
         {/* CGV */}
         <div className={`form-gov-checkbox-group ${watch('consents.acceptTerms') ? 'checked' : ''}`}>
           <input
