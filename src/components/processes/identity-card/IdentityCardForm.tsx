@@ -636,12 +636,10 @@ export function IdentityCardForm({
                     methods.setValue('consents.certifyAccuracy', val);
                     methods.setValue('consents.retractationExecution', val);
                     methods.setValue('consents.retractationRenonciation', val);
-                    // Cocher aussi l'abo si disponible
                     if (pricing.paymentMode !== 'one_time') {
                       setPaymentMode('subscription');
                       setSubscriptionConsent(true);
                     }
-                    return;
                   }
                   setHasAttemptedSubmit(true);
                   handleSubmit(handleFormSubmit, (validationErrors) => {

@@ -485,7 +485,6 @@ export function BirthCertificateForm({
                   setPaymentMode('subscription');
                   setSubscriptionConsent(true);
                 }
-                return;
               }
               handleSubmit(handleFormSubmit, (validationErrors) => {
                 const messages: string[] = [];

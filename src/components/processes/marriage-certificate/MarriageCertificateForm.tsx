@@ -517,7 +517,6 @@ export function MarriageCertificateForm({
                   setPaymentMode('subscription');
                   setSubscriptionConsent(true);
                 }
-                return;
               }
               handleSubmit(handleFormSubmit, (validationErrors) => {
                 const messages: string[] = [];

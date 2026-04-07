@@ -472,7 +472,6 @@ export function DeathCertificateForm({
                   setPaymentMode('subscription');
                   setSubscriptionConsent(true);
                 }
-                return;
               }
               handleSubmit(handleFormSubmit, (validationErrors) => {
                 const messages: string[] = [];
