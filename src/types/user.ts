@@ -24,6 +24,10 @@ export interface Profile {
   firstName: string;
   lastName: string;
   phone: string | null;
+  birthDate: string | null;
+  birthCountryId: number | null;
+  birthCityId: number | null;
+  birthCityName: string | null;
   address: string | null;
   addressExtra: string | null;
   zipCode: string | null;
@@ -35,6 +39,10 @@ export interface UpdateProfileInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  birthDate?: string | null;
+  birthCountryId?: number | null;
+  birthCityId?: number | null;
+  birthCityName?: string | null;
   address?: string;
   addressExtra?: string;
   zipCode?: string;
