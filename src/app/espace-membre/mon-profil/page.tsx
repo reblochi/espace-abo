@@ -231,26 +231,27 @@ export default function MonProfilPage() {
 
         {/* Onglet Informations */}
         <TabsContent value="informations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations personnelles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profileSuccess && (
-                <Alert variant="success" className="mb-4">
-                  Vos informations ont ete mises à jour avec succes.
-                </Alert>
-              )}
-              {profileError && (
-                <Alert variant="error" className="mb-4">
-                  {profileError}
-                </Alert>
-              )}
+          <form onSubmit={handleProfileSubmit} className="space-y-6">
+            {profileSuccess && (
+              <Alert variant="success">
+                Vos informations ont ete mises a jour avec succes.
+              </Alert>
+            )}
+            {profileError && (
+              <Alert variant="error">
+                {profileError}
+              </Alert>
+            )}
 
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {/* Identite */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Identite</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
-                    label="Prénom"
+                    label="Prenom"
                     value={profileForm.firstName}
                     onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
                     required
@@ -263,6 +264,70 @@ export default function MonProfilPage() {
                   />
                 </div>
 
+                <DateSelect
+                  label="Date de naissance"
+                  value={profileForm.birthDate}
+                  onChange={(val) => setProfileForm({ ...profileForm, birthDate: val })}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Lieu de naissance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Lieu de naissance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pays de naissance</label>
+                  <select
+                    value={profileForm.birthCountryId === FRANCE_COUNTRY_ID ? '' : String(profileForm.birthCountryId || '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setProfileForm({ ...profileForm, birthCountryId: FRANCE_COUNTRY_ID, birthCityId: undefined, birthCityName: '' });
+                      } else {
+                        setProfileForm({ ...profileForm, birthCountryId: parseInt(val, 10), birthCityId: undefined, birthCityName: '' });
+                      }
+                      setBirthCity(null);
+                    }}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {countriesWithFrance.map((c) => (
+                      <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {profileForm.birthCountryId === FRANCE_COUNTRY_ID ? (
+                  <CityAutocomplete
+                    label="Commune de naissance"
+                    value={birthCity}
+                    onChange={(city) => {
+                      setBirthCity(city);
+                      if (city) {
+                        setProfileForm({ ...profileForm, birthCityId: city.id, birthCityName: city.name });
+                      } else {
+                        setProfileForm({ ...profileForm, birthCityId: undefined, birthCityName: '' });
+                      }
+                    }}
+                  />
+                ) : (
+                  <Input
+                    label="Ville de naissance"
+                    value={profileForm.birthCityName}
+                    onChange={(e) => setProfileForm({ ...profileForm, birthCityName: e.target.value, birthCityId: undefined })}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Coordonnees */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Coordonnees</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Input
                   label="Email"
                   type="email"
@@ -270,94 +335,41 @@ export default function MonProfilPage() {
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                   required
                 />
-
                 <Input
                   label="Telephone"
                   type="tel"
                   value={profileForm.phone}
                   onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                  placeholder="06 12 34 56 78"
                 />
+              </CardContent>
+            </Card>
 
-                {/* Naissance */}
-                <div className="pt-2 border-t">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Naissance</h3>
-                  <div className="space-y-4">
-                    <DateSelect
-                      label="Date de naissance"
-                      value={profileForm.birthDate}
-                      onChange={(val) => setProfileForm({ ...profileForm, birthDate: val })}
-                    />
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Pays de naissance</label>
-                      <select
-                        value={profileForm.birthCountryId === FRANCE_COUNTRY_ID ? '' : String(profileForm.birthCountryId || '')}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '') {
-                            setProfileForm({ ...profileForm, birthCountryId: FRANCE_COUNTRY_ID, birthCityId: undefined, birthCityName: '' });
-                          } else {
-                            setProfileForm({ ...profileForm, birthCountryId: parseInt(val, 10), birthCityId: undefined, birthCityName: '' });
-                          }
-                          setBirthCity(null);
-                        }}
-                        className="form-gov-select"
-                      >
-                        {countriesWithFrance.map((c) => (
-                          <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {profileForm.birthCountryId === FRANCE_COUNTRY_ID ? (
-                      <CityAutocomplete
-                        label="Commune de naissance"
-                        value={birthCity}
-                        onChange={(city) => {
-                          setBirthCity(city);
-                          if (city) {
-                            setProfileForm({ ...profileForm, birthCityId: city.id, birthCityName: city.name });
-                          } else {
-                            setProfileForm({ ...profileForm, birthCityId: undefined, birthCityName: '' });
-                          }
-                        }}
-                      />
-                    ) : (
-                      <Input
-                        label="Ville de naissance"
-                        value={profileForm.birthCityName}
-                        onChange={(e) => setProfileForm({ ...profileForm, birthCityName: e.target.value, birthCityId: undefined })}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Adresse */}
-                <div className="pt-2 border-t">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Adresse</h3>
-                </div>
-
+            {/* Adresse */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Adresse</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Input
                   label="Adresse"
                   value={profileForm.address}
                   onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                  placeholder="Numero et nom de rue"
                 />
-
                 <PostalCityAutocomplete
                   cpValue={profileForm.zipCode}
                   cityValue={profileForm.city}
                   onCpChange={(value) => setProfileForm({ ...profileForm, zipCode: value })}
                   onCityChange={(value) => setProfileForm({ ...profileForm, city: value })}
                 />
+              </CardContent>
+            </Card>
 
-                <div className="pt-4">
-                  <Button type="submit" disabled={isUpdating}>
-                    {isUpdating ? 'Enregistrement...' : 'Enregistrer les modifications'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+            <Button type="submit" disabled={isUpdating} className="w-full sm:w-auto">
+              {isUpdating ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </Button>
+          </form>
         </TabsContent>
 
         {/* Onglet Sécurité */}
