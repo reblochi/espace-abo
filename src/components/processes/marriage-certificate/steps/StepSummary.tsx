@@ -42,17 +42,6 @@ export function StepSummary({
   const showParents = formData.recordType === RecordType.COPIE_INTEGRALE
     || formData.recordType === RecordType.EXTRAIT_FILIATION;
 
-  const allConsentsAccepted = watch('consents.acceptTerms')
-    && watch('consents.acceptDataProcessing')
-    && watch('consents.certifyAccuracy');
-
-  const handleAllConsents = (checked: boolean) => {
-    const val = checked as unknown as true;
-    setValue('consents.acceptTerms', val, { shouldValidate: true });
-    setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
-    setValue('consents.certifyAccuracy', val, { shouldValidate: true });
-  };
-
   return (
     <div className="space-y-6">
       <div className="mb-6">
@@ -213,41 +202,66 @@ export function StepSummary({
         </div>
       </div>
 
-      {/* Consentements */}
+      {/* Consentements — 3 cases separees */}
       <div className="space-y-3">
-        <div className={`form-gov-checkbox-group ${allConsentsAccepted ? 'checked' : ''}`}>
+        {/* CGV */}
+        <div className={`form-gov-checkbox-group ${watch('consents.acceptTerms') ? 'checked' : ''}`}>
           <input
             type="checkbox"
-            id="allConsents"
-            checked={!!allConsentsAccepted}
-            onChange={(e) => handleAllConsents(e.target.checked)}
+            id="acceptTerms"
+            checked={!!watch('consents.acceptTerms')}
+            onChange={(e) => setValue('consents.acceptTerms', e.target.checked as unknown as true, { shouldValidate: true })}
           />
-          <label htmlFor="allConsents">
+          <label htmlFor="acceptTerms">
             J'accepte les{' '}
             <a href="/conditions-generales" target="_blank" className="text-blue-700 underline">
               conditions generales de vente
             </a>
-            , la{' '}
-            <a href="/politique-confidentialite" target="_blank" className="text-blue-700 underline">
-              politique de confidentialite
-            </a>
-            {' '}et le traitement de mes donnees personnelles conformement au RGPD.
-            Je certifie l'exactitude des informations fournies ci-dessus. *
+            {' '}et je certifie l'exactitude des informations fournies. *
           </label>
         </div>
+
+        {/* RGPD */}
+        <div className={`form-gov-checkbox-group ${watch('consents.acceptDataProcessing') ? 'checked' : ''}`}>
+          <input
+            type="checkbox"
+            id="acceptDataProcessing"
+            checked={!!watch('consents.acceptDataProcessing')}
+            onChange={(e) => {
+              const val = e.target.checked as unknown as true;
+              setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
+              setValue('consents.certifyAccuracy', val, { shouldValidate: true });
+            }}
+          />
+          <label htmlFor="acceptDataProcessing">
+            J'accepte le traitement de mes donnees personnelles conformement au RGPD et a la{' '}
+            <a href="/politique-confidentialite" target="_blank" className="text-blue-700 underline">
+              politique de confidentialite
+            </a>. *
+          </label>
+        </div>
+
+        {/* Retractation */}
+        <div className={`form-gov-checkbox-group ${watch('consents.retractationExecution') ? 'checked' : ''}`}>
+          <input
+            type="checkbox"
+            id="retractation"
+            checked={!!watch('consents.retractationExecution')}
+            onChange={(e) => {
+              const val = e.target.checked as unknown as true;
+              setValue('consents.retractationExecution', val, { shouldValidate: true });
+              setValue('consents.retractationRenonciation', val, { shouldValidate: true });
+            }}
+          />
+          <label htmlFor="retractation">
+            Je demande l'execution immediate du service et renonce a mon droit de retractation
+            conformement a l'article L221-28 du Code de la consommation. *
+          </label>
+        </div>
+
         {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
           <p className="form-gov-error-msg">Vous devez accepter les conditions pour continuer.</p>
         )}
-      </div>
-
-      {/* Droit de retractation */}
-      <div className="space-y-2 text-sm text-gray-600 bg-gray-50 p-4 border border-gray-200">
-        <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Droit de retractation</p>
-        <p>
-          Conformement a l'article L221-28 du Code de la consommation, je demande expressement
-          l'execution immediate du service de traitement de ma demarche administrative et reconnais
-          que je ne pourrai plus exercer mon droit de retractation une fois le service pleinement execute.
-        </p>
       </div>
 
       {/* Delai */}

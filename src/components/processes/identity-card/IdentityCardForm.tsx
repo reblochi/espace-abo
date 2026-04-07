@@ -626,6 +626,18 @@ export function IdentityCardForm({
                 </button>
               ) : (
                 <button type="button" disabled={isSubmitting} onClick={() => {
+                  // Si aucune case cochee, tout cocher d'abord
+                  const consents = methods.getValues('consents');
+                  const anyChecked = consents?.acceptTerms || consents?.acceptDataProcessing || consents?.retractationExecution;
+                  if (!anyChecked) {
+                    const val = true as unknown as true;
+                    methods.setValue('consents.acceptTerms', val);
+                    methods.setValue('consents.acceptDataProcessing', val);
+                    methods.setValue('consents.certifyAccuracy', val);
+                    methods.setValue('consents.retractationExecution', val);
+                    methods.setValue('consents.retractationRenonciation', val);
+                    return;
+                  }
                   setHasAttemptedSubmit(true);
                   handleSubmit(handleFormSubmit, (validationErrors) => {
                     const messages: string[] = [];
@@ -652,28 +664,21 @@ export function IdentityCardForm({
                       </svg>
                       Traitement...
                     </>
-                  ) : isSubscriber ? (
-                    <>
-                      Valider ma demande
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </>
-                  ) : paymentMode === 'subscription' ? (
-                    <>
-                      Souscrire et valider
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      Proceder au paiement
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </>
-                  )}
+                  ) : (() => {
+                    const c = methods.watch('consents');
+                    const anyChecked = c?.acceptTerms || c?.acceptDataProcessing || c?.retractationExecution;
+                    const effectiveSub = isSubscriber || detectedSubscriber;
+                    if (!anyChecked) {
+                      return <>Tout accepter et {effectiveSub ? 'valider' : paymentMode === 'subscription' ? 'souscrire' : 'payer'}</>;
+                    }
+                    if (effectiveSub) {
+                      return <>Valider ma demande <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></>;
+                    }
+                    if (paymentMode === 'subscription') {
+                      return <>Souscrire et valider <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></>;
+                    }
+                    return <>Proceder au paiement <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></>;
+                  })()}
                 </button>
               )}
             </div>

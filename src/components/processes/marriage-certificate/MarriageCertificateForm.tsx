@@ -126,6 +126,8 @@ export function MarriageCertificateForm({
         acceptTerms: false as unknown as true,
         acceptDataProcessing: false as unknown as true,
         certifyAccuracy: false as unknown as true,
+        retractationExecution: false as unknown as true,
+        retractationRenonciation: false as unknown as true,
       },
     },
     mode: 'onSubmit',
@@ -502,6 +504,17 @@ export function MarriageCertificateForm({
             </Button>
           ) : (
             <Button type="button" disabled={isSubmitting} onClick={() => {
+              const consents = methods.getValues('consents');
+              const allChecked = consents.acceptTerms && consents.acceptDataProcessing && consents.certifyAccuracy && consents.retractationExecution && consents.retractationRenonciation;
+              if (!allChecked) {
+                const val = true as unknown as true;
+                methods.setValue('consents.acceptTerms', val, { shouldValidate: true });
+                methods.setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
+                methods.setValue('consents.certifyAccuracy', val, { shouldValidate: true });
+                methods.setValue('consents.retractationExecution', val, { shouldValidate: true });
+                methods.setValue('consents.retractationRenonciation', val, { shouldValidate: true });
+                return;
+              }
               handleSubmit(handleFormSubmit, (validationErrors) => {
                 const messages: string[] = [];
                 const flatErrors = (obj: Record<string, unknown>): void => {
@@ -521,13 +534,22 @@ export function MarriageCertificateForm({
             }}>
               {isSubmitting ? (
                 'Traitement...'
-              ) : isSubscriber || detectedSubscriber ? (
-                'Valider ma demande'
-              ) : paymentMode === 'subscription' ? (
-                'Souscrire et valider ma demande'
-              ) : (
-                'Proceder au paiement'
-              )}
+              ) : (() => {
+                const consents = methods.getValues('consents');
+                const anyChecked = consents.acceptTerms || consents.acceptDataProcessing || consents.certifyAccuracy || consents.retractationExecution || consents.retractationRenonciation;
+                if (!anyChecked) {
+                  return isSubscriber || detectedSubscriber
+                    ? 'Tout accepter et valider'
+                    : paymentMode === 'subscription'
+                    ? 'Tout accepter et souscrire'
+                    : 'Tout accepter et payer';
+                }
+                return isSubscriber || detectedSubscriber
+                  ? 'Valider ma demande'
+                  : paymentMode === 'subscription'
+                  ? 'Souscrire et valider'
+                  : 'Proceder au paiement';
+              })()}
             </Button>
           )}
         </div>

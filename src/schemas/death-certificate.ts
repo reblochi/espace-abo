@@ -62,6 +62,8 @@ export const consentsStepSchema = z.object({
   acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter les conditions generales' }) }),
   acceptDataProcessing: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter le traitement des donnees' }) }),
   certifyAccuracy: z.literal(true, { errorMap: () => ({ message: 'Vous devez certifier l\'exactitude des informations' }) }),
+  retractationExecution: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter l\'execution immediate du service' }) }),
+  retractationRenonciation: z.literal(true, { errorMap: () => ({ message: 'Vous devez renoncer a votre droit de retractation' }) }),
 });
 
 // Contact (mode embed sans authentification)
