@@ -4,7 +4,6 @@
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { cn } from '@/lib/utils';
 import {
   recordTypeLabels,
   claimerTypeLabels,
@@ -18,7 +17,7 @@ export type PaymentMode = 'subscription' | 'one_time';
 
 interface StepSummaryProps {
   isSubscriber: boolean;
-  basePrice: number; // en centimes
+  basePrice: number;
   pricing: PricingProfile;
   paymentMode: PaymentMode;
   onPaymentModeChange: (mode: PaymentMode) => void;
@@ -53,39 +52,44 @@ export function StepSummary({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Recapitulatif de votre demande
+        </h2>
+        <p className="form-gov-hint">
+          Verifiez les informations avant de valider
+        </p>
+      </div>
+
       {/* Recapitulatif */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="space-y-3">
         <SummaryCard title="Type d'acte">
-          <p className="font-medium">{recordTypeLabels[formData.recordType]}</p>
-          <p className="text-sm text-gray-500">{formData.recordCount} copie(s)</p>
+          <p className="text-base font-medium">{recordTypeLabels[formData.recordType]}</p>
+          <p className="form-gov-hint">{formData.recordCount} copie(s)</p>
         </SummaryCard>
 
         <SummaryCard title="Deces">
-          <p className="font-medium">
-            Le {formatDate(formData.deathDate)}
-          </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-base font-medium">Le {formatDate(formData.deathDate)}</p>
+          <p className="form-gov-hint">
             a {formData.deathCityName}
             {formData.deathCountryId === FRANCE_COUNTRY_ID ? '' : ' (etranger)'}
           </p>
         </SummaryCard>
 
         <SummaryCard title="Personne decedee">
-          <p className="font-medium">
+          <p className="text-base font-medium">
             {genderLabels[formData.gender]} {formData.firstName} {formData.lastName}
           </p>
-          <p className="text-sm text-gray-500">
-            Ne(e) le {formatDate(formData.birthDate)}
-          </p>
+          <p className="form-gov-hint">Ne(e) le {formatDate(formData.birthDate)}</p>
         </SummaryCard>
 
         <SummaryCard title="Lien avec le defunt">
-          <p className="font-medium">{claimerTypeLabels[formData.claimerType]}</p>
+          <p className="text-base">{claimerTypeLabels[formData.claimerType]}</p>
         </SummaryCard>
 
-        <SummaryCard title="Adresse de livraison" className="lg:col-span-2">
-          <p className="text-sm">
+        <SummaryCard title="Adresse de livraison">
+          <p className="text-base">
             {formData.deliveryAddress.street}, {formData.deliveryAddress.zipCode} {formData.deliveryAddress.city}
           </p>
         </SummaryCard>
@@ -94,9 +98,24 @@ export function StepSummary({
       {/* Tarification - non-abonnes */}
       {!isSubscriber && (
         <div className="space-y-4">
+          {/* Detail des frais */}
+          <div className="bg-gray-50 border border-gray-200 p-5">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Frais de traitement</h3>
+            <div className="flex justify-between items-baseline">
+              <span className="text-base text-gray-900">Traitement de votre demarche</span>
+              {pricing.paymentMode === 'subscription' ? (
+                <span className="text-base font-semibold text-green-700">Inclus</span>
+              ) : (
+                <span className={`text-base font-semibold ${paymentMode === 'subscription' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                  {formatPrice(basePrice)}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Mode 'subscription' : abo force, texte informatif */}
           {pricing.paymentMode === 'subscription' && (
-            <div className="border-2 border-blue-600 bg-blue-50/40 p-4 rounded-lg">
+            <div className="border-2 border-blue-700 bg-blue-50/50 p-5">
               <p className="text-base text-gray-900 leading-snug">
                 Le traitement de votre demarche est realise dans le cadre du <strong>Service d'Assistance Administrative</strong> ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois).
                 L'abonnement inclut le traitement illimite de vos demarches administratives.
@@ -109,58 +128,49 @@ export function StepSummary({
 
           {/* Mode 'both' : checkbox pour choisir */}
           {pricing.paymentMode === 'both' && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Formule de traitement</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Abonnement */}
-                <button
-                  type="button"
-                  onClick={() => onPaymentModeChange('subscription')}
-                  className={cn(
-                    'text-left rounded-lg border-2 p-4 transition-all',
-                    paymentMode === 'subscription'
-                      ? 'border-blue-600 bg-blue-50/40'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <RadioDot selected={paymentMode === 'subscription'} />
-                      <span className="font-medium text-gray-900">Abonnement</span>
-                    </div>
-                    <span className="text-xs font-medium bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
-                      Recommande
-                    </span>
+            <div
+              onClick={() => {
+                const next = paymentMode === 'subscription' ? 'one_time' : 'subscription';
+                onPaymentModeChange(next);
+                if (next === 'one_time') onSubscriptionConsentChange(false);
+                if (next === 'subscription') onSubscriptionConsentChange(true);
+              }}
+              className={`
+                cursor-pointer border-2 p-5 transition-all
+                ${paymentMode === 'subscription'
+                  ? 'border-blue-700 bg-blue-50/50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+                }
+              `}
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex-shrink-0">
+                  <div className={`
+                    w-5 h-5 border-2 flex items-center justify-center
+                    ${paymentMode === 'subscription' ? 'border-blue-700 bg-blue-700' : 'border-gray-400 bg-white'}
+                  `}>
+                    {paymentMode === 'subscription' && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </div>
-                  <p className="text-xl font-bold text-gray-900 ml-7">
-                    {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}<span className="text-sm font-normal text-gray-500">/mois</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base text-gray-900 leading-snug">
+                    <strong>Je souscris au Service d'Assistance Administrative</strong> a {formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois
+                    au lieu de payer {formatPrice(basePrice)} pour cette demarche.
+                    L'abonnement inclut le traitement illimite de mes demarches administratives.
                   </p>
-                  <p className="text-xs text-gray-500 ml-7 mt-0.5">Demarche incluse - Sans engagement</p>
-                  {savings > 0 && (
-                    <p className="text-xs font-medium text-green-700 ml-7 mt-1">
-                      Economie de {formatPrice(savings)}
+                  <p className="text-sm text-gray-500 mt-2">
+                    Sans engagement — resiliable a tout moment depuis mon espace personnel, sans frais ni justificatif.
+                  </p>
+                  {paymentMode === 'subscription' && savings > 0 && (
+                    <p className="text-sm font-semibold text-green-700 mt-2">
+                      Economie immediate de {formatPrice(savings)} sur cette demarche
                     </p>
                   )}
-                </button>
-
-                {/* Paiement unique */}
-                <button
-                  type="button"
-                  onClick={() => onPaymentModeChange('one_time')}
-                  className={cn(
-                    'text-left rounded-lg border-2 p-4 transition-all',
-                    paymentMode === 'one_time'
-                      ? 'border-blue-600 bg-blue-50/40'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <RadioDot selected={paymentMode === 'one_time'} />
-                    <span className="font-medium text-gray-900">Paiement unique</span>
-                  </div>
-                  <p className="text-xl font-bold text-gray-900 ml-7">{formatPrice(basePrice)}</p>
-                  <p className="text-xs text-gray-500 ml-7 mt-0.5">Cette demarche uniquement</p>
-                </button>
+                </div>
               </div>
             </div>
           )}
@@ -170,12 +180,12 @@ export function StepSummary({
       )}
 
       {/* Total */}
-      <div className="bg-gray-50 rounded-lg px-5 py-3 flex justify-between items-center">
-        <span className="font-medium text-gray-900">Total a payer</span>
+      <div className="bg-gray-50 px-5 py-4 flex justify-between items-center border-l-4 border-l-blue-700">
+        <span className="font-semibold text-base text-gray-900">Total a payer</span>
         <div className="text-right">
-          <span className="text-lg font-bold text-blue-600">
+          <span className="text-xl font-bold text-blue-700">
             {isSubscriber ? (
-              <span className="text-green-600">Inclus</span>
+              <span className="text-green-700">Inclus</span>
             ) : paymentMode === 'subscription' ? (
               formatPrice(SUBSCRIPTION_MONTHLY_PRICE)
             ) : (
@@ -183,86 +193,59 @@ export function StepSummary({
             )}
           </span>
           {!isSubscriber && paymentMode === 'subscription' && (
-            <span className="block text-xs text-green-600">
+            <span className="block text-sm text-green-700 font-semibold">
               au lieu de {formatPrice(basePrice)}
             </span>
           )}
           {isSubscriber && (
-            <span className="block text-xs text-green-600">
+            <span className="block text-sm text-green-700 font-semibold">
               Economie de {formatPrice(basePrice)}
             </span>
           )}
         </div>
       </div>
 
-      {/* Validation */}
+      {/* Consentements */}
       <div className="space-y-3">
-        {/* Consentement global */}
-        <label className={cn(
-          'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-          allConsentsAccepted
-            ? 'border-blue-200 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300'
-        )}>
+        <div className={`form-gov-checkbox-group ${allConsentsAccepted ? 'checked' : ''}`}>
           <input
             type="checkbox"
+            id="allConsents"
             checked={!!allConsentsAccepted}
             onChange={(e) => handleAllConsents(e.target.checked)}
-            className="mt-0.5"
           />
-          <span className="text-sm text-gray-700">
+          <label htmlFor="allConsents">
             J'accepte les{' '}
-            <a href="/conditions-generales" target="_blank" className="text-blue-600 underline">
+            <a href="/conditions-generales" target="_blank" className="text-blue-700 underline">
               conditions generales de vente
             </a>
             , la{' '}
-            <a href="/politique-confidentialite" target="_blank" className="text-blue-600 underline">
+            <a href="/politique-confidentialite" target="_blank" className="text-blue-700 underline">
               politique de confidentialite
             </a>
-            {' '}et le traitement de mes donnees (RGPD). Je certifie l'exactitude des informations fournies. *
-          </span>
-        </label>
-        {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
-          <p className="text-sm text-red-600">Vous devez accepter les conditions pour continuer.</p>
-        )}
-
-        {/* Consentement abonnement */}
-        {!isSubscriber && paymentMode === 'subscription' && (
-          <label className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            subscriptionConsent
-              ? 'border-blue-200 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          )}>
-            <input
-              type="checkbox"
-              checked={subscriptionConsent}
-              onChange={(e) => onSubscriptionConsentChange(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span className="text-sm text-gray-700">
-              Je souscris a l'abonnement mensuel Assistance Administrative ({formatPrice(SUBSCRIPTION_MONTHLY_PRICE)}/mois),
-              resiliable a tout moment depuis mon espace membre, sans frais. *
-            </span>
+            {' '}et le traitement de mes donnees personnelles conformement au RGPD.
+            Je certifie l'exactitude des informations fournies ci-dessus. *
           </label>
+        </div>
+        {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
+          <p className="form-gov-error-msg">Vous devez accepter les conditions pour continuer.</p>
         )}
       </div>
 
+      {/* Droit de retractation */}
+      <div className="space-y-2 text-sm text-gray-600 bg-gray-50 p-4 border border-gray-200">
+        <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Droit de retractation</p>
+        <p>
+          Conformement a l'article L221-28 du Code de la consommation, je demande expressement
+          l'execution immediate du service de traitement de ma demarche administrative et reconnais
+          que je ne pourrai plus exercer mon droit de retractation une fois le service pleinement execute.
+        </p>
+      </div>
+
       {/* Delai */}
-      <p className="text-xs text-gray-500">
+      <p className="form-gov-hint">
         Traitement sous 3 a 5 jours ouvres apres validation. Envoi par courrier a l'adresse indiquee.
       </p>
-    </div>
-  );
-}
-
-function RadioDot({ selected }: { selected: boolean }) {
-  return (
-    <div className={cn(
-      'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-      selected ? 'border-blue-600' : 'border-gray-300'
-    )}>
-      {selected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
     </div>
   );
 }
@@ -270,15 +253,13 @@ function RadioDot({ selected }: { selected: boolean }) {
 function SummaryCard({
   title,
   children,
-  className,
 }: {
   title: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={cn('bg-white rounded-lg border p-3', className)}>
-      <h4 className="text-xs font-medium text-gray-500 mb-1">{title}</h4>
+    <div className="bg-white border-l-4 border-l-gray-300 p-4">
+      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">{title}</h4>
       {children}
     </div>
   );
