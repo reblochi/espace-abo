@@ -513,6 +513,10 @@ export function MarriageCertificateForm({
                 methods.setValue('consents.certifyAccuracy', val, { shouldValidate: true });
                 methods.setValue('consents.retractationExecution', val, { shouldValidate: true });
                 methods.setValue('consents.retractationRenonciation', val, { shouldValidate: true });
+                if (pricing.paymentMode !== 'one_time') {
+                  setPaymentMode('subscription');
+                  setSubscriptionConsent(true);
+                }
                 return;
               }
               handleSubmit(handleFormSubmit, (validationErrors) => {
