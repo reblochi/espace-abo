@@ -3,6 +3,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -88,6 +89,7 @@ export function IdentityCardForm({
   onComplete,
   onCheckout,
 }: IdentityCardFormProps) {
+  const { data: session } = useSession();
   const isEmbed = !!embedPartner;
   const isDirectAccess = embedPartner === 'direct'; // Acces direct sans auth (pas un embed externe)
   const pricing = getPricingProfile(pricingCode);
@@ -183,6 +185,19 @@ export function IdentityCardForm({
   });
 
   const { handleSubmit, trigger, getValues, setError: setFieldError, formState: { errors: formErrors } } = methods;
+
+  // Pre-remplir les infos depuis la session
+  React.useEffect(() => {
+    if (!session?.user) return;
+    const nameParts = session.user.name?.split(' ') || [];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const current = methods.getValues();
+    if (!current.nom) methods.setValue('nom', lastName);
+    if (!current.prenom) methods.setValue('prenom', firstName);
+    if (!current.email) methods.setValue('email', session.user.email || '');
+    if (!current.emailConfirm) methods.setValue('emailConfirm', session.user.email || '');
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Validation de l'etape courante (champs individuels + validations cross-champs)
   const validateCurrentStep = async (): Promise<boolean> => {
