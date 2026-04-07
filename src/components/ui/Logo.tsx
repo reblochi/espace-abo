@@ -24,23 +24,20 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
     return linked ? <Link href="/">{content}</Link> : content;
   }
 
-  // sm/md = icone + texte "FranceGuichet" pour headers
-  const iconSize = size === 'sm' ? 28 : 36;
-  const textSize = size === 'sm' ? 'text-lg' : 'text-xl';
+  // sm/md = logo horizontal (le logo contient deja le texte "France Guichet")
+  const logoWidth = size === 'sm' ? 160 : 200;
+  const logoHeight = size === 'sm' ? 40 : 48;
 
   const content = (
-    <span className={cn('flex items-center gap-2', className)}>
+    <span className={cn('flex items-center', className)}>
       <Image
         src="/logo-franceguichet.png"
-        alt="FranceGuichet"
-        width={iconSize}
-        height={iconSize}
+        alt="FranceGuichet - Service d'Aide aux Formalites"
+        width={logoWidth}
+        height={logoHeight}
         className="object-contain"
         priority
       />
-      <span className={cn('font-bold text-[#1a2e5a]', textSize)}>
-        FranceGuichet <span className="hidden sm:inline font-normal text-sm text-gray-500">Service d'Aide aux Formalites</span>
-      </span>
     </span>
   );
 
