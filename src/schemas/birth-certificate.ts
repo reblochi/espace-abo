@@ -150,11 +150,11 @@ export function mapBirthCertificateToAdvercity(
     birthCityName: input.birthCityName,
     // Parents
     fatherUnknown: input.fatherUnknown,
-    fatherFirstName: input.fatherFirstName,
-    fatherLastName: input.fatherLastName,
+    fatherFirstName: input.fatherUnknown ? 'inconnu' : input.fatherFirstName,
+    fatherLastName: input.fatherUnknown ? 'inconnu' : input.fatherLastName,
     motherUnknown: input.motherUnknown,
-    motherFirstName: input.motherFirstName,
-    motherLastName: input.motherLastName,
+    motherFirstName: input.motherUnknown ? 'inconnu' : input.motherFirstName,
+    motherLastName: input.motherUnknown ? 'inconnu' : input.motherLastName,
     // Demandeur
     customer: {
       firstName: user.firstName,

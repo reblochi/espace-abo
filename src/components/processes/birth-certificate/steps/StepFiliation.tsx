@@ -2,10 +2,8 @@
 
 'use client';
 
-import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { cn } from '@/lib/utils';
-import { ClaimerType, claimerTypeLabels, RecordType } from '@/types/birth-certificate';
+import { claimerTypeLabels, RecordType } from '@/types/birth-certificate';
 import type { BirthCertificateInput } from '@/schemas/birth-certificate';
 
 export function StepFiliation() {
@@ -20,179 +18,190 @@ export function StepFiliation() {
   const showParents = recordType === RecordType.COPIE_INTEGRALE || recordType === RecordType.EXTRAIT_FILIATION;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Lien avec le beneficiaire */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-4">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Votre lien avec le beneficiaire
+        </h2>
+        <p className="form-gov-hint">
           Quel est votre lien avec la personne concernee par l'acte ?
-        </h3>
-        <div className="space-y-2">
-          {(Object.entries(claimerTypeLabels) as [string, string][]).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setValue('claimerType', value as BirthCertificateInput['claimerType'], { shouldValidate: true })}
-              className={cn(
-                'w-full flex items-center p-3 rounded-lg border-2 text-left text-sm transition-all',
-                selectedClaimerType === value
-                  ? 'border-blue-600 bg-blue-50 text-blue-900'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
-              )}
-            >
-              <div className={cn(
-                'w-4 h-4 rounded-full border-2 mr-3 flex-shrink-0',
-                selectedClaimerType === value
-                  ? 'border-blue-600 bg-blue-600'
-                  : 'border-gray-300'
-              )}>
-                {selectedClaimerType === value && (
-                  <div className="w-full h-full rounded-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                  </div>
-                )}
-              </div>
-              {label}
-            </button>
-          ))}
-        </div>
-        {errors.claimerType && (
-          <p className="mt-2 text-sm text-red-600">{errors.claimerType.message}</p>
-        )}
+        </p>
       </div>
+
+      <div className="space-y-2">
+        {(Object.entries(claimerTypeLabels) as [string, string][]).map(([value, label]) => (
+          <label
+            key={value}
+            onClick={() => setValue('claimerType', value as BirthCertificateInput['claimerType'], { shouldValidate: true })}
+            className={`
+              flex items-center p-4 cursor-pointer transition-colors duration-150 border-l-4
+              ${selectedClaimerType === value
+                ? 'bg-blue-50 border-l-blue-700'
+                : 'bg-gray-50 border-l-transparent hover:bg-blue-50/50'
+              }
+            `}
+          >
+            <input
+              type="radio"
+              value={value}
+              checked={selectedClaimerType === value}
+              onChange={() => setValue('claimerType', value as BirthCertificateInput['claimerType'], { shouldValidate: true })}
+              className="sr-only"
+            />
+            <div className={`
+              w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center flex-shrink-0
+              ${selectedClaimerType === value ? 'border-blue-700' : 'border-gray-500'}
+            `}>
+              {selectedClaimerType === value && (
+                <div className="w-3 h-3 rounded-full bg-blue-700" />
+              )}
+            </div>
+            <span className={`text-base ${selectedClaimerType === value ? 'font-semibold text-gray-900' : 'text-gray-900'}`}>
+              {label}
+            </span>
+          </label>
+        ))}
+      </div>
+      {errors.claimerType && (
+        <p className="form-gov-error-msg">{errors.claimerType.message}</p>
+      )}
 
       {/* Informations parents (conditionnel) */}
       {showParents && (
-        <div className="space-y-6">
-          <div className="border-t pt-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-1">Informations des parents</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Ces informations sont requises pour une copie integrale ou un extrait avec filiation.
+        <div className="space-y-6 border-t border-gray-200 pt-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Informations sur les parents
+            </h2>
+            <p className="form-gov-hint">
+              Requises pour une copie integrale ou un extrait avec filiation.
             </p>
           </div>
 
           {/* Pere */}
-          <div className="p-4 bg-gray-50 rounded-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900">Pere</h4>
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fatherUnknown}
-                  onChange={(e) => {
-                    setValue('fatherUnknown', e.target.checked, { shouldValidate: true });
-                    if (e.target.checked) {
-                      setValue('fatherFirstName', '');
-                      setValue('fatherLastName', '');
-                    }
-                  }}
-                  className="rounded border-gray-300"
-                />
-                Pere inconnu
-              </label>
+          <div className="space-y-4">
+            <h3 className="form-gov-section-title">Pere</h3>
+
+            <div className={`form-gov-checkbox-group ${fatherUnknown ? 'checked' : ''} ${fatherUnknown && motherUnknown ? 'border-2 border-red-600' : ''}`}>
+              <input
+                type="checkbox"
+                id="fatherUnknown"
+                checked={fatherUnknown}
+                onChange={(e) => {
+                  setValue('fatherUnknown', e.target.checked, { shouldValidate: true });
+                  if (e.target.checked) {
+                    setValue('fatherFirstName', '');
+                    setValue('fatherLastName', '');
+                  }
+                }}
+              />
+              <label htmlFor="fatherUnknown">Pere inconnu ou non mentionne sur l'acte de naissance</label>
             </div>
 
             {!fatherUnknown && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-                  <input
-                    type="text"
-                    {...register('fatherFirstName')}
-                    className={cn(
-                      'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm',
-                      'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                      errors.fatherFirstName && 'border-red-500 focus:ring-red-500'
+              <div className="space-y-4 p-4 bg-gray-50">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-gov-label">
+                      Prenom du pere <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register('fatherFirstName')}
+                      className={`form-gov-input ${errors.fatherFirstName ? 'form-gov-error' : ''}`}
+                    />
+                    {errors.fatherFirstName && (
+                      <p className="form-gov-error-msg">{errors.fatherFirstName.message}</p>
                     )}
-                    placeholder="Prenom du pere"
-                  />
-                  {errors.fatherFirstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.fatherFirstName.message}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                  <input
-                    type="text"
-                    {...register('fatherLastName')}
-                    className={cn(
-                      'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm',
-                      'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                      errors.fatherLastName && 'border-red-500 focus:ring-red-500'
+                  </div>
+                  <div>
+                    <label className="form-gov-label">
+                      Nom du pere <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register('fatherLastName')}
+                      className={`form-gov-input ${errors.fatherLastName ? 'form-gov-error' : ''}`}
+                    />
+                    {errors.fatherLastName && (
+                      <p className="form-gov-error-msg">{errors.fatherLastName.message}</p>
                     )}
-                    placeholder="Nom du pere"
-                  />
-                  {errors.fatherLastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.fatherLastName.message}</p>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* Mere */}
-          <div className="p-4 bg-gray-50 rounded-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900">Mere</h4>
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={motherUnknown}
-                  onChange={(e) => {
-                    setValue('motherUnknown', e.target.checked, { shouldValidate: true });
-                    if (e.target.checked) {
-                      setValue('motherFirstName', '');
-                      setValue('motherLastName', '');
-                    }
-                  }}
-                  className="rounded border-gray-300"
-                />
-                Mere inconnue
-              </label>
+          <div className="space-y-4">
+            <h3 className="form-gov-section-title">Mere</h3>
+
+            <div className={`form-gov-checkbox-group ${motherUnknown ? 'checked' : ''} ${fatherUnknown && motherUnknown ? 'border-2 border-red-600' : ''}`}>
+              <input
+                type="checkbox"
+                id="motherUnknown"
+                checked={motherUnknown}
+                onChange={(e) => {
+                  setValue('motherUnknown', e.target.checked, { shouldValidate: true });
+                  if (e.target.checked) {
+                    setValue('motherFirstName', '');
+                    setValue('motherLastName', '');
+                  }
+                }}
+              />
+              <label htmlFor="motherUnknown">Mere inconnue ou non mentionnee sur l'acte de naissance</label>
             </div>
 
             {!motherUnknown && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-                  <input
-                    type="text"
-                    {...register('motherFirstName')}
-                    className={cn(
-                      'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm',
-                      'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                      errors.motherFirstName && 'border-red-500 focus:ring-red-500'
+              <div className="space-y-4 p-4 bg-gray-50">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-gov-label">
+                      Prenom de la mere <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register('motherFirstName')}
+                      className={`form-gov-input ${errors.motherFirstName ? 'form-gov-error' : ''}`}
+                    />
+                    {errors.motherFirstName && (
+                      <p className="form-gov-error-msg">{errors.motherFirstName.message}</p>
                     )}
-                    placeholder="Prenom de la mere"
-                  />
-                  {errors.motherFirstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.motherFirstName.message}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                  <input
-                    type="text"
-                    {...register('motherLastName')}
-                    className={cn(
-                      'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm',
-                      'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                      errors.motherLastName && 'border-red-500 focus:ring-red-500'
+                  </div>
+                  <div>
+                    <label className="form-gov-label">
+                      Nom de la mere <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register('motherLastName')}
+                      className={`form-gov-input ${errors.motherLastName ? 'form-gov-error' : ''}`}
+                    />
+                    {errors.motherLastName && (
+                      <p className="form-gov-error-msg">{errors.motherLastName.message}</p>
                     )}
-                    placeholder="Nom de la mere"
-                  />
-                  {errors.motherLastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.motherLastName.message}</p>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Erreur : les deux parents inconnus */}
+          {fatherUnknown && motherUnknown && (
+            <div className="p-4 bg-red-50 border-l-4 border-l-red-600">
+              <p className="text-base text-red-800 font-semibold">
+                Les deux parents ne peuvent pas etre inconnus simultanement.
+                Au moins un parent doit etre renseigne.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       {/* Info si pas de parents demandes */}
       {!showParents && (
-        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="p-4 bg-gray-50 border-l-4 border-l-gray-300">
           <p className="text-sm text-gray-600">
             Pour le type d'extrait selectionne, les informations des parents ne sont pas requises.
           </p>

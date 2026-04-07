@@ -117,7 +117,7 @@ export function BirthCertificateForm({
     resolver: zodResolver(birthCertificateSchema),
     defaultValues: {
       recordType: RecordType.COPIE_INTEGRALE,
-      recordCount: 1,
+      recordCount: 3,
       gender: undefined,
       firstName: '',
       lastName: '',
