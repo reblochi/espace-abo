@@ -46,7 +46,7 @@ export function CityAutocomplete({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const formatCity = (city: City) =>
-    city.postal_code ? formatCity(city) : city.name;
+    city.postal_code ? `${city.name} (${city.postal_code})` : city.name;
 
   // Synchroniser l'input avec la valeur selectionnee
   useEffect(() => {
