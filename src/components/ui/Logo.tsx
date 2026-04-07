@@ -13,7 +13,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
   if (size === 'lg') {
     const content = (
       <Image
-        src="/logo-saf.png"
+        src="/logo-franceguichet.png"
         alt="FranceGuichet - Service d'Aide aux Formalites"
         width={160}
         height={120}
@@ -31,7 +31,7 @@ export function Logo({ size = 'md', className, linked = true }: LogoProps) {
   const content = (
     <span className={cn('flex items-center gap-2', className)}>
       <Image
-        src="/logo-saf.png"
+        src="/logo-franceguichet.png"
         alt="FranceGuichet"
         width={iconSize}
         height={iconSize}
