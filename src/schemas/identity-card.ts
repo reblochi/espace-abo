@@ -41,6 +41,7 @@ export const requestTypeStepSchema = z.object({
   motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '21'], {
     required_error: 'Veuillez selectionner un motif',
   }),
+  case2004: z.boolean().default(false),
 });
 
 // Etape 2: Identite du titulaire
@@ -51,8 +52,8 @@ export const identityStepSchema = z.object({
     (val) => !val || NOM_REGEX.test(val),
     { message: NOM_ERROR }
   ),
-  typeNomUsage: z.enum(['Pere', 'Mere', 'Epoux', 'Epouse']).optional().nullable(),
-  motAdditionnelNom: z.enum(['Epoux', 'Veuf']).optional().nullable(),
+  typeNomUsage: z.preprocess((val) => (val === '' ? undefined : val), z.enum(['Pere', 'Mere', 'Epoux', 'Epouse']).optional().nullable()),
+  motAdditionnelNom: z.preprocess((val) => (val === '' ? undefined : val), z.enum(['Epoux', 'Veuf']).optional().nullable()),
   prenom: z.string().min(1, 'Prenom requis').max(150).regex(NOM_REGEX, NOM_ERROR),
   birthDate: z.string().min(1, 'Date de naissance requise'),
   birthCountryId: z.number().int().positive('Pays de naissance requis'),
@@ -121,12 +122,16 @@ export const consentsStepSchema = z.object({
   acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter les conditions generales' }) }),
   acceptDataProcessing: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter le traitement des donnees' }) }),
   certifyAccuracy: z.literal(true, { errorMap: () => ({ message: 'Vous devez certifier l\'exactitude des informations' }) }),
+  retractationExecution: z.literal(true, { errorMap: () => ({ message: 'Vous devez accepter l\'execution immediate du service' }) }),
+  retractationRenonciation: z.literal(true, { errorMap: () => ({ message: 'Vous devez renoncer a votre droit de retractation' }) }),
 });
 
 // Schema complet
 export const identityCardSchema = z.object({
   // Etape 1: Motif
   motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '21']),
+  case2004: z.boolean().default(false),
+  reception: z.enum(['Mail', 'Courrier']).default('Mail'),
   // Etape 2: Identite
   gender: genderSchema,
   nom: z.string().min(1, 'Nom requis').max(150).regex(NOM_REGEX, NOM_ERROR),
@@ -134,8 +139,8 @@ export const identityCardSchema = z.object({
     (val) => !val || NOM_REGEX.test(val),
     { message: NOM_ERROR }
   ),
-  typeNomUsage: z.enum(['Pere', 'Mere', 'Epoux', 'Epouse']).optional().nullable(),
-  motAdditionnelNom: z.enum(['Epoux', 'Veuf']).optional().nullable(),
+  typeNomUsage: z.preprocess((val) => (val === '' ? undefined : val), z.enum(['Pere', 'Mere', 'Epoux', 'Epouse']).optional().nullable()),
+  motAdditionnelNom: z.preprocess((val) => (val === '' ? undefined : val), z.enum(['Epoux', 'Veuf']).optional().nullable()),
   prenom: z.string().min(1, 'Prenom requis').max(150).regex(NOM_REGEX, NOM_ERROR),
   birthDate: z.string().min(1, 'Date de naissance requise'),
   birthCountryId: z.number().int().positive('Pays de naissance requis'),
@@ -175,6 +180,11 @@ export const identityCardSchema = z.object({
   contact: contactSchema.optional(),
   // Consentements
   consents: consentsStepSchema,
+})
+// Si motif expiration (16), case2004 doit etre cochee
+.refine((data) => data.motif !== '16' || data.case2004 === true, {
+  message: 'Vous devez confirmer avoir pris connaissance de cette information',
+  path: ['case2004'],
 })
 // Les deux parents ne peuvent pas etre inconnus
 .refine((data) => !(data.fatherUnknown && data.motherUnknown), {
@@ -263,8 +273,9 @@ export type IdentityCardInput = z.infer<typeof identityCardSchema>;
 
 // Champs a valider par etape (utilise pour la navigation step-by-step)
 export const STEP_FIELDS: Record<string, (keyof IdentityCardInput)[]> = {
-  requestType: ['motif'],
-  identity: ['gender', 'nom', 'prenom', 'birthDate', 'birthCountryId', 'birthCityName', 'taille', 'raisonFrancais'],
+  requestType: ['motif', 'case2004'],
+  identity: ['gender', 'nom', 'prenom'],
+  birth: ['birthDate', 'birthCountryId', 'birthCityName', 'taille', 'raisonFrancais'],
   parents: ['fatherUnknown', 'motherUnknown', 'fatherLastName', 'fatherFirstName', 'fatherBirthDate', 'fatherBirthCity', 'motherLastName', 'motherFirstName', 'motherBirthDate', 'motherBirthCity'],
   requester: ['telephone', 'email', 'emailConfirm', 'deliveryAddress'],
   contact: ['contact'],
@@ -278,6 +289,8 @@ export function mapIdentityCardToAdvercity(
 ) {
   return {
     motif: input.motif,
+    case2004: input.case2004 || false,
+    reception: input.reception || 'Mail',
     // Titulaire
     gender: input.gender === 'MALE' ? 'm' : 'f',
     nom: input.nom,

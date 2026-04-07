@@ -17,6 +17,7 @@ import { useFormTracking } from '@/hooks/useFormTracking';
 import { getPricingProfile } from '@/lib/process-types';
 import { StepRequestType } from './steps/StepRequestType';
 import { StepIdentity } from './steps/StepIdentity';
+import { StepBirth } from './steps/StepBirth';
 import { StepParents } from './steps/StepParents';
 import { StepRequester } from './steps/StepRequester';
 import { StepContact } from './steps/StepContact';
@@ -45,8 +46,13 @@ const BASE_STEPS: Step[] = [
   },
   {
     id: 'identity',
-    title: 'Identite',
-    description: 'Informations du titulaire de la carte d\'identité',
+    title: 'Titulaire',
+    description: 'Identite du titulaire de la carte',
+  },
+  {
+    id: 'birth',
+    title: 'Naissance',
+    description: 'Date et lieu de naissance, nationalite',
   },
   {
     id: 'parents',
@@ -104,6 +110,7 @@ export function IdentityCardForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = React.useState(false);
+  const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
   const initialPaymentMode: PaymentMode = pricing.paymentMode === 'one_time' ? 'one_time' : 'subscription';
   const [paymentMode, setPaymentMode] = React.useState<PaymentMode>(initialPaymentMode);
   const [subscriptionConsent, setSubscriptionConsent] = React.useState(pricing.paymentMode === 'subscription');
@@ -112,6 +119,8 @@ export function IdentityCardForm({
     resolver: zodResolver(identityCardSchema),
     defaultValues: {
       motif: undefined,
+      case2004: false,
+      reception: 'Mail' as const,
       gender: undefined,
       nom: '',
       nomUsage: '',
@@ -160,9 +169,11 @@ export function IdentityCardForm({
         acceptTerms: false as unknown as true,
         acceptDataProcessing: false as unknown as true,
         certifyAccuracy: false as unknown as true,
+        retractationExecution: false as unknown as true,
+        retractationRenonciation: false as unknown as true,
       },
     },
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const { handleSubmit, trigger, getValues, setError: setFieldError, formState: { errors: formErrors } } = methods;
@@ -266,6 +277,15 @@ export function IdentityCardForm({
       return valid;
     }
 
+    if (stepId === 'requestType') {
+      // Si motif expiration (16), case2004 doit etre cochee
+      if (values.motif === '16' && !values.case2004) {
+        setFieldError('case2004', { type: 'manual', message: 'Vous devez confirmer avoir pris connaissance de cette information' });
+        return false;
+      }
+      return true;
+    }
+
     if (stepId === 'identity') {
       let valid = true;
 
@@ -281,26 +301,35 @@ export function IdentityCardForm({
     return true;
   };
 
-  // Track step changes + history pour bouton retour navigateur
+  // Track step changes + hash pour bouton retour navigateur
+  // Note: on utilise le hash (#step-N) au lieu de pushState car Next.js App Router
+  // intercepte pushState et declenche des fetches RSC en boucle
   React.useEffect(() => {
     tracking.trackStepEntered(currentStep, STEPS[currentStep]?.id || 'unknown');
-    // Pousser un state dans l'historique pour chaque etape (sauf la premiere)
+    // Mettre a jour le hash pour chaque etape (sauf la premiere)
     if (currentStep > 0) {
-      window.history.pushState({ formStep: currentStep }, '');
+      const hash = `#step-${currentStep}`;
+      if (window.location.hash !== hash) {
+        window.location.hash = hash;
+      }
+    } else if (window.location.hash) {
+      // Retour a l'etape 0 : supprimer le hash
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Intercepter le bouton retour du navigateur
   React.useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      // Si on est sur une etape > 0, revenir a l'etape precedente
-      if (currentStep > 0) {
+    const handleHashChange = () => {
+      const match = window.location.hash.match(/^#step-(\d+)$/);
+      const hashStep = match ? parseInt(match[1], 10) : 0;
+      if (hashStep < currentStep) {
         setError(null);
-        setCurrentStep((prev) => Math.max(0, prev - 1));
+        setCurrentStep(hashStep);
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, [currentStep]);
 
   // Scroll en haut — fonctionne en page directe ET en iframe
@@ -317,6 +346,31 @@ export function IdentityCardForm({
     const isValid = await validateCurrentStep();
     if (isValid && currentStep < STEPS.length - 1) {
       tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
+
+      // Verifier si l'email ou telephone correspond a un abonne
+      // au moment de quitter l'etape requester ou contact
+      const stepId = STEPS[currentStep].id;
+      if (stepId === 'requester' || stepId === 'contact') {
+        const values = getValues();
+        const emailToCheck = stepId === 'contact' ? values.contact?.email : values.email;
+        const phoneToCheck = stepId === 'requester' ? values.telephone : values.contact?.phone;
+        if (emailToCheck || phoneToCheck) {
+          try {
+            const res = await fetch('/api/embed/check-subscriber', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: emailToCheck, phone: phoneToCheck }),
+            });
+            const data = await res.json();
+            if (data.isSubscriber) {
+              setDetectedSubscriber(true);
+            }
+          } catch {
+            // Silencieux en cas d'erreur reseau
+          }
+        }
+      }
+
       setCurrentStep(currentStep + 1);
       scrollFormTop();
     }
@@ -383,7 +437,8 @@ export function IdentityCardForm({
 
       // Mode connecte standard
 
-      if (isSubscriber && stampTax === 0) {
+      const effectiveSubscriber = isSubscriber || detectedSubscriber;
+      if (effectiveSubscriber && stampTax === 0) {
         // Abonne sans timbre fiscal : creation directe
         const response = await fetch('/api/processes', {
           method: 'POST',
@@ -407,7 +462,7 @@ export function IdentityCardForm({
 
         tracking.trackFormCompleted();
         onComplete(result.process.reference);
-      } else if (isSubscriber && stampTax > 0) {
+      } else if (effectiveSubscriber && stampTax > 0) {
         // Abonne avec timbre fiscal : passer par checkout pour payer le timbre
         const response = await fetch('/api/processes/checkout', {
           method: 'POST',
@@ -476,6 +531,8 @@ export function IdentityCardForm({
         return <StepRequestType onSelect={handleNext} />;
       case 'identity':
         return <StepIdentity />;
+      case 'birth':
+        return <StepBirth />;
       case 'parents':
         return <StepParents />;
       case 'requester':
@@ -485,7 +542,7 @@ export function IdentityCardForm({
       case 'summary':
         return (
           <StepSummary
-            isSubscriber={isSubscriber}
+            isSubscriber={isSubscriber || detectedSubscriber}
             basePrice={basePrice}
             pricing={pricing}
             paymentMode={paymentMode}
@@ -531,30 +588,7 @@ export function IdentityCardForm({
 
         {/* Form Card */}
         <div className="form-gov-card">
-          <form onSubmit={(e) => {
-            // Empecher le submit par Enter sur un champ texte (sauf si on est a la derniere etape)
-            if (currentStep < STEPS.length - 1) {
-              e.preventDefault();
-              return;
-            }
-            setHasAttemptedSubmit(true);
-            handleSubmit(handleFormSubmit, (validationErrors) => {
-              const messages: string[] = [];
-              const flatErrors = (obj: Record<string, unknown>): void => {
-                for (const [, val] of Object.entries(obj)) {
-                  if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
-                    messages.push((val as { message: string }).message);
-                  } else if (val && typeof val === 'object') {
-                    flatErrors(val as Record<string, unknown>);
-                  }
-                }
-              };
-              flatErrors(validationErrors as Record<string, unknown>);
-              if (messages.length > 0) {
-                setError('Veuillez corriger les erreurs : ' + messages.join(', '));
-              }
-            })(e);
-          }}>
+          <form onSubmit={(e) => e.preventDefault()}>
             {error && (
               <div className="p-4 bg-red-50 border-l-4 border-l-red-600 mb-6">
                 <p className="text-base text-red-800 font-semibold">{error}</p>
@@ -586,7 +620,25 @@ export function IdentityCardForm({
                   </svg>
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting} className="btn-gov btn-gov-primary">
+                <button type="button" disabled={isSubmitting} onClick={() => {
+                  setHasAttemptedSubmit(true);
+                  handleSubmit(handleFormSubmit, (validationErrors) => {
+                    const messages: string[] = [];
+                    const flatErrors = (obj: Record<string, unknown>): void => {
+                      for (const [, val] of Object.entries(obj)) {
+                        if (val && typeof val === 'object' && 'message' in val && typeof (val as { message: unknown }).message === 'string') {
+                          messages.push((val as { message: string }).message);
+                        } else if (val && typeof val === 'object') {
+                          flatErrors(val as Record<string, unknown>);
+                        }
+                      }
+                    };
+                    flatErrors(validationErrors as Record<string, unknown>);
+                    if (messages.length > 0) {
+                      setError('Veuillez corriger les erreurs : ' + messages.join(', '));
+                    }
+                  })();
+                }} className="btn-gov btn-gov-primary">
                   {isSubmitting ? (
                     <>
                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

@@ -47,13 +47,17 @@ export function StepSummary({
 
   const allConsentsAccepted = watch('consents.acceptTerms')
     && watch('consents.acceptDataProcessing')
-    && watch('consents.certifyAccuracy');
+    && watch('consents.certifyAccuracy')
+    && watch('consents.retractationExecution')
+    && watch('consents.retractationRenonciation');
 
   const handleAllConsents = (checked: boolean) => {
     const val = checked as unknown as true;
     setValue('consents.acceptTerms', val, { shouldValidate: true });
     setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
     setValue('consents.certifyAccuracy', val, { shouldValidate: true });
+    setValue('consents.retractationExecution', val, { shouldValidate: true });
+    setValue('consents.retractationRenonciation', val, { shouldValidate: true });
   };
 
   return (
@@ -267,9 +271,19 @@ export function StepSummary({
             Je certifie l'exactitude des informations fournies ci-dessus. *
           </label>
         </div>
-        {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy) && (
+        {(errors.consents?.acceptTerms || errors.consents?.acceptDataProcessing || errors.consents?.certifyAccuracy || errors.consents?.retractationExecution || errors.consents?.retractationRenonciation) && (
           <p className="form-gov-error-msg">Vous devez accepter les conditions pour continuer.</p>
         )}
+      </div>
+
+      {/* Droit de retractation */}
+      <div className="space-y-2 text-sm text-gray-600 bg-gray-50 p-4 border border-gray-200">
+        <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Droit de retractation</p>
+        <p>
+          Conformement a l'article L221-28 du Code de la consommation, je demande expressement
+          l'execution immediate du service de traitement de ma demarche administrative et reconnais
+          que je ne pourrai plus exercer mon droit de retractation une fois le service pleinement execute.
+        </p>
       </div>
 
       {/* Delai */}

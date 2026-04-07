@@ -117,6 +117,24 @@ export const additionalNameWordLabels: Record<AdditionalNameWordValue, string> =
 };
 
 // ============================================================
+// CASE 2004 (motif expiration)
+// ============================================================
+
+/** Motif necessitant la case 2004 (renouvellement expiration) */
+export const CASE_2004_MOTIF = RequestMotif.RENOUVELLEMENT_EXPIRATION;
+
+// ============================================================
+// MODE DE RECEPTION
+// ============================================================
+
+export const ReceptionMode = {
+  MAIL: 'Mail',
+  COURRIER: 'Courrier',
+} as const;
+
+export type ReceptionModeValue = typeof ReceptionMode[keyof typeof ReceptionMode];
+
+// ============================================================
 // TIMBRE FISCAL
 // ============================================================
 

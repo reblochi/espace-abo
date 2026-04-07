@@ -6,6 +6,7 @@ import { useFormContext } from 'react-hook-form';
 import {
   RequestMotif,
   requestMotifLabels,
+  CASE_2004_MOTIF,
   type RequestMotifValue,
 } from '@/types/identity-card';
 import type { IdentityCardInput } from '@/schemas/identity-card';
@@ -15,11 +16,17 @@ const MOTIF_VALUES = Object.values(RequestMotif);
 export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
   const { watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
   const selectedMotif = watch('motif');
+  const case2004 = watch('case2004');
 
   const handleSelect = (motif: RequestMotifValue) => {
     setValue('motif', motif, { shouldValidate: true });
+    // Reset case2004 quand on change de motif
+    if (motif !== CASE_2004_MOTIF) {
+      setValue('case2004', false);
+    }
     // Passer directement a l'etape suivante apres un court delai visuel
-    if (onSelect) {
+    // Sauf si motif expiration (16) car il faut cocher case2004
+    if (onSelect && motif !== CASE_2004_MOTIF) {
       setTimeout(onSelect, 200);
     }
   };
@@ -84,6 +91,30 @@ export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
             <strong>Attention :</strong> En cas de vol ou de perte, un timbre fiscal de 25 EUR (12,50 EUR en Guyane) est obligatoire
             et sera ajoute au montant de votre demande.
           </p>
+        </div>
+      )}
+
+      {/* Case 2004 pour motif expiration (16) */}
+      {selectedMotif === CASE_2004_MOTIF && (
+        <div className="p-4 bg-blue-50 border-l-4 border-l-blue-500 space-y-3">
+          <p className="text-base text-blue-900">
+            <strong>Information :</strong> Les cartes d'identite delivrees a partir de 2004 ont une validite de 15 ans
+            (10 ans pour les mineurs). Verifiez la date d'expiration figurant sur votre carte.
+          </p>
+          <div className={`form-gov-checkbox-group ${case2004 ? 'checked' : ''}`}>
+            <input
+              type="checkbox"
+              id="case2004"
+              checked={!!case2004}
+              onChange={(e) => setValue('case2004', e.target.checked, { shouldValidate: true })}
+            />
+            <label htmlFor="case2004" className="text-sm text-blue-900">
+              J'ai verifie la date d'expiration de ma carte et confirme qu'elle est bien expiree. *
+            </label>
+          </div>
+          {errors.case2004 && (
+            <p className="form-gov-error-msg">{errors.case2004.message}</p>
+          )}
         </div>
       )}
     </div>
