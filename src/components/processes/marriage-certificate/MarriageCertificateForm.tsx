@@ -3,6 +3,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ export function MarriageCertificateForm({
   onComplete,
   onCheckout,
 }: MarriageCertificateFormProps) {
+  const { data: session } = useSession();
   const isEmbed = !!embedPartner;
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
@@ -105,6 +107,8 @@ export function MarriageCertificateForm({
       spouseMotherUnknown: false,
       spouseMotherFirstName: '',
       spouseMotherLastName: '',
+      requesterLastName: '',
+      requesterFirstName: '',
       deliveryAddress: {
         street: '',
         zipCode: '',
@@ -127,6 +131,19 @@ export function MarriageCertificateForm({
 
   const { handleSubmit, trigger, watch } = methods;
   const recordType = watch('recordType');
+
+  // Pre-remplir les infos du demandeur depuis la session
+  React.useEffect(() => {
+    if (!session?.user) return;
+    const nameParts = session.user.name?.split(' ') || [];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const current = methods.getValues();
+    if (!current.requesterFirstName) methods.setValue('requesterFirstName', firstName);
+    if (!current.requesterLastName) methods.setValue('requesterLastName', lastName);
+    if (!current.email) methods.setValue('email', session.user.email || '');
+    if (!current.emailConfirm) methods.setValue('emailConfirm', session.user.email || '');
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Etapes avec/sans parents selon type d'acte
   const showParentSteps = recordType === RecordType.COPIE_INTEGRALE
@@ -246,7 +263,7 @@ export function MarriageCertificateForm({
     parents: ['claimerType'],
     spouse: ['spouseGender', 'spouseFirstName', 'spouseLastName', 'spouseBirthDate'],
     spouseParents: [],
-    requester: ['email', 'emailConfirm', 'telephone', 'deliveryAddress'],
+    requester: ['requesterLastName', 'requesterFirstName', 'email', 'emailConfirm', 'telephone', 'deliveryAddress'],
     summary: ['consents'],
   };
 

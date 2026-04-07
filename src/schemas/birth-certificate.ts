@@ -101,7 +101,9 @@ export const birthCertificateSchema = z.object({
   motherUnknown: z.boolean().default(false),
   motherFirstName: z.string().optional(),
   motherLastName: z.string().optional(),
-  // Etape Demandeur (livraison + coordonnees)
+  // Etape Demandeur (identite + coordonnees + livraison)
+  requesterLastName: z.string().min(2, 'Nom du demandeur requis'),
+  requesterFirstName: z.string().min(2, 'Prenom du demandeur requis'),
   deliveryAddress: deliveryAddressSchema,
   email: z.string().email('Email invalide'),
   emailConfirm: z.string().email('Email invalide'),
@@ -171,10 +173,10 @@ export function mapBirthCertificateToAdvercity(
     motherLastName: input.motherUnknown ? 'inconnu' : input.motherLastName,
     // Demandeur
     customer: {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      mail: user.email,
-      phone: user.phone,
+      firstName: input.requesterFirstName || user.firstName,
+      lastName: input.requesterLastName || user.lastName,
+      mail: input.email || user.email,
+      phone: input.telephone || user.phone,
     },
     // Livraison
     deliveryAddress: input.deliveryAddress,

@@ -5,6 +5,8 @@ import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplet
 
 export function SharedStepRequester() {
   const { register, watch, setValue, formState: { errors } } = useFormContext<{
+    requesterLastName: string;
+    requesterFirstName: string;
     email: string;
     emailConfirm: string;
     telephone: string;
@@ -18,6 +20,23 @@ export function SharedStepRequester() {
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Vos coordonnees et adresse de livraison</h2>
         <p className="form-gov-hint">Ces informations sont necessaires pour le traitement et l&apos;envoi de votre demarche.</p>
+      </div>
+
+      {/* Identite demandeur */}
+      <div className="space-y-4">
+        <h3 className="form-gov-section-title">Votre identite</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="form-gov-label">Nom <span className="text-red-600">*</span></label>
+            <input type="text" {...register('requesterLastName')} className={`form-gov-input ${errors.requesterLastName ? 'form-gov-error' : ''}`} />
+            {errors.requesterLastName && <p className="form-gov-error-msg">{errors.requesterLastName.message as string}</p>}
+          </div>
+          <div>
+            <label className="form-gov-label">Prenom <span className="text-red-600">*</span></label>
+            <input type="text" {...register('requesterFirstName')} className={`form-gov-input ${errors.requesterFirstName ? 'form-gov-error' : ''}`} />
+            {errors.requesterFirstName && <p className="form-gov-error-msg">{errors.requesterFirstName.message as string}</p>}
+          </div>
+        </div>
       </div>
 
       {/* Coordonnees */}

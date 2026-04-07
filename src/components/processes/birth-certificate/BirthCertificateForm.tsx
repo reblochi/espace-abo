@@ -3,6 +3,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ export function BirthCertificateForm({
   onComplete,
   onCheckout,
 }: BirthCertificateFormProps) {
+  const { data: session } = useSession();
   const isEmbed = !!embedPartner;
   const isDirectAccess = embedPartner === 'direct';
   const pricing = getPricingProfile(pricingCode);
@@ -130,6 +132,8 @@ export function BirthCertificateForm({
       motherUnknown: false,
       motherFirstName: '',
       motherLastName: '',
+      requesterLastName: '',
+      requesterFirstName: '',
       deliveryAddress: {
         street: '',
         zipCode: '',
@@ -151,6 +155,19 @@ export function BirthCertificateForm({
   });
 
   const { handleSubmit, trigger } = methods;
+
+  // Pre-remplir les infos du demandeur depuis la session
+  React.useEffect(() => {
+    if (!session?.user) return;
+    const nameParts = session.user.name?.split(' ') || [];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const current = methods.getValues();
+    if (!current.requesterFirstName) methods.setValue('requesterFirstName', firstName);
+    if (!current.requesterLastName) methods.setValue('requesterLastName', lastName);
+    if (!current.email) methods.setValue('email', session.user.email || '');
+    if (!current.emailConfirm) methods.setValue('emailConfirm', session.user.email || '');
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restaurer les donnees du formulaire apres annulation de paiement
   React.useEffect(() => {
@@ -207,7 +224,7 @@ export function BirthCertificateForm({
     actType: ['recordType', 'recordCount'],
     beneficiary: ['gender', 'firstName', 'lastName', 'birthDate', 'birthCountryId', 'birthCityName'],
     filiation: ['claimerType'],
-    requester: ['email', 'emailConfirm', 'telephone', 'deliveryAddress'],
+    requester: ['requesterLastName', 'requesterFirstName', 'email', 'emailConfirm', 'telephone', 'deliveryAddress'],
     summary: ['consents'],
   };
 
