@@ -255,9 +255,10 @@ export async function POST(request: NextRequest) {
           external_reference: reference,
           webhook_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/advercity/webhook`,
           data: mapProcessDataToAdvercity(type, data as Record<string, unknown>, {
-            email: user.email,
+            email: (data as Record<string, unknown>).email as string || user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            phone: (data as Record<string, unknown>).telephone as string || undefined,
           }),
         });
 

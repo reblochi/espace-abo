@@ -29,10 +29,9 @@ export const recordTypeDescriptions: Record<RecordTypeValue, string> = {
 
 // Types de demandeur (meme que birth certificate)
 export const ClaimerType = {
-  TITULAIRE: 'titulaire',
-  PERE_OU_MERE: 'pere_ou_mere',
   CONJOINT: 'conjoint',
   FILS_OU_FILLE: 'fils_ou_fille',
+  PERE_OU_MERE: 'pere_ou_mere',
   REPRESENTANT_LEGAL: 'representant_legal',
   AUTRE: 'autre',
 } as const;
@@ -40,10 +39,9 @@ export const ClaimerType = {
 export type ClaimerTypeValue = typeof ClaimerType[keyof typeof ClaimerType];
 
 export const claimerTypeLabels: Record<ClaimerTypeValue, string> = {
-  [ClaimerType.TITULAIRE]: 'La personne concernee par l\'acte',
-  [ClaimerType.PERE_OU_MERE]: 'Pere ou mere',
   [ClaimerType.CONJOINT]: 'Conjoint(e)',
   [ClaimerType.FILS_OU_FILLE]: 'Fils ou fille',
+  [ClaimerType.PERE_OU_MERE]: 'Pere ou mere',
   [ClaimerType.REPRESENTANT_LEGAL]: 'Representant legal',
   [ClaimerType.AUTRE]: 'Autre (mandataire, avocat...)',
 };

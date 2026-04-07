@@ -30,6 +30,7 @@ export interface RegistrationCertificateFormProps {
   isSubscriber?: boolean;
   pricingCode?: string; // Code profil pricing (AB testing)
   partner?: string; // Partenaire embed
+  canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
   onSubmit: (data: RegistrationCertificateInput, paymentMode?: PaymentMode) => Promise<void>;
   onTaxCalculation?: (taxes: RegistrationCertificateTaxes | null) => void;
   initialData?: Partial<RegistrationCertificateInput>;
@@ -86,6 +87,7 @@ export function RegistrationCertificateForm({
   isSubscriber = false,
   pricingCode,
   partner,
+  canceledRef,
   onSubmit,
   onTaxCalculation,
   initialData,
@@ -106,6 +108,7 @@ export function RegistrationCertificateForm({
   const [isCalculatingTaxes, setIsCalculatingTaxes] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [paymentMode, setPaymentMode] = React.useState<PaymentMode>('subscription');
   const [subscriptionConsent, setSubscriptionConsent] = React.useState(false);
 
@@ -191,6 +194,27 @@ export function RegistrationCertificateForm({
     formValues.holder?.departmentCode,
     onTaxCalculation,
   ]);
+
+  // Restaurer les donnees du formulaire apres annulation de paiement
+  React.useEffect(() => {
+    if (!canceledRef) return;
+    const restore = async () => {
+      try {
+        const res = await fetch(`/api/processes/restore?ref=${encodeURIComponent(canceledRef)}`);
+        if (!res.ok) return;
+        const { data } = await res.json();
+        if (data) {
+          methods.reset(data);
+          const summaryIndex = STEPS.findIndex(s => s.id === 'summary');
+          setCurrentStep(summaryIndex >= 0 ? summaryIndex : STEPS.length - 1);
+          setCanceledWarning(true);
+        }
+      } catch {
+        // Silencieux en cas d'erreur
+      }
+    };
+    restore();
+  }, [canceledRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track step changes + history pour bouton retour navigateur
   React.useEffect(() => {
@@ -347,6 +371,11 @@ export function RegistrationCertificateForm({
             <CardDescription>{STEPS[currentStep].description}</CardDescription>
           </CardHeader>
           <CardContent>
+            {canceledWarning && (
+              <Alert variant="warning" className="mb-6">
+                Votre paiement a ete annule. Vos informations ont ete conservees. Vous pouvez reessayer quand vous le souhaitez.
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive" className="mb-6">
                 {error}

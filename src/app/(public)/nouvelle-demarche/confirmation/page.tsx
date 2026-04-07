@@ -213,17 +213,6 @@ function ConfirmationDemarcheContent() {
                   </Badge>
                 </div>
 
-                {/* Montant paye */}
-                <div className="flex justify-between pt-2 border-t">
-                  <span className="text-gray-500">Montant</span>
-                  {process.isFromSubscription ? (
-                    <span className="text-green-600 font-medium">Inclus (abonnement)</span>
-                  ) : process.pricePaid ? (
-                    <span className="font-bold">{formatPrice(process.pricePaid)}</span>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </div>
               </div>
             )}
 

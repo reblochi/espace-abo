@@ -125,13 +125,16 @@ export async function GET(request: NextRequest) {
     // Envoyer vers Advercity
     try {
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      // Utiliser les coordonnees du formulaire si disponibles, sinon celles du user
+      const formData = demarche.data as Record<string, unknown>;
       const advercityData = mapProcessDataToAdvercity(
         demarche.type,
-        demarche.data as Record<string, unknown>,
+        formData,
         {
-          email: demarche.user.email,
+          email: (formData.email as string) || demarche.user.email,
           firstName: demarche.user.firstName,
           lastName: demarche.user.lastName,
+          phone: (formData.telephone as string) || undefined,
         }
       );
 

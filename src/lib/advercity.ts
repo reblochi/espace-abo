@@ -5,6 +5,8 @@ import type { ProcessStatus, ProcessType, RegistrationCertificateProcessData } f
 import { PROCESS_TYPE_MAPPING, AdvercityStep } from './process-types';
 import { mapToAdvercityPayload, type RegistrationCertificateInput } from '@/schemas/registration-certificate';
 import { mapBirthCertificateToAdvercity, type BirthCertificateInput } from '@/schemas/birth-certificate';
+import { mapDeathCertificateToAdvercity, type DeathCertificateInput } from '@/schemas/death-certificate';
+import { mapMarriageCertificateToAdvercity, type MarriageCertificateInput } from '@/schemas/marriage-certificate';
 import { mapIdentityCardToAdvercity, type IdentityCardInput } from '@/schemas/identity-card';
 
 // Types pour l'API Advercity
@@ -204,36 +206,10 @@ export function mapProcessDataToAdvercity(
       return mapBirthCertificateToAdvercity(data as unknown as BirthCertificateInput, user);
 
     case 'CIVIL_STATUS_MARRIAGE':
-      return {
-        civilStatusRecordType: 2, // TYPE_MARRIAGE
-        marriageCity: { id: data.eventCityId },
-        marriageDate: data.eventDate,
-        spouseFirstName: data.beneficiaryFirstName,
-        spouseLastName: data.beneficiaryLastName,
-        customer: {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          mail: user.email,
-          phone: user.phone,
-        },
-        deliveryAddress: data.deliveryAddress,
-      };
+      return mapMarriageCertificateToAdvercity(data as unknown as MarriageCertificateInput, user);
 
     case 'CIVIL_STATUS_DEATH':
-      return {
-        civilStatusRecordType: 3, // TYPE_DEATH
-        deathCity: { id: data.eventCityId },
-        deathDate: data.eventDate,
-        deceasedFirstName: data.beneficiaryFirstName,
-        deceasedLastName: data.beneficiaryLastName,
-        customer: {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          mail: user.email,
-          phone: user.phone,
-        },
-        deliveryAddress: data.deliveryAddress,
-      };
+      return mapDeathCertificateToAdvercity(data as unknown as DeathCertificateInput, user);
 
     case 'REGISTRATION_CERT':
       // Utiliser le mapper specifique pour carte grise

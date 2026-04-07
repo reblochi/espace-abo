@@ -28,6 +28,7 @@ export interface IdentityCardFormProps {
   basePrice: number; // en centimes
   embedPartner?: string; // Si defini, mode embed sans auth
   pricingCode?: string; // Code profil pricing (AB testing)
+  canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -83,6 +84,7 @@ export function IdentityCardForm({
   basePrice: rawBasePrice,
   embedPartner,
   pricingCode,
+  canceledRef,
   onComplete,
   onCheckout,
 }: IdentityCardFormProps) {
@@ -109,11 +111,15 @@ export function IdentityCardForm({
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
-  const initialPaymentMode: PaymentMode = pricing.paymentMode === 'one_time' ? 'one_time' : 'subscription';
-  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>(initialPaymentMode);
-  const [subscriptionConsent, setSubscriptionConsent] = React.useState(pricing.paymentMode === 'subscription');
+  const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
+  const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
+  const paymentModeRef = React.useRef(paymentMode);
+  const subscriptionConsentRef = React.useRef(subscriptionConsent);
+  const setPaymentMode = (mode: PaymentMode) => { paymentModeRef.current = mode; _setPaymentMode(mode); };
+  const setSubscriptionConsent = (v: boolean) => { subscriptionConsentRef.current = v; _setSubscriptionConsent(v); };
 
   const methods = useForm<IdentityCardInput>({
     resolver: zodResolver(identityCardSchema),
@@ -301,6 +307,27 @@ export function IdentityCardForm({
     return true;
   };
 
+  // Restaurer les donnees du formulaire apres annulation de paiement
+  React.useEffect(() => {
+    if (!canceledRef) return;
+    const restore = async () => {
+      try {
+        const res = await fetch(`/api/processes/restore?ref=${encodeURIComponent(canceledRef)}`);
+        if (!res.ok) return;
+        const { data } = await res.json();
+        if (data) {
+          methods.reset(data);
+          const summaryIndex = STEPS.findIndex(s => s.id === 'summary');
+          setCurrentStep(summaryIndex >= 0 ? summaryIndex : STEPS.length - 1);
+          setCanceledWarning(true);
+        }
+      } catch {
+        // Silencieux en cas d'erreur
+      }
+    };
+    restore();
+  }, [canceledRef]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Track step changes + hash pour bouton retour navigateur
   // Note: on utilise le hash (#step-N) au lieu de pushState car Next.js App Router
   // intercepte pushState et declenche des fetches RSC en boucle
@@ -417,8 +444,8 @@ export function IdentityCardForm({
           body: JSON.stringify({
             partner: embedPartner,
             pricingCode,
-            paymentMode,
-            subscriptionConsent,
+            paymentMode: paymentModeRef.current,
+            subscriptionConsent: subscriptionConsentRef.current,
             data: submitData,
           }),
         });
@@ -500,7 +527,7 @@ export function IdentityCardForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'IDENTITY_CARD',
-            paymentMode,
+            paymentMode: paymentModeRef.current,
             stampTaxCents: stampTax,
             pricingCode,
             source: 'direct',
@@ -594,6 +621,11 @@ export function IdentityCardForm({
         {/* Form Card */}
         <div className="form-gov-card">
           <form onSubmit={(e) => e.preventDefault()}>
+            {canceledWarning && (
+              <div className="p-4 bg-yellow-50 border-l-4 border-l-yellow-500 mb-6">
+                <p className="text-base text-yellow-800 font-semibold">Votre paiement a ete annule. Vos informations ont ete conservees. Vous pouvez reessayer quand vous le souhaitez.</p>
+              </div>
+            )}
             {error && (
               <div className="p-4 bg-red-50 border-l-4 border-l-red-600 mb-6">
                 <p className="text-base text-red-800 font-semibold">{error}</p>
@@ -636,10 +668,8 @@ export function IdentityCardForm({
                     methods.setValue('consents.certifyAccuracy', val);
                     methods.setValue('consents.retractationExecution', val);
                     methods.setValue('consents.retractationRenonciation', val);
-                    if (pricing.paymentMode !== 'one_time') {
-                      setPaymentMode('subscription');
-                      setSubscriptionConsent(true);
-                    }
+                    setPaymentMode('subscription');
+                    setSubscriptionConsent(true);
                   }
                   setHasAttemptedSubmit(true);
                   handleSubmit(handleFormSubmit, (validationErrors) => {

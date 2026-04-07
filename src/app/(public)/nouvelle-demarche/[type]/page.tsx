@@ -32,6 +32,10 @@ export default function FormulaireDemarchePage() {
   const typeCode = getProcessTypeFromSlug(typeSlug);
   const processConfig = typeCode ? getProcessTypeConfig(typeCode) : undefined;
 
+  // Detecter retour d'annulation paiement
+  const canceled = searchParams.get('canceled') === 'true';
+  const canceledRef = canceled ? searchParams.get('ref') : null;
+
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -188,6 +192,7 @@ export default function FormulaireDemarchePage() {
         <main className="max-w-4xl mx-auto px-4 pb-12">
           <RegistrationCertificateForm
             isSubscriber={hasActiveSubscription}
+            canceledRef={canceledRef || undefined}
             onSubmit={async (data, paymentMode) => {
               const response = await fetch('/api/processes/checkout', {
                 method: 'POST',
@@ -251,6 +256,7 @@ export default function FormulaireDemarchePage() {
             isSubscriber={hasActiveSubscription}
             basePrice={processConfig.basePrice}
             embedPartner={!isAuthenticated ? 'direct' : undefined}
+            canceledRef={canceledRef || undefined}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}
@@ -303,6 +309,7 @@ export default function FormulaireDemarchePage() {
             basePrice={processConfig.basePrice}
             embedPartner={!isAuthenticated ? 'direct' : undefined}
             pricingCode={pricingCode}
+            canceledRef={canceledRef || undefined}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}
@@ -346,6 +353,7 @@ export default function FormulaireDemarchePage() {
             basePrice={processConfig.basePrice}
             embedPartner={!isAuthenticated ? 'direct' : undefined}
             pricingCode={pricingCode}
+            canceledRef={canceledRef || undefined}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}
@@ -389,6 +397,7 @@ export default function FormulaireDemarchePage() {
             basePrice={processConfig.basePrice}
             embedPartner={!isAuthenticated ? 'direct' : undefined}
             pricingCode={pricingCode}
+            canceledRef={canceledRef || undefined}
             onComplete={(reference) => {
               router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}

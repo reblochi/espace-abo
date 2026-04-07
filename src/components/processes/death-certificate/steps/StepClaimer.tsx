@@ -18,7 +18,7 @@ export function StepClaimer() {
           Votre lien avec le defunt
         </h2>
         <p className="form-gov-hint">
-          Quel est votre lien avec la personne concernee par l'acte ?
+          Quel est votre lien avec la personne decedee ?
         </p>
       </div>
 

@@ -130,13 +130,15 @@ export async function POST(
       // Envoyer a Advercity
       try {
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const formData = demarche.data as Record<string, unknown>;
         const advercityData = mapProcessDataToAdvercity(
           demarche.type,
-          demarche.data as Record<string, unknown>,
+          formData,
           {
-            email: user.email,
+            email: (formData.email as string) || user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            phone: (formData.telephone as string) || undefined,
           }
         );
 

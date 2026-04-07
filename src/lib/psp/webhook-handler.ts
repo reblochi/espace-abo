@@ -493,9 +493,10 @@ async function sendProcessToAdvercity(processId: string): Promise<void> {
         paidProcess.type,
         paidProcess.data as Record<string, unknown>,
         {
-          email: paidProcess.user.email,
+          email: (paidProcess.data as Record<string, unknown>).email as string || paidProcess.user.email,
           firstName: paidProcess.user.firstName,
           lastName: paidProcess.user.lastName,
+          phone: (paidProcess.data as Record<string, unknown>).telephone as string || undefined,
         }
       ),
     });

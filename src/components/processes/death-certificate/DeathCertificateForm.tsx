@@ -29,6 +29,7 @@ export interface DeathCertificateFormProps {
   basePrice: number; // en centimes
   embedPartner?: string; // Si defini, mode embed sans auth
   pricingCode?: string; // Code profil pricing (AB testing)
+  canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -73,6 +74,7 @@ export function DeathCertificateForm({
   basePrice: rawBasePrice,
   embedPartner,
   pricingCode,
+  canceledRef,
   onComplete,
   onCheckout,
 }: DeathCertificateFormProps) {
@@ -98,10 +100,14 @@ export function DeathCertificateForm({
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
-  const initialPaymentMode: PaymentMode = pricing.paymentMode === 'one_time' ? 'one_time' : 'subscription';
-  const [paymentMode, setPaymentMode] = React.useState<PaymentMode>(initialPaymentMode);
-  const [subscriptionConsent, setSubscriptionConsent] = React.useState(pricing.paymentMode === 'subscription');
+  const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
+  const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
+  const paymentModeRef = React.useRef(paymentMode);
+  const subscriptionConsentRef = React.useRef(subscriptionConsent);
+  const setPaymentMode = (mode: PaymentMode) => { paymentModeRef.current = mode; _setPaymentMode(mode); };
+  const setSubscriptionConsent = (v: boolean) => { subscriptionConsentRef.current = v; _setSubscriptionConsent(v); };
 
   const methods = useForm<DeathCertificateInput>({
     resolver: zodResolver(deathCertificateSchema),
@@ -138,6 +144,27 @@ export function DeathCertificateForm({
   });
 
   const { handleSubmit, trigger } = methods;
+
+  // Restaurer les donnees du formulaire apres annulation de paiement
+  React.useEffect(() => {
+    if (!canceledRef) return;
+    const restore = async () => {
+      try {
+        const res = await fetch(`/api/processes/restore?ref=${encodeURIComponent(canceledRef)}`);
+        if (!res.ok) return;
+        const { data } = await res.json();
+        if (data) {
+          methods.reset(data);
+          const summaryIndex = STEPS.findIndex(s => s.id === 'summary');
+          setCurrentStep(summaryIndex >= 0 ? summaryIndex : STEPS.length - 1);
+          setCanceledWarning(true);
+        }
+      } catch {
+        // Silencieux en cas d'erreur
+      }
+    };
+    restore();
+  }, [canceledRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track step changes + hash pour bouton retour navigateur
   React.useEffect(() => {
@@ -263,8 +290,8 @@ export function DeathCertificateForm({
             partner: embedPartner,
             pricingCode,
             source: isEmbed ? (embedPartner === 'direct' ? 'direct' : 'embed') : 'direct',
-            paymentMode,
-            subscriptionConsent,
+            paymentMode: paymentModeRef.current,
+            subscriptionConsent: subscriptionConsentRef.current,
             data,
           }),
         });
@@ -290,7 +317,7 @@ export function DeathCertificateForm({
       const effectiveSubscriber = isSubscriber || detectedSubscriber;
 
       // Validation du consentement abonnement si mode subscription
-      if (!effectiveSubscriber && paymentMode === 'subscription' && !subscriptionConsent) {
+      if (!effectiveSubscriber && paymentModeRef.current === 'subscription' && !subscriptionConsentRef.current) {
         setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
         setIsSubmitting(false);
         return;
@@ -326,7 +353,7 @@ export function DeathCertificateForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'CIVIL_STATUS_DEATH',
-            paymentMode,
+            paymentMode: paymentModeRef.current,
             pricingCode,
             source: 'direct',
             data,
@@ -430,6 +457,11 @@ export function DeathCertificateForm({
         {/* Contenu de l'etape */}
         <Card>
           <CardContent className="pt-6">
+            {canceledWarning && (
+              <Alert variant="warning" className="mb-6">
+                Votre paiement a ete annule. Vos informations ont ete conservees. Vous pouvez reessayer quand vous le souhaitez.
+              </Alert>
+            )}
             {error && (
               <Alert variant="error" className="mb-6">
                 {error}
@@ -457,18 +489,16 @@ export function DeathCertificateForm({
           ) : (
             <Button type="button" disabled={isSubmitting} onClick={() => {
               const consents = methods.getValues('consents');
-              const allChecked = consents.acceptTerms && consents.acceptDataProcessing && consents.certifyAccuracy && consents.retractationExecution && consents.retractationRenonciation;
-              if (!allChecked) {
+              const anyChecked = consents.acceptTerms || consents.acceptDataProcessing || consents.certifyAccuracy || consents.retractationExecution || consents.retractationRenonciation;
+              if (!anyChecked) {
                 const val = true as unknown as true;
                 methods.setValue('consents.acceptTerms', val, { shouldValidate: true });
                 methods.setValue('consents.acceptDataProcessing', val, { shouldValidate: true });
                 methods.setValue('consents.certifyAccuracy', val, { shouldValidate: true });
                 methods.setValue('consents.retractationExecution', val, { shouldValidate: true });
                 methods.setValue('consents.retractationRenonciation', val, { shouldValidate: true });
-                if (pricing.paymentMode !== 'one_time') {
-                  setPaymentMode('subscription');
-                  setSubscriptionConsent(true);
-                }
+                setPaymentMode('subscription');
+                setSubscriptionConsent(true);
               }
               handleSubmit(handleFormSubmit, (validationErrors) => {
                 const messages: string[] = [];
