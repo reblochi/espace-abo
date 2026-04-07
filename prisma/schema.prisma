@@ -31,7 +31,10 @@ model User {
   firstName String
   lastName  String
   phone     String?
-  birthDate DateTime?
+  birthDate      DateTime?
+  birthCountryId Int?
+  birthCityId    Int?
+  birthCityName  String?
 
   // Adresse
   address      String?
@@ -634,5 +637,26 @@ enum FormEventType {
   FORM_COMPLETED
   FORM_ABANDONED
 
+  @@schema("espace_abo")
+}
+
+// ============================================
+// TEMPLATES EMAIL
+// ============================================
+
+model EmailTemplate {
+  id          String @id @default(cuid())
+  slug        String @unique // "welcome", "subscription-confirmation", etc.
+  name        String // Nom affiche dans l'admin
+  description String? // Description du template
+  subject     String // Sujet de l'email (peut contenir des {{variables}})
+  html        String // Contenu HTML du template
+  variables   String[] @default([]) // Liste des variables disponibles: firstName, reference, amount...
+
+  updatedBy String? // ID admin qui a modifie
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
   @@schema("espace_abo")
 }

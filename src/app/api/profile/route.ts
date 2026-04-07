@@ -22,6 +22,10 @@ export async function GET() {
         firstName: true,
         lastName: true,
         phone: true,
+        birthDate: true,
+        birthCountryId: true,
+        birthCityId: true,
+        birthCityName: true,
         address: true,
         addressExtra: true,
         zipCode: true,
@@ -62,15 +66,27 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Convertir birthDate string en DateTime si present
+    const updateData: Record<string, unknown> = { ...result.data };
+    if (typeof updateData.birthDate === 'string' && updateData.birthDate) {
+      updateData.birthDate = new Date(updateData.birthDate);
+    } else if (updateData.birthDate === '' || updateData.birthDate === null) {
+      updateData.birthDate = null;
+    }
+
     const user = await prisma.user.update({
       where: { id: session.user.id },
-      data: result.data,
+      data: updateData,
       select: {
         id: true,
         email: true,
         firstName: true,
         lastName: true,
         phone: true,
+        birthDate: true,
+        birthCountryId: true,
+        birthCityId: true,
+        birthCityName: true,
         address: true,
         addressExtra: true,
         zipCode: true,

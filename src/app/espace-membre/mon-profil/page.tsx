@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useProfile, useAuth } from '@/hooks';
+import { useCountries } from '@/hooks/useCountries';
 import {
   Card,
   CardHeader,
@@ -18,7 +19,9 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui';
+import { CityAutocomplete, type City, DateSelect } from '@/components/forms';
 import { PostalCityAutocomplete } from '@/components/forms/PostalCityAutocomplete';
+import { FRANCE_COUNTRY_ID } from '@/types/birth-certificate';
 
 function RgpdSection() {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -103,11 +106,18 @@ export default function MonProfilPage() {
   const { user, logout } = useAuth();
   const { profile, isLoading, updateProfile, isUpdating } = useProfile();
 
+  const { countriesWithFrance } = useCountries();
+  const [birthCity, setBirthCity] = useState<City | null>(null);
+
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
+    birthDate: '',
+    birthCountryId: FRANCE_COUNTRY_ID as number,
+    birthCityId: undefined as number | undefined,
+    birthCityName: '',
     address: '',
     city: '',
     zipCode: '',
@@ -127,15 +137,23 @@ export default function MonProfilPage() {
   // Initialiser le formulaire quand le profil est chargé
   useEffect(() => {
     if (profile) {
+      const bd = profile.birthDate ? new Date(profile.birthDate).toISOString().split('T')[0] : '';
       setProfileForm({
         firstName: profile.firstName || '',
         lastName: profile.lastName || '',
         email: profile.email || '',
         phone: profile.phone || '',
+        birthDate: bd,
+        birthCountryId: profile.birthCountryId || FRANCE_COUNTRY_ID,
+        birthCityId: profile.birthCityId || undefined,
+        birthCityName: profile.birthCityName || '',
         address: profile.address || '',
         city: profile.city || '',
         zipCode: profile.zipCode || '',
       });
+      if (profile.birthCityId && profile.birthCityName) {
+        setBirthCity({ id: profile.birthCityId, name: profile.birthCityName, postal_code: '', department_code: '' });
+      }
     }
   }, [profile]);
 
@@ -259,6 +277,65 @@ export default function MonProfilPage() {
                   value={profileForm.phone}
                   onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                 />
+
+                {/* Naissance */}
+                <div className="pt-2 border-t">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Naissance</h3>
+                  <div className="space-y-4">
+                    <DateSelect
+                      label="Date de naissance"
+                      value={profileForm.birthDate}
+                      onChange={(val) => setProfileForm({ ...profileForm, birthDate: val })}
+                    />
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Pays de naissance</label>
+                      <select
+                        value={profileForm.birthCountryId === FRANCE_COUNTRY_ID ? '' : String(profileForm.birthCountryId || '')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '') {
+                            setProfileForm({ ...profileForm, birthCountryId: FRANCE_COUNTRY_ID, birthCityId: undefined, birthCityName: '' });
+                          } else {
+                            setProfileForm({ ...profileForm, birthCountryId: parseInt(val, 10), birthCityId: undefined, birthCityName: '' });
+                          }
+                          setBirthCity(null);
+                        }}
+                        className="form-gov-select"
+                      >
+                        {countriesWithFrance.map((c) => (
+                          <option key={c.id} value={c.id === 0 ? '' : String(c.id)}>{c.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {profileForm.birthCountryId === FRANCE_COUNTRY_ID ? (
+                      <CityAutocomplete
+                        label="Commune de naissance"
+                        value={birthCity}
+                        onChange={(city) => {
+                          setBirthCity(city);
+                          if (city) {
+                            setProfileForm({ ...profileForm, birthCityId: city.id, birthCityName: city.name });
+                          } else {
+                            setProfileForm({ ...profileForm, birthCityId: undefined, birthCityName: '' });
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Input
+                        label="Ville de naissance"
+                        value={profileForm.birthCityName}
+                        onChange={(e) => setProfileForm({ ...profileForm, birthCityName: e.target.value, birthCityId: undefined })}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Adresse */}
+                <div className="pt-2 border-t">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Adresse</h3>
+                </div>
 
                 <Input
                   label="Adresse"
