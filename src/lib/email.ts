@@ -1,6 +1,7 @@
 // Service d'envoi d'emails (Resend)
 
 import { Resend } from 'resend';
+import { prisma } from './db';
 
 let _resend: Resend | null = null;
 function getResend(): Resend {
@@ -31,8 +32,21 @@ type EmailTemplate =
   | 'password-changed'
   | 'unsubscribe-request';
 
-// Templates HTML (simplifie - en production, utiliser React Email ou MJML)
-const templates: Record<EmailTemplate, (data: Record<string, unknown>) => { subject: string; html: string }> = {
+// Remplace les {{variable}} dans une chaine par les valeurs de data
+function interpolate(text: string, data: Record<string, unknown>): string {
+  // Handle {{#var}}...{{/var}} conditional blocks
+  let result = text.replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
+    return data[key] ? content : '';
+  });
+  // Handle simple {{var}} replacements
+  result = result.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return data[key] != null ? String(data[key]) : '';
+  });
+  return result;
+}
+
+// Templates HTML de fallback (simplifie - en production, utiliser les templates BDD)
+const fallbackTemplates: Record<EmailTemplate, (data: Record<string, unknown>) => { subject: string; html: string }> = {
   welcome: (data) => ({
     subject: 'Bienvenue sur votre espace abonnement',
     html: `
@@ -106,7 +120,7 @@ const templates: Record<EmailTemplate, (data: Record<string, unknown>) => { subj
     `,
   }),
 
-  'password-changed': (data) => ({
+  'password-changed': () => ({
     subject: 'Votre mot de passe a ete modifie',
     html: `
       <h1>Mot de passe modifie</h1>
@@ -128,20 +142,52 @@ const templates: Record<EmailTemplate, (data: Record<string, unknown>) => { subj
   }),
 };
 
-// Envoyer un email
+// Envoyer un email - cherche d'abord en BDD, puis fallback sur templates hardcodes
 export async function sendEmail({ to, subject, template, data }: EmailOptions): Promise<void> {
-  const templateFn = templates[template];
-  if (!templateFn) {
-    throw new Error(`Template email "${template}" non trouve`);
-  }
+  // Injecter siteUrl dans les data si pas present
+  const enrichedData = {
+    siteUrl: process.env.NEXTAUTH_URL || 'https://franceguichet.fr',
+    ...data,
+  };
 
-  const { subject: templateSubject, html } = templateFn(data);
+  let finalSubject: string;
+  let finalHtml: string;
+
+  // Essayer de charger le template depuis la BDD
+  try {
+    const dbTemplate = await prisma.emailTemplate.findUnique({
+      where: { slug: template },
+    });
+
+    if (dbTemplate) {
+      finalSubject = subject || interpolate(dbTemplate.subject, enrichedData);
+      finalHtml = interpolate(dbTemplate.html, enrichedData);
+    } else {
+      // Fallback sur les templates hardcodes
+      const fallbackFn = fallbackTemplates[template];
+      if (!fallbackFn) {
+        throw new Error(`Template email "${template}" non trouve`);
+      }
+      const result = fallbackFn(enrichedData);
+      finalSubject = subject || result.subject;
+      finalHtml = result.html;
+    }
+  } catch (e) {
+    // Si erreur BDD, fallback sur les templates hardcodes
+    const fallbackFn = fallbackTemplates[template];
+    if (!fallbackFn) {
+      throw new Error(`Template email "${template}" non trouve`);
+    }
+    const result = fallbackFn(enrichedData);
+    finalSubject = subject || result.subject;
+    finalHtml = result.html;
+  }
 
   await getResend().emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to,
-    subject: subject || templateSubject,
-    html,
+    subject: finalSubject,
+    html: finalHtml,
   });
 }
 

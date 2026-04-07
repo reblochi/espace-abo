@@ -22,8 +22,7 @@ import { getPricingProfile } from '@/lib/process-types';
 import { StepActType } from './steps/StepActType';
 import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepFiliation } from './steps/StepFiliation';
-import { StepDelivery } from './steps/StepDelivery';
-import { StepContact } from './steps/StepContact';
+import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface BirthCertificateFormProps {
@@ -58,17 +57,11 @@ const BASE_STEPS: Step[] = [
     description: 'Lien avec le beneficiaire et informations des parents',
   },
   {
-    id: 'delivery',
-    title: 'Livraison',
-    description: 'Adresse de reception de l\'acte',
+    id: 'requester',
+    title: 'Demandeur',
+    description: 'Coordonnees et adresse de livraison',
   },
 ];
-
-const CONTACT_STEP: Step = {
-  id: 'contact',
-  title: 'Coordonnees',
-  description: 'Vos informations de contact pour le suivi',
-};
 
 const SUMMARY_STEP: Step = {
   id: 'summary',
@@ -89,13 +82,12 @@ export function BirthCertificateForm({
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
 
-  // Construire les etapes: en mode embed, ajouter l'etape Coordonnees avant le recap
+  // Construire les etapes
   const STEPS = React.useMemo(() => {
     const steps = [...BASE_STEPS];
-    if (isEmbed) steps.push(CONTACT_STEP);
     steps.push(SUMMARY_STEP);
     return steps;
-  }, [isEmbed]);
+  }, []);
 
   // Tracking analytics
   const tracking = useFormTracking({
@@ -138,12 +130,9 @@ export function BirthCertificateForm({
         city: '',
         country: 'FR',
       },
-      contact: isEmbed ? {
-        email: '',
-        firstName: '',
-        lastName: '',
-        phone: '',
-      } : undefined,
+      email: '',
+      emailConfirm: '',
+      telephone: '',
       consents: {
         acceptTerms: false as unknown as true,
         acceptDataProcessing: false as unknown as true,
@@ -191,8 +180,7 @@ export function BirthCertificateForm({
     actType: ['recordType', 'recordCount'],
     beneficiary: ['gender', 'firstName', 'lastName', 'birthDate', 'birthCountryId', 'birthCityName'],
     filiation: ['claimerType'],
-    delivery: ['deliveryAddress'],
-    contact: ['contact'],
+    requester: ['email', 'emailConfirm', 'telephone', 'deliveryAddress'],
     summary: ['consents'],
   };
 
@@ -201,7 +189,23 @@ export function BirthCertificateForm({
     const stepId = STEPS[currentStep]?.id;
     const fieldsToValidate = stepFieldsMap[stepId];
     if (!fieldsToValidate || fieldsToValidate.length === 0) return true;
-    return await trigger(fieldsToValidate);
+    const fieldsValid = await trigger(fieldsToValidate);
+    if (stepId === 'requester') {
+      let valid = true;
+      const values = methods.getValues();
+      if (values.email !== values.emailConfirm) {
+        methods.setError('emailConfirm', { type: 'manual', message: 'Les 2 adresses email ne sont pas identiques' });
+        valid = false;
+      }
+      const tel = values.telephone?.replace(/[\s\-.]/g, '') || '';
+      if (!/^0[0-9]{9}$/.test(tel)) {
+        methods.setError('telephone', { type: 'manual', message: 'Format invalide (exemple : 06 12 34 56 78)' });
+        valid = false;
+      }
+      if (!fieldsValid) return false;
+      return valid;
+    }
+    return fieldsValid;
   };
 
   const scrollFormTop = () => {
@@ -216,20 +220,16 @@ export function BirthCertificateForm({
     if (isValid && currentStep < STEPS.length - 1) {
       tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
 
-      // Verifier si l'email correspond a un abonne
-      // au moment de quitter l'etape contact
+      // Verifier si l'email correspond a un abonne au moment de quitter l'etape demandeur
       const stepId = STEPS[currentStep].id;
-      if (stepId === 'delivery' || stepId === 'contact') {
+      if (stepId === 'requester') {
         const values = methods.getValues();
-        const emailToCheck = stepId === 'contact' ? values.contact?.email : undefined;
-        const phoneToCheck = undefined;
-        // Pour l'etape contact, verifier si l'email correspond a un abonne
-        if (emailToCheck) {
+        if (values.email || values.telephone) {
           try {
             const res = await fetch('/api/embed/check-subscriber', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: emailToCheck, phone: phoneToCheck }),
+              body: JSON.stringify({ email: values.email, phone: values.telephone }),
             });
             const data = await res.json();
             if (data.isSubscriber) {
@@ -249,9 +249,9 @@ export function BirthCertificateForm({
   const handlePrevious = () => {
     if (currentStep > 0) {
       setError(null);
-      // Si on revient sur l'etape delivery ou contact, re-verifier l'abonnement au prochain "Suivant"
+      // Si on revient sur l'etape demandeur, re-verifier l'abonnement au prochain "Suivant"
       const targetStepId = STEPS[currentStep - 1]?.id;
-      if (targetStepId === 'delivery' || targetStepId === 'contact') {
+      if (targetStepId === 'requester') {
         setDetectedSubscriber(false);
       }
       setCurrentStep(currentStep - 1);
@@ -370,10 +370,8 @@ export function BirthCertificateForm({
         return <StepBeneficiary />;
       case 'filiation':
         return <StepFiliation />;
-      case 'delivery':
-        return <StepDelivery />;
-      case 'contact':
-        return <StepContact />;
+      case 'requester':
+        return <SharedStepRequester />;
       case 'summary':
         return (
           <StepSummary
@@ -441,11 +439,7 @@ export function BirthCertificateForm({
 
         {/* Contenu de l'etape */}
         <Card>
-          <CardHeader>
-            <CardTitle>{STEPS[currentStep].title}</CardTitle>
-            <CardDescription>{STEPS[currentStep].description}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {error && (
               <Alert variant="error" className="mb-6">
                 {error}

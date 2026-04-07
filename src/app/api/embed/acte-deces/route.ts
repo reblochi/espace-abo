@@ -34,14 +34,17 @@ export async function POST(request: NextRequest) {
     const { partner, paymentMode, pricingCode, data } = parsed.data;
 
     // Les coordonnees sont obligatoires en mode embed
-    if (!data.contact) {
+    if (!data.email) {
       return NextResponse.json(
         { error: 'Coordonnees requises' },
         { status: 400 }
       );
     }
 
-    const { email, firstName, lastName, phone } = data.contact;
+    const email = data.email;
+    const phone = data.telephone;
+    const firstName = data.firstName;
+    const lastName = data.lastName;
 
     // Trouver ou creer l'utilisateur par email
     let user = await prisma.user.findUnique({ where: { email } });

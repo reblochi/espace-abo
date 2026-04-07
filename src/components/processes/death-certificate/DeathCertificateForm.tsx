@@ -21,8 +21,7 @@ import { getPricingProfile } from '@/lib/process-types';
 import { StepActType } from './steps/StepActType';
 import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepClaimer } from './steps/StepClaimer';
-import { StepDelivery } from './steps/StepDelivery';
-import { StepContact } from './steps/StepContact';
+import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface DeathCertificateFormProps {
@@ -57,17 +56,11 @@ const BASE_STEPS: Step[] = [
     description: 'Votre lien avec le defunt',
   },
   {
-    id: 'delivery',
-    title: 'Livraison',
-    description: 'Adresse de reception de l\'acte',
+    id: 'requester',
+    title: 'Demandeur',
+    description: 'Coordonnees et adresse de livraison',
   },
 ];
-
-const CONTACT_STEP: Step = {
-  id: 'contact',
-  title: 'Coordonnees',
-  description: 'Vos informations de contact pour le suivi',
-};
 
 const SUMMARY_STEP: Step = {
   id: 'summary',
@@ -87,13 +80,12 @@ export function DeathCertificateForm({
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
 
-  // Construire les etapes: en mode embed, ajouter l'etape Coordonnees avant le recap
+  // Construire les etapes
   const STEPS = React.useMemo(() => {
     const steps = [...BASE_STEPS];
-    if (isEmbed) steps.push(CONTACT_STEP);
     steps.push(SUMMARY_STEP);
     return steps;
-  }, [isEmbed]);
+  }, []);
 
   // Tracking analytics
   const tracking = useFormTracking({
@@ -131,12 +123,9 @@ export function DeathCertificateForm({
         city: '',
         country: 'FR',
       },
-      contact: isEmbed ? {
-        email: '',
-        firstName: '',
-        lastName: '',
-        phone: '',
-      } : undefined,
+      email: '',
+      emailConfirm: '',
+      telephone: '',
       consents: {
         acceptTerms: false as unknown as true,
         acceptDataProcessing: false as unknown as true,
@@ -182,8 +171,7 @@ export function DeathCertificateForm({
     actType: ['recordType', 'recordCount', 'deathDate', 'deathCountryId', 'deathCityName'],
     beneficiary: ['gender', 'firstName', 'lastName', 'birthDate'],
     claimer: ['claimerType'],
-    delivery: ['deliveryAddress'],
-    contact: ['contact'],
+    requester: ['email', 'emailConfirm', 'telephone', 'deliveryAddress'],
     summary: ['consents'],
   };
 
@@ -192,7 +180,23 @@ export function DeathCertificateForm({
     const stepId = STEPS[currentStep]?.id;
     const fieldsToValidate = stepFieldsMap[stepId];
     if (!fieldsToValidate || fieldsToValidate.length === 0) return true;
-    return await trigger(fieldsToValidate);
+    const fieldsValid = await trigger(fieldsToValidate);
+    if (stepId === 'requester') {
+      let valid = true;
+      const values = methods.getValues();
+      if (values.email !== values.emailConfirm) {
+        methods.setError('emailConfirm', { type: 'manual', message: 'Les 2 adresses email ne sont pas identiques' });
+        valid = false;
+      }
+      const tel = values.telephone?.replace(/[\s\-.]/g, '') || '';
+      if (!/^0[0-9]{9}$/.test(tel)) {
+        methods.setError('telephone', { type: 'manual', message: 'Format invalide (exemple : 06 12 34 56 78)' });
+        valid = false;
+      }
+      if (!fieldsValid) return false;
+      return valid;
+    }
+    return fieldsValid;
   };
 
   const scrollFormTop = () => {
@@ -207,17 +211,16 @@ export function DeathCertificateForm({
     if (isValid && currentStep < STEPS.length - 1) {
       tracking.trackStepCompleted(currentStep, STEPS[currentStep].id);
 
-      // Verifier si l'email correspond a un abonne au moment de quitter l'etape contact
+      // Verifier si l'email correspond a un abonne au moment de quitter l'etape demandeur
       const stepId = STEPS[currentStep].id;
-      if (stepId === 'contact') {
+      if (stepId === 'requester') {
         const values = methods.getValues();
-        const emailToCheck = values.contact?.email;
-        if (emailToCheck) {
+        if (values.email || values.telephone) {
           try {
             const res = await fetch('/api/embed/check-subscriber', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: emailToCheck }),
+              body: JSON.stringify({ email: values.email, phone: values.telephone }),
             });
             const data = await res.json();
             if (data.isSubscriber) {
@@ -238,7 +241,7 @@ export function DeathCertificateForm({
     if (currentStep > 0) {
       setError(null);
       const targetStepId = STEPS[currentStep - 1]?.id;
-      if (targetStepId === 'contact') {
+      if (targetStepId === 'requester') {
         setDetectedSubscriber(false);
       }
       setCurrentStep(currentStep - 1);
@@ -357,10 +360,8 @@ export function DeathCertificateForm({
         return <StepBeneficiary />;
       case 'claimer':
         return <StepClaimer />;
-      case 'delivery':
-        return <StepDelivery />;
-      case 'contact':
-        return <StepContact />;
+      case 'requester':
+        return <SharedStepRequester />;
       case 'summary':
         return (
           <StepSummary
@@ -428,11 +429,7 @@ export function DeathCertificateForm({
 
         {/* Contenu de l'etape */}
         <Card>
-          <CardHeader>
-            <CardTitle>{STEPS[currentStep].title}</CardTitle>
-            <CardDescription>{STEPS[currentStep].description}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {error && (
               <Alert variant="error" className="mb-6">
                 {error}

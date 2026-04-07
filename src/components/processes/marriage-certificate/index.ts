@@ -6,5 +6,4 @@ export { StepBeneficiary } from './steps/StepBeneficiary';
 export { StepParents } from './steps/StepParents';
 export { StepSpouse } from './steps/StepSpouse';
 export { StepSpouseParents } from './steps/StepSpouseParents';
-export { StepDelivery } from './steps/StepDelivery';
 export { StepSummary } from './steps/StepSummary';

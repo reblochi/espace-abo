@@ -101,13 +101,25 @@ export const birthCertificateSchema = z.object({
   motherUnknown: z.boolean().default(false),
   motherFirstName: z.string().optional(),
   motherLastName: z.string().optional(),
-  // Etape 4
+  // Etape Demandeur (livraison + coordonnees)
   deliveryAddress: deliveryAddressSchema,
-  // Contact (optionnel, mode embed)
-  contact: contactSchema.optional(),
+  email: z.string().email('Email invalide'),
+  emailConfirm: z.string().email('Email invalide'),
+  telephone: z.string().min(1, 'Telephone requis').max(20),
   // Consentements
   consents: consentsStepSchema,
-});
+})
+  .refine((data) => data.email === data.emailConfirm, {
+    message: 'Les 2 adresses email ne sont pas identiques',
+    path: ['emailConfirm'],
+  })
+  .refine((data) => {
+    const tel = data.telephone.replace(/[\s\-.]/g, '');
+    return /^0[0-9]{9}$/.test(tel);
+  }, {
+    message: 'Format invalide (exemple : 06 12 34 56 78)',
+    path: ['telephone'],
+  });
 
 export type BirthCertificateInput = z.infer<typeof birthCertificateSchema>;
 
