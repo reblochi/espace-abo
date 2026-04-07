@@ -3,17 +3,17 @@
 import { prisma } from '@/lib/db';
 
 export async function generateClientReference(): Promise<string> {
-  const last = await prisma.user.findFirst({
-    where: { reference: { not: null } },
-    orderBy: { reference: 'desc' },
-    select: { reference: true },
-  });
+  const count = await prisma.user.count();
+  let nextNum = count + 1;
 
-  let nextNum = 1;
-  if (last?.reference) {
-    const parsed = parseInt(last.reference.replace('CLI-', ''), 10);
-    if (!isNaN(parsed)) nextNum = parsed + 1;
+  // Retry en cas de collision (appels concurrents)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const ref = `CLI-${String(nextNum).padStart(5, '0')}`;
+    const exists = await prisma.user.findFirst({ where: { reference: ref } });
+    if (!exists) return ref;
+    nextNum++;
   }
 
-  return `CLI-${String(nextNum).padStart(5, '0')}`;
+  // Fallback avec timestamp pour garantir l'unicite
+  return `CLI-${Date.now()}`;
 }
