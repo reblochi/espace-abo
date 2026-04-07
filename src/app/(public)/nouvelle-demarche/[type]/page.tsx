@@ -17,6 +17,8 @@ import {
 import { RegistrationCertificateForm } from '@/components/processes/registration-certificate';
 import { BirthCertificateForm } from '@/components/processes/birth-certificate';
 import { IdentityCardForm } from '@/components/processes/identity-card';
+import { DeathCertificateForm } from '@/components/processes/death-certificate';
+import { MarriageCertificateForm } from '@/components/processes/marriage-certificate';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
@@ -314,7 +316,93 @@ export default function FormulaireDemarchePage() {
   }
 
   // ================================================
-  // Formulaire generique (etat civil et autres)
+  // Formulaire acte de deces
+  // ================================================
+  if (typeCode === 'CIVIL_STATUS_DEATH') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Logo size="md" />
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li><Link href="/nouvelle-demarche" className="hover:text-blue-600">Demarches</Link></li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <DeathCertificateForm
+            isSubscriber={hasActiveSubscription}
+            basePrice={processConfig.basePrice}
+            embedPartner={!isAuthenticated ? 'direct' : undefined}
+            pricingCode={pricingCode}
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
+  // Formulaire acte de mariage
+  // ================================================
+  if (typeCode === 'CIVIL_STATUS_MARRIAGE') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Logo size="md" />
+              <Link href="/espace-membre">
+                <Button variant="outline">Mon espace</Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li><Link href="/nouvelle-demarche" className="hover:text-blue-600">Demarches</Link></li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <MarriageCertificateForm
+            isSubscriber={hasActiveSubscription}
+            basePrice={processConfig.basePrice}
+            embedPartner={!isAuthenticated ? 'direct' : undefined}
+            pricingCode={pricingCode}
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
+  // Formulaire generique (autres types)
   // ================================================
   const handleSubmit = async () => {
     setIsLoading(true);
