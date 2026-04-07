@@ -51,6 +51,42 @@ export interface UpdateProfileInput {
   city?: string;
 }
 
+export interface FamilyMember {
+  id: string;
+  relation: string;
+  gender: string | null;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  birthDate: string | null;
+  birthCountryId: number | null;
+  birthCityId: number | null;
+  birthCityName: string | null;
+  address: string | null;
+  addressExtra: string | null;
+  zipCode: string | null;
+  city: string | null;
+  createdAt: string;
+}
+
+export interface FamilyMemberInput {
+  relation: string;
+  gender?: string | null;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  birthDate?: string | null;
+  birthCountryId?: number | null;
+  birthCityId?: number | null;
+  birthCityName?: string | null;
+  address?: string;
+  addressExtra?: string;
+  zipCode?: string;
+  city?: string;
+}
+
 export interface ChangePasswordInput {
   currentPassword?: string;
   newPassword: string;

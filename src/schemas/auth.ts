@@ -73,3 +73,23 @@ export const profileSchema = z.object({
 });
 
 export type ProfileSchema = z.infer<typeof profileSchema>;
+
+// Schema membre famille
+export const familyMemberSchema = z.object({
+  relation: z.string().min(1, 'Lien de parente requis'),
+  gender: z.string().optional().nullable(),
+  firstName: z.string().min(1, 'Prenom requis'),
+  lastName: z.string().min(1, 'Nom requis'),
+  phone: z.string().optional(),
+  email: z.string().email('Email invalide').optional().or(z.literal('')),
+  birthDate: z.string().optional().nullable(),
+  birthCountryId: z.number().int().optional().nullable(),
+  birthCityId: z.number().int().optional().nullable(),
+  birthCityName: z.string().optional().nullable(),
+  address: z.string().optional(),
+  addressExtra: z.string().optional(),
+  zipCode: z.string().optional(),
+  city: z.string().optional(),
+});
+
+export type FamilyMemberSchema = z.infer<typeof familyMemberSchema>;

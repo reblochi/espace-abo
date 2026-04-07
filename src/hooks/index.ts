@@ -6,6 +6,7 @@ export { useProcess, useUploadProcessFile, useProcessFiles } from './useProcess'
 export { useDocuments, useDownloadDocument } from './useDocuments';
 export { useInvoices, useDownloadInvoice } from './useInvoices';
 export { useProfile, useChangePassword } from './useProfile';
+export { useFamily } from './useFamily';
 export {
   useAuth,
   useRegister,

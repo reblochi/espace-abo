@@ -50,13 +50,39 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subscription Subscription?
-  processes    Process[]
-  invoices     Invoice[]
-  consents     Consent[]
-  courriers    Courrier[]
+  subscription    Subscription?
+  processes       Process[]
+  invoices        Invoice[]
+  consents        Consent[]
+  courriers       Courrier[]
+  familyMembers   FamilyMember[]
 
   @@map("users")
+  @@schema("espace_abo")
+}
+
+model FamilyMember {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relation       String    // conjoint, enfant, parent, frere_soeur, autre
+  gender         String?   // MALE, FEMALE
+  firstName      String
+  lastName       String
+  phone          String?
+  email          String?
+  birthDate      DateTime?
+  birthCountryId Int?
+  birthCityId    Int?
+  birthCityName  String?
+  address        String?
+  addressExtra   String?
+  zipCode        String?
+  city           String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("family_members")
   @@schema("espace_abo")
 }
 
