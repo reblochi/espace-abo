@@ -115,6 +115,7 @@ export default function MonProfilPage() {
     lastName: '',
     email: '',
     phone: '',
+    gender: '' as string,
     birthDate: '',
     birthCountryId: FRANCE_COUNTRY_ID as number,
     birthCityId: undefined as number | undefined,
@@ -144,6 +145,7 @@ export default function MonProfilPage() {
         lastName: profile.lastName || '',
         email: profile.email || '',
         phone: profile.phone || '',
+        gender: profile.gender || '',
         birthDate: bd,
         birthCountryId: profile.birthCountryId || FRANCE_COUNTRY_ID,
         birthCityId: profile.birthCityId || undefined,
@@ -250,6 +252,25 @@ export default function MonProfilPage() {
                 <CardTitle>Identite</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Civilite</label>
+                  <div className="flex gap-3">
+                    {[{ value: 'MALE', label: 'Monsieur' }, { value: 'FEMALE', label: 'Madame' }].map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, gender: g.value })}
+                        className={`flex-1 py-2 px-4 rounded-md border text-sm font-medium transition-colors ${
+                          profileForm.gender === g.value
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
                     label="Prenom"

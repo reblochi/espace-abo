@@ -163,6 +163,7 @@ export function BirthCertificateForm({
     if (!profile) return;
     const current = methods.getValues();
     // Beneficiaire
+    if (!current.gender && profile.gender) methods.setValue('gender', profile.gender as 'MALE' | 'FEMALE');
     if (!current.firstName) methods.setValue('firstName', profile.firstName || '');
     if (!current.lastName) methods.setValue('lastName', profile.lastName || '');
     if (profile.birthDate && !current.birthDate) {

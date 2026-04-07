@@ -192,6 +192,7 @@ export function IdentityCardForm({
   React.useEffect(() => {
     if (!profile) return;
     const current = methods.getValues();
+    if (!current.gender && profile.gender) methods.setValue('gender', profile.gender as 'MALE' | 'FEMALE');
     if (!current.nom) methods.setValue('nom', profile.lastName || '');
     if (!current.prenom) methods.setValue('prenom', profile.firstName || '');
     if (!current.email) methods.setValue('email', profile.email || '');

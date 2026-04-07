@@ -24,6 +24,7 @@ export interface Profile {
   firstName: string;
   lastName: string;
   phone: string | null;
+  gender: string | null;
   birthDate: string | null;
   birthCountryId: number | null;
   birthCityId: number | null;
@@ -39,6 +40,7 @@ export interface UpdateProfileInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  gender?: string | null;
   birthDate?: string | null;
   birthCountryId?: number | null;
   birthCityId?: number | null;

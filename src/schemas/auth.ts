@@ -61,6 +61,7 @@ export const profileSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().optional(),
+  gender: z.string().optional().nullable(),
   birthDate: z.string().optional().nullable(),
   birthCountryId: z.number().int().optional().nullable(),
   birthCityId: z.number().int().optional().nullable(),
