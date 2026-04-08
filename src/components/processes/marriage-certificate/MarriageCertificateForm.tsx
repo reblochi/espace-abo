@@ -27,6 +27,12 @@ import { StepSpouse } from './steps/StepSpouse';
 import { StepSpouseParents } from './steps/StepSpouseParents';
 import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import { StepResetButton } from '@/components/processes/shared/StepResetButton';
+import {
+  ProfileUpdatePrompt,
+  detectProfileChanges,
+  BENEFICIARY_FIELDS,
+  REQUESTER_FIELDS,
+} from '@/components/processes/shared/ProfileUpdatePrompt';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface MarriageCertificateFormProps {
@@ -75,7 +81,7 @@ export function MarriageCertificateForm({
   onCheckout,
 }: MarriageCertificateFormProps) {
   const { data: session } = useSession();
-  const { profile } = useProfile();
+  const { profile, updateProfileAsync } = useProfile();
   const isEmbed = !!embedPartner;
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
@@ -217,6 +223,8 @@ export function MarriageCertificateForm({
   const [error, setError] = React.useState<string | null>(null);
   const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
+  const [pendingComplete, setPendingComplete] = React.useState<{ reference: string; formData: Record<string, unknown> } | null>(null);
+  const [isUpdatingProfile, setIsUpdatingProfile] = React.useState(false);
   const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
   const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
   const paymentModeRef = React.useRef(paymentMode);
@@ -355,6 +363,46 @@ export function MarriageCertificateForm({
     }
   };
 
+  const completeWithProfileCheck = (reference: string, formData: Record<string, unknown>) => {
+    if (!profile || isEmbed) {
+      onComplete(reference);
+      return;
+    }
+    const changes = detectProfileChanges(profile, formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+    if (changes.length > 0) {
+      setPendingComplete({ reference, formData });
+    } else {
+      onComplete(reference);
+    }
+  };
+
+  const handleProfileUpdateConfirm = async () => {
+    if (!pendingComplete || !profile) return;
+    setIsUpdatingProfile(true);
+    try {
+      const changes = detectProfileChanges(profile, pendingComplete.formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+      const updateData: Record<string, unknown> = {};
+      for (const change of changes) {
+        updateData[change.profileKey] = change.newValue;
+      }
+      await updateProfileAsync(updateData);
+    } catch {
+      // Silencieux
+    } finally {
+      setIsUpdatingProfile(false);
+      const ref = pendingComplete.reference;
+      setPendingComplete(null);
+      onComplete(ref);
+    }
+  };
+
+  const handleProfileUpdateSkip = () => {
+    if (!pendingComplete) return;
+    const ref = pendingComplete.reference;
+    setPendingComplete(null);
+    onComplete(ref);
+  };
+
   const handleFormSubmit = async (data: MarriageCertificateInput) => {
     setIsSubmitting(true);
     setError(null);
@@ -387,7 +435,7 @@ export function MarriageCertificateForm({
           onCheckout(result.url);
         } else if (result.reference) {
           tracking.trackFormCompleted();
-          onComplete(result.reference);
+          completeWithProfileCheck(result.reference, data as unknown as Record<string, unknown>);
         }
         return;
       }
@@ -423,7 +471,7 @@ export function MarriageCertificateForm({
         }
 
         tracking.trackFormCompleted(result.process?.id);
-        onComplete(result.process.reference);
+        completeWithProfileCheck(result.process.reference, data as unknown as Record<string, unknown>);
       } else {
         const response = await fetch('/api/processes/checkout', {
           method: 'POST',
@@ -624,6 +672,14 @@ export function MarriageCertificateForm({
           )}
         </div>
       </form>
+
+      <ProfileUpdatePrompt
+        isOpen={!!pendingComplete}
+        changes={pendingComplete ? detectProfileChanges(profile, pendingComplete.formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]) : []}
+        onConfirm={handleProfileUpdateConfirm}
+        onSkip={handleProfileUpdateSkip}
+        isUpdating={isUpdatingProfile}
+      />
     </FormProvider>
   );
 }

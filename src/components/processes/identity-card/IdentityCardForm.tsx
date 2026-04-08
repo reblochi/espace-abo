@@ -25,6 +25,12 @@ import { StepRequester } from './steps/StepRequester';
 import { StepContact } from './steps/StepContact';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 import { StepResetButton } from '@/components/processes/shared/StepResetButton';
+import {
+  ProfileUpdatePrompt,
+  detectProfileChanges,
+  IDENTITY_BENEFICIARY_FIELDS,
+  REQUESTER_FIELDS,
+} from '@/components/processes/shared/ProfileUpdatePrompt';
 
 export interface IdentityCardFormProps {
   isSubscriber?: boolean;
@@ -94,7 +100,7 @@ export function IdentityCardForm({
   onCheckout,
 }: IdentityCardFormProps) {
   const { data: session } = useSession();
-  const { profile } = useProfile();
+  const { profile, updateProfileAsync } = useProfile();
   const isEmbed = !!embedPartner;
   const isDirectAccess = embedPartner === 'direct'; // Acces direct sans auth (pas un embed externe)
   const pricing = getPricingProfile(pricingCode);
@@ -121,6 +127,8 @@ export function IdentityCardForm({
   const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
+  const [pendingComplete, setPendingComplete] = React.useState<{ reference: string; formData: Record<string, unknown> } | null>(null);
+  const [isUpdatingProfile, setIsUpdatingProfile] = React.useState(false);
   const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
   const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
   const paymentModeRef = React.useRef(paymentMode);
@@ -451,6 +459,46 @@ export function IdentityCardForm({
     }
   };
 
+  const completeWithProfileCheck = (reference: string, formData: Record<string, unknown>) => {
+    if (!profile || isEmbed) {
+      onComplete(reference);
+      return;
+    }
+    const changes = detectProfileChanges(profile, formData, [...IDENTITY_BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+    if (changes.length > 0) {
+      setPendingComplete({ reference, formData });
+    } else {
+      onComplete(reference);
+    }
+  };
+
+  const handleProfileUpdateConfirm = async () => {
+    if (!pendingComplete || !profile) return;
+    setIsUpdatingProfile(true);
+    try {
+      const changes = detectProfileChanges(profile, pendingComplete.formData, [...IDENTITY_BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+      const updateData: Record<string, unknown> = {};
+      for (const change of changes) {
+        updateData[change.profileKey] = change.newValue;
+      }
+      await updateProfileAsync(updateData);
+    } catch {
+      // Silencieux
+    } finally {
+      setIsUpdatingProfile(false);
+      const ref = pendingComplete.reference;
+      setPendingComplete(null);
+      onComplete(ref);
+    }
+  };
+
+  const handleProfileUpdateSkip = () => {
+    if (!pendingComplete) return;
+    const ref = pendingComplete.reference;
+    setPendingComplete(null);
+    onComplete(ref);
+  };
+
   const handleFormSubmit = async (data: IdentityCardInput) => {
     setIsSubmitting(true);
     setError(null);
@@ -498,7 +546,7 @@ export function IdentityCardForm({
           onCheckout(result.url);
         } else if (result.reference) {
           tracking.trackFormCompleted();
-          onComplete(result.reference);
+          completeWithProfileCheck(result.reference, data as unknown as Record<string, unknown>);
         }
         return;
       }
@@ -531,7 +579,7 @@ export function IdentityCardForm({
         }
 
         tracking.trackFormCompleted();
-        onComplete(result.process.reference);
+        completeWithProfileCheck(result.process.reference, data as unknown as Record<string, unknown>);
       } else if (effectiveSubscriber && stampTax > 0) {
         // Abonne/gratuit avec timbre fiscal : passer par checkout pour payer le timbre
         const response = await fetch('/api/processes/checkout', {
@@ -765,6 +813,14 @@ export function IdentityCardForm({
           Vos donnees sont traitees de maniere securisee et confidentielle.
         </p>
       </div>
+
+      <ProfileUpdatePrompt
+        isOpen={!!pendingComplete}
+        changes={pendingComplete ? detectProfileChanges(profile, pendingComplete.formData, [...IDENTITY_BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]) : []}
+        onConfirm={handleProfileUpdateConfirm}
+        onSkip={handleProfileUpdateSkip}
+        isUpdating={isUpdatingProfile}
+      />
     </FormProvider>
   );
 }

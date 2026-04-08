@@ -25,6 +25,11 @@ import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepClaimer } from './steps/StepClaimer';
 import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import { StepResetButton } from '@/components/processes/shared/StepResetButton';
+import {
+  ProfileUpdatePrompt,
+  detectProfileChanges,
+  REQUESTER_FIELDS,
+} from '@/components/processes/shared/ProfileUpdatePrompt';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface DeathCertificateFormProps {
@@ -84,7 +89,7 @@ export function DeathCertificateForm({
   onCheckout,
 }: DeathCertificateFormProps) {
   const { data: session } = useSession();
-  const { profile } = useProfile();
+  const { profile, updateProfileAsync } = useProfile();
   const isEmbed = !!embedPartner;
   const pricing = getPricingProfile(pricingCode);
   const basePrice = pricing.basePrice;
@@ -109,6 +114,8 @@ export function DeathCertificateForm({
   const [error, setError] = React.useState<string | null>(null);
   const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
+  const [pendingComplete, setPendingComplete] = React.useState<{ reference: string; formData: Record<string, unknown> } | null>(null);
+  const [isUpdatingProfile, setIsUpdatingProfile] = React.useState(false);
   const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
   const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
   const paymentModeRef = React.useRef(paymentMode);
@@ -299,6 +306,47 @@ export function DeathCertificateForm({
     }
   };
 
+  // Pour acte de deces, le beneficiaire n'est pas le demandeur → on ne compare que les champs demandeur
+  const completeWithProfileCheck = (reference: string, formData: Record<string, unknown>) => {
+    if (!profile || isEmbed) {
+      onComplete(reference);
+      return;
+    }
+    const changes = detectProfileChanges(profile, formData, REQUESTER_FIELDS);
+    if (changes.length > 0) {
+      setPendingComplete({ reference, formData });
+    } else {
+      onComplete(reference);
+    }
+  };
+
+  const handleProfileUpdateConfirm = async () => {
+    if (!pendingComplete || !profile) return;
+    setIsUpdatingProfile(true);
+    try {
+      const changes = detectProfileChanges(profile, pendingComplete.formData, REQUESTER_FIELDS);
+      const updateData: Record<string, unknown> = {};
+      for (const change of changes) {
+        updateData[change.profileKey] = change.newValue;
+      }
+      await updateProfileAsync(updateData);
+    } catch {
+      // Silencieux
+    } finally {
+      setIsUpdatingProfile(false);
+      const ref = pendingComplete.reference;
+      setPendingComplete(null);
+      onComplete(ref);
+    }
+  };
+
+  const handleProfileUpdateSkip = () => {
+    if (!pendingComplete) return;
+    const ref = pendingComplete.reference;
+    setPendingComplete(null);
+    onComplete(ref);
+  };
+
   const handleFormSubmit = async (data: DeathCertificateInput) => {
     setIsSubmitting(true);
     setError(null);
@@ -332,7 +380,7 @@ export function DeathCertificateForm({
           onCheckout(result.url);
         } else if (result.reference) {
           tracking.trackFormCompleted();
-          onComplete(result.reference);
+          completeWithProfileCheck(result.reference, data as unknown as Record<string, unknown>);
         }
         return;
       }
@@ -371,7 +419,7 @@ export function DeathCertificateForm({
         }
 
         tracking.trackFormCompleted(result.process?.id);
-        onComplete(result.process.reference);
+        completeWithProfileCheck(result.process.reference, data as unknown as Record<string, unknown>);
       } else {
         // Creer une session checkout (abonnement ou paiement unique)
         const response = await fetch('/api/processes/checkout', {
@@ -569,6 +617,14 @@ export function DeathCertificateForm({
           )}
         </div>
       </form>
+
+      <ProfileUpdatePrompt
+        isOpen={!!pendingComplete}
+        changes={pendingComplete ? detectProfileChanges(profile, pendingComplete.formData, REQUESTER_FIELDS) : []}
+        onConfirm={handleProfileUpdateConfirm}
+        onSkip={handleProfileUpdateSkip}
+        isUpdating={isUpdatingProfile}
+      />
     </FormProvider>
   );
 }

@@ -26,6 +26,12 @@ import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepFiliation } from './steps/StepFiliation';
 import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
 import { StepResetButton } from '@/components/processes/shared/StepResetButton';
+import {
+  ProfileUpdatePrompt,
+  detectProfileChanges,
+  BENEFICIARY_FIELDS,
+  REQUESTER_FIELDS,
+} from '@/components/processes/shared/ProfileUpdatePrompt';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface BirthCertificateFormProps {
@@ -85,7 +91,7 @@ export function BirthCertificateForm({
   onCheckout,
 }: BirthCertificateFormProps) {
   const { data: session } = useSession();
-  const { profile } = useProfile();
+  const { profile, updateProfileAsync } = useProfile();
   const isEmbed = !!embedPartner;
   const isDirectAccess = embedPartner === 'direct';
   const pricing = getPricingProfile(pricingCode);
@@ -111,6 +117,8 @@ export function BirthCertificateForm({
   const [error, setError] = React.useState<string | null>(null);
   const [canceledWarning, setCanceledWarning] = React.useState(false);
   const [detectedSubscriber, setDetectedSubscriber] = React.useState(false);
+  const [pendingComplete, setPendingComplete] = React.useState<{ reference: string; formData: Record<string, unknown> } | null>(null);
+  const [isUpdatingProfile, setIsUpdatingProfile] = React.useState(false);
   const [paymentMode, _setPaymentMode] = React.useState<PaymentMode>('one_time');
   const [subscriptionConsent, _setSubscriptionConsent] = React.useState(false);
   const paymentModeRef = React.useRef(paymentMode);
@@ -328,6 +336,47 @@ export function BirthCertificateForm({
     }
   };
 
+  // Propose la mise a jour du profil si des champs ont ete modifies
+  const completeWithProfileCheck = (reference: string, formData: Record<string, unknown>) => {
+    if (!profile || isEmbed) {
+      onComplete(reference);
+      return;
+    }
+    const changes = detectProfileChanges(profile, formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+    if (changes.length > 0) {
+      setPendingComplete({ reference, formData });
+    } else {
+      onComplete(reference);
+    }
+  };
+
+  const handleProfileUpdateConfirm = async () => {
+    if (!pendingComplete || !profile) return;
+    setIsUpdatingProfile(true);
+    try {
+      const changes = detectProfileChanges(profile, pendingComplete.formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]);
+      const updateData: Record<string, unknown> = {};
+      for (const change of changes) {
+        updateData[change.profileKey] = change.newValue;
+      }
+      await updateProfileAsync(updateData);
+    } catch {
+      // Silencieux — on ne bloque pas la demarche pour un echec de mise a jour profil
+    } finally {
+      setIsUpdatingProfile(false);
+      const ref = pendingComplete.reference;
+      setPendingComplete(null);
+      onComplete(ref);
+    }
+  };
+
+  const handleProfileUpdateSkip = () => {
+    if (!pendingComplete) return;
+    const ref = pendingComplete.reference;
+    setPendingComplete(null);
+    onComplete(ref);
+  };
+
   const handleFormSubmit = async (data: BirthCertificateInput) => {
     setIsSubmitting(true);
     setError(null);
@@ -361,7 +410,7 @@ export function BirthCertificateForm({
           onCheckout(result.url);
         } else if (result.reference) {
           tracking.trackFormCompleted();
-          onComplete(result.reference);
+          completeWithProfileCheck(result.reference, data as unknown as Record<string, unknown>);
         }
         return;
       }
@@ -400,7 +449,7 @@ export function BirthCertificateForm({
         }
 
         tracking.trackFormCompleted(result.process?.id);
-        onComplete(result.process.reference);
+        completeWithProfileCheck(result.process.reference, data as unknown as Record<string, unknown>);
       } else {
         // Creer une session checkout (abonnement ou paiement unique)
         const response = await fetch('/api/processes/checkout', {
@@ -598,6 +647,15 @@ export function BirthCertificateForm({
           )}
         </div>
       </form>
+
+      {/* Modal mise a jour profil */}
+      <ProfileUpdatePrompt
+        isOpen={!!pendingComplete}
+        changes={pendingComplete ? detectProfileChanges(profile, pendingComplete.formData, [...BENEFICIARY_FIELDS, ...REQUESTER_FIELDS]) : []}
+        onConfirm={handleProfileUpdateConfirm}
+        onSkip={handleProfileUpdateSkip}
+        isUpdating={isUpdatingProfile}
+      />
     </FormProvider>
   );
 }
