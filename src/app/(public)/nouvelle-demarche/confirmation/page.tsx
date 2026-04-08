@@ -49,6 +49,15 @@ function ConfirmationDemarcheContent() {
             setIsLoading(false);
             return;
           }
+
+          // Auto-login si le verify retourne un token (utilisateur non connecte)
+          const verifyData = await verifyResponse.json();
+          if (verifyData.autoLoginToken) {
+            // Rediriger vers auto-login qui revient ici (sans session_id pour eviter boucle)
+            const callbackUrl = `/nouvelle-demarche/confirmation?ref=${reference}`;
+            window.location.href = `/api/auth/auto-login?token=${encodeURIComponent(verifyData.autoLoginToken)}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
+            return;
+          }
         }
 
         // Recuperer les details du process
@@ -104,6 +113,7 @@ function ConfirmationDemarcheContent() {
   // Determine le type de demarche pour l'affichage
   const isVehicleProcess = process?.type === 'REGISTRATION_CERT';
   const isCivilStatusProcess = ['CIVIL_STATUS_BIRTH', 'CIVIL_STATUS_MARRIAGE', 'CIVIL_STATUS_DEATH'].includes(process?.type || '');
+  const isSignalement = process?.type === 'SIGNALEMENT_MAIRIE';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex flex-col items-center justify-center py-12 px-4">
@@ -126,10 +136,10 @@ function ConfirmationDemarcheContent() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Demarche enregistree !
+            {isSignalement ? 'Signalement enregistre !' : 'Demarche enregistree !'}
           </h1>
           <p className="text-gray-600">
-            Votre demande a bien ete prise en compte
+            {isSignalement ? 'Votre signalement a bien ete pris en compte' : 'Votre demande a bien ete prise en compte'}
           </p>
         </div>
 
@@ -203,7 +213,7 @@ function ConfirmationDemarcheContent() {
                     }
                   >
                     {process.status === 'PENDING_PAYMENT' && 'En attente de paiement'}
-                    {process.status === 'PAID' && 'Payé'}
+                    {process.status === 'PAID' && (process.pricePaid === 0 || process.pricePaid === null ? 'Validee' : 'Paye')}
                     {process.status === 'SENT_TO_ADVERCITY' && 'En traitement'}
                     {process.status === 'IN_PROGRESS' && 'En cours'}
                     {process.status === 'AWAITING_INFO' && 'Info manquante'}
@@ -219,7 +229,28 @@ function ConfirmationDemarcheContent() {
             <div className="border-t pt-4">
               <h3 className="font-medium mb-3">Prochaines etapes</h3>
               <ul className="space-y-3 text-sm text-gray-600">
-                {isVehicleProcess ? (
+                {isSignalement ? (
+                  <>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">1</span>
+                      </div>
+                      <span>Votre signalement est transmis a votre mairie</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">2</span>
+                      </div>
+                      <span>Vous recevrez un email de confirmation avec un recapitulatif</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">3</span>
+                      </div>
+                      <span>Suivez l&apos;avancement depuis votre espace membre</span>
+                    </li>
+                  </>
+                ) : isVehicleProcess ? (
                   <>
                     <li className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { createAdvercityProcess, mapProcessTypeToAdvercity, mapProcessDataToAdvercity } from '@/lib/advercity';
+import { generateAutoLoginToken } from '@/lib/auto-login';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -16,9 +17,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('session_id');
@@ -30,9 +28,16 @@ export async function GET(request: NextRequest) {
     // Recuperer la session Checkout
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // Verifier que c'est bien l'utilisateur
-    if (checkoutSession.metadata?.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Session non autorisee' }, { status: 403 });
+    // Verifier l'identite : soit via session NextAuth, soit via metadata Stripe (embed/public)
+    const stripeUserId = checkoutSession.metadata?.userId;
+    if (session?.user?.id) {
+      // Utilisateur connecte : verifier que c'est bien lui
+      if (stripeUserId !== session.user.id) {
+        return NextResponse.json({ error: 'Session non autorisee' }, { status: 403 });
+      }
+    } else if (!stripeUserId) {
+      // Ni connecte ni userId dans metadata : impossible de verifier
+      return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
     }
 
     // Verifier le statut du paiement
@@ -107,7 +112,7 @@ export async function GET(request: NextRequest) {
         await prisma.subscription.create({
           data: {
             reference: subReference,
-            userId: session.user.id,
+            userId: stripeUserId!,
             status: 'ACTIVE',
             amountCents: 990,
             currency: 'EUR',
@@ -188,7 +193,13 @@ export async function GET(request: NextRequest) {
       },
     }).catch((err) => console.error('Erreur envoi email confirmation:', err));
 
-    return NextResponse.json({ process: updatedProcess });
+    // Generer un token d'auto-login si l'utilisateur n'est pas connecte
+    let autoLoginToken: string | null = null;
+    if (!session?.user?.id && stripeUserId) {
+      autoLoginToken = generateAutoLoginToken(stripeUserId);
+    }
+
+    return NextResponse.json({ process: updatedProcess, autoLoginToken });
   } catch (error) {
     console.error('Erreur verification paiement:', error);
     return NextResponse.json(

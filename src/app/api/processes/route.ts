@@ -241,6 +241,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Si deja paye (abonnement ou gratuit sans documents requis), envoyer a Advercity
+    // Exception: SIGNALEMENT_MAIRIE reste sur France Guichet (pas d'envoi Advercity)
+    const skipAdvercity = type === 'SIGNALEMENT_MAIRIE';
     if (initialStatus === 'PAID' && (isFromSubscription || isFreeProfile)) {
       // Consommer un usage abonnement si applicable
       if (isFromSubscription && eligibility?.subscriptionId) {
@@ -252,47 +254,49 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      try {
-        const advercityResponse = await createAdvercityProcess({
-          type: mapProcessTypeToAdvercity(type),
-          external_reference: reference,
-          webhook_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/advercity/webhook`,
-          data: mapProcessDataToAdvercity(type, data as Record<string, unknown>, {
-            email: (data as Record<string, unknown>).email as string || user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: (data as Record<string, unknown>).telephone as string || undefined,
-          }),
-        });
+      if (!skipAdvercity) {
+        try {
+          const advercityResponse = await createAdvercityProcess({
+            type: mapProcessTypeToAdvercity(type),
+            external_reference: reference,
+            webhook_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/advercity/webhook`,
+            data: mapProcessDataToAdvercity(type, data as Record<string, unknown>, {
+              email: (data as Record<string, unknown>).email as string || user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              phone: (data as Record<string, unknown>).telephone as string || undefined,
+            }),
+          });
 
-        await prisma.processStatusHistory.create({
-          data: {
-            processId: newProcess.id,
-            fromStatus: 'PAID',
-            toStatus: 'SENT_TO_ADVERCITY',
-            reason: 'Envoi automatique vers le back-office',
-            metadata: {
+          await prisma.processStatusHistory.create({
+            data: {
+              processId: newProcess.id,
+              fromStatus: 'PAID',
+              toStatus: 'SENT_TO_ADVERCITY',
+              reason: 'Envoi automatique vers le back-office',
+              metadata: {
+                advercityId: advercityResponse.advercity_id,
+                advercityRef: advercityResponse.advercity_reference,
+              },
+              createdBy: 'system',
+            },
+          });
+
+          await prisma.process.update({
+            where: { id: newProcess.id },
+            data: {
+              status: 'SENT_TO_ADVERCITY',
               advercityId: advercityResponse.advercity_id,
               advercityRef: advercityResponse.advercity_reference,
+              paidAt: new Date(),
+              submittedAt: new Date(),
+              lastSyncAt: new Date(),
             },
-            createdBy: 'system',
-          },
-        });
-
-        await prisma.process.update({
-          where: { id: newProcess.id },
-          data: {
-            status: 'SENT_TO_ADVERCITY',
-            advercityId: advercityResponse.advercity_id,
-            advercityRef: advercityResponse.advercity_reference,
-            paidAt: new Date(),
-            submittedAt: new Date(),
-            lastSyncAt: new Date(),
-          },
-        });
-      } catch (advError) {
-        console.error('Erreur envoi Advercity:', advError);
-        // La demarche reste en PAID pour retry ulterieur
+          });
+        } catch (advError) {
+          console.error('Erreur envoi Advercity:', advError);
+          // La demarche reste en PAID pour retry ulterieur
+        }
       }
 
       // Email de confirmation

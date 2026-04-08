@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Textarea, Alert } from '@/components/ui';
 
 const CATEGORIES = [
@@ -70,6 +71,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function SignalementsPage() {
+  const searchParams = useSearchParams();
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [adresse, setAdresse] = useState('');
@@ -90,6 +92,24 @@ export default function SignalementsPage() {
       .then(setMairieInfo)
       .catch(() => {});
   }, []);
+
+  // Auto-charger l'historique au montage (ou si ?history=open dans l'URL)
+  useEffect(() => {
+    const autoLoad = async () => {
+      setLoadingHistory(true);
+      try {
+        const res = await fetch('/api/signalements?history=1');
+        const data = await res.json();
+        setSignalements(data.signalements || []);
+        setShowHistory(true);
+      } catch {
+        // silently fail
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    autoLoad();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadHistory = async () => {
     if (signalements.length > 0) {

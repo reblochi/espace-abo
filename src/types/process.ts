@@ -19,7 +19,9 @@ export type ProcessType =
   | 'ADDRESS_CHANGE'
   | 'CADASTRE'
   // Justice
-  | 'CRIMINAL_RECORD';
+  | 'CRIMINAL_RECORD'
+  // Vie locale
+  | 'SIGNALEMENT_MAIRIE';
 
 export type ProcessStatus =
   | 'DRAFT'
@@ -272,6 +274,8 @@ export const processTypeLabels: Record<ProcessType, string> = {
   CADASTRE: 'Plan cadastral',
   // Justice
   CRIMINAL_RECORD: 'Casier judiciaire',
+  // Vie locale
+  SIGNALEMENT_MAIRIE: 'Signalement mairie',
 };
 
 export const processStatusLabels: Record<ProcessStatus, string> = {

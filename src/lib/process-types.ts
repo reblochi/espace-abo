@@ -117,7 +117,7 @@ export const ACT_TYPES: ActTypeOption[] = [
 // CATEGORIES DE DEMARCHES
 // ============================================================
 
-export type ProcessCategory = 'vehicle' | 'civil_status' | 'identity' | 'business' | 'housing' | 'justice';
+export type ProcessCategory = 'vehicle' | 'civil_status' | 'identity' | 'business' | 'housing' | 'justice' | 'municipal';
 
 export const PROCESS_CATEGORIES: Record<ProcessCategory, { label: string; icon: string }> = {
   vehicle: { label: 'Vehicule', icon: 'car' },
@@ -126,6 +126,7 @@ export const PROCESS_CATEGORIES: Record<ProcessCategory, { label: string; icon: 
   business: { label: 'Entreprise', icon: 'building' },
   housing: { label: 'Logement', icon: 'home' },
   justice: { label: 'Justice', icon: 'scale' },
+  municipal: { label: 'Vie locale', icon: 'megaphone' },
 };
 
 // ============================================================
@@ -586,6 +587,24 @@ export const PROCESS_TYPES_CONFIG: Record<ProcessType, ProcessTypeConfig> = {
       { code: 'bulletin_3', label: 'Bulletin n3' },
     ],
   },
+
+  // ═══════════════════════════════════════════════════════════
+  // VIE LOCALE
+  // ═══════════════════════════════════════════════════════════
+  SIGNALEMENT_MAIRIE: {
+    code: 'SIGNALEMENT_MAIRIE',
+    advercityClass: 'ProcessSignalementMairie',
+    label: 'Signalement mairie',
+    description: 'Signalez un probleme a votre mairie (voirie, eclairage, proprete...)',
+    icon: 'megaphone',
+    category: 'municipal',
+    basePrice: 0, // Gratuit
+    hasTaxes: false,
+    estimatedDelay: '1-3 jours ouvres',
+    includedInSubscription: true,
+    subscriberPrice: 0,
+    requiredDocuments: [], // Photos optionnelles gerees dans le formulaire
+  },
 };
 
 // ============================================================
@@ -607,6 +626,7 @@ export const PROCESS_TYPE_MAPPING: Record<ProcessType, string> = {
   ADDRESS_CHANGE: 'address_change',
   CADASTRE: 'cadaster',
   CRIMINAL_RECORD: 'criminal_record',
+  SIGNALEMENT_MAIRIE: 'signalement_mairie',
 };
 
 // Constantes Advercity (step)
@@ -653,6 +673,8 @@ const URL_TO_CODE: Record<string, ProcessType> = {
   'cadastre': 'CADASTRE',
   // Justice
   'casier-judiciaire': 'CRIMINAL_RECORD',
+  // Vie locale
+  'signalement-mairie': 'SIGNALEMENT_MAIRIE',
 };
 
 // Code -> URL slug
@@ -670,6 +692,7 @@ const CODE_TO_URL: Record<ProcessType, string> = {
   ADDRESS_CHANGE: 'changement-adresse',
   CADASTRE: 'plan-cadastral',
   CRIMINAL_RECORD: 'casier-judiciaire',
+  SIGNALEMENT_MAIRIE: 'signalement-mairie',
 };
 
 export function getProcessTypeConfig(codeOrSlug: ProcessType | string): ProcessTypeConfig | undefined {

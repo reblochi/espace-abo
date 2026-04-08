@@ -43,7 +43,7 @@ export function ProcessCard({ process }: Props) {
                 <p className="text-sm text-gray-500 font-mono truncate mt-1">{subtitle}</p>
               )}
             </div>
-            <ProcessStatusBadge status={process.status} />
+            <ProcessStatusBadge status={process.status} isFree={process.amountCents === 0} />
           </div>
         </CardHeader>
         <CardContent>
@@ -58,8 +58,8 @@ export function ProcessCard({ process }: Props) {
             </div>
             <div className="flex justify-between">
               <span>Montant</span>
-              <span className={process.isFromSubscription ? 'text-green-600 font-medium' : ''}>
-                {process.isFromSubscription ? 'Inclus' : formatCurrency(process.amountCents)}
+              <span className={process.amountCents === 0 ? 'text-green-600 font-medium' : process.isFromSubscription ? 'text-green-600 font-medium' : ''}>
+                {process.amountCents === 0 ? 'Gratuit' : process.isFromSubscription ? 'Inclus' : formatCurrency(process.amountCents)}
               </span>
             </div>
           </div>

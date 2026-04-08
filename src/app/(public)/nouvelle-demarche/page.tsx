@@ -52,7 +52,7 @@ export default function NouvelleDemarchePage() {
   }, [session, status]);
 
   // Types de demarches accessibles sans authentification
-  const PUBLIC_PROCESS_TYPES = ['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD'];
+  const PUBLIC_PROCESS_TYPES = ['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD', 'SIGNALEMENT_MAIRIE'];
 
   const handleSelectType = (config: ProcessTypeConfig) => {
     const slug = getProcessTypeSlug(config.code);
@@ -135,6 +135,12 @@ export default function NouvelleDemarchePage() {
         return (
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+          </svg>
+        );
+      case 'megaphone':
+        return (
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
           </svg>
         );
       default:
@@ -273,7 +279,9 @@ export default function NouvelleDemarchePage() {
                     <span className="text-xs text-gray-400">
                       Delai: {config.estimatedDelay}
                     </span>
-                    {hasActiveSubscription && config.includedInSubscription ? (
+                    {config.basePrice === 0 ? (
+                      <Badge variant="success" className="text-xs">Gratuit</Badge>
+                    ) : hasActiveSubscription && config.includedInSubscription ? (
                       <Badge variant="success" className="text-xs">Frais inclus</Badge>
                     ) : (
                       <span className="text-lg font-bold text-gray-900">

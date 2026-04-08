@@ -381,6 +381,9 @@ enum ProcessType {
   // Justice
   CRIMINAL_RECORD // Casier judiciaire
 
+  // Vie locale
+  SIGNALEMENT_MAIRIE // Signalement a la mairie (gratuit)
+
   @@schema("espace_abo")
 }
 

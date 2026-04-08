@@ -5,6 +5,7 @@
 import { Badge } from '@/components/ui';
 interface Props {
   status: string;
+  isFree?: boolean; // Demarche gratuite (amountCents === 0)
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'info' }> = {
@@ -22,12 +23,18 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   CANCELED: { label: 'Annulee', variant: 'destructive' },
 };
 
-export function ProcessStatusBadge({ status }: Props) {
+export function ProcessStatusBadge({ status, isFree }: Props) {
   const config = statusConfig[status] || { label: status, variant: 'secondary' as const };
+
+  // Pour les demarches gratuites, adapter les labels lies au paiement
+  let label = config.label;
+  if (isFree && status === 'PAID') {
+    label = 'Validee';
+  }
 
   return (
     <Badge variant={config.variant}>
-      {config.label}
+      {label}
     </Badge>
   );
 }

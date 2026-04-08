@@ -87,7 +87,7 @@ export default function ProcessDetailPage() {
             </h1>
             <p className="text-gray-500 mt-1">Référence: {processItem.reference}</p>
           </div>
-          <ProcessStatusBadge status={processItem.status} />
+          <ProcessStatusBadge status={processItem.status} isFree={processItem.amountCents === 0} />
         </div>
       </div>
 
@@ -139,7 +139,9 @@ export default function ProcessDetailPage() {
                 <div>
                   <dt className="text-sm text-gray-500">Montant</dt>
                   <dd className="mt-1 font-medium text-gray-900">
-                    {processItem.isFromSubscription ? (
+                    {processItem.amountCents === 0 ? (
+                      <span className="text-green-600">Gratuit</span>
+                    ) : processItem.isFromSubscription ? (
                       <span className="text-green-600">Inclus (abonnement)</span>
                     ) : processItem.pricePaid ? (
                       formatPrice(processItem.pricePaid)
@@ -437,7 +439,7 @@ export default function ProcessDetailPage() {
                       <div className="flex-1 pb-4">
                         <p className="text-sm font-medium text-gray-900">
                           {item.status === 'PENDING_PAYMENT' && 'En attente de paiement'}
-                          {item.status === 'PAID' && 'Paiement recu'}
+                          {item.status === 'PAID' && (processItem.amountCents === 0 ? 'Demande validee' : 'Paiement recu')}
                           {item.status === 'SENT_TO_ADVERCITY' && 'Envoye pour traitement'}
                           {item.status === 'IN_PROGRESS' && 'Dossier en cours'}
                           {item.status === 'AWAITING_INFO' && 'Information requise'}

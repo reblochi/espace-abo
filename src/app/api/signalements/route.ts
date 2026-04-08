@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
 
     // Si demande d'historique
     if (history === '1') {
+      // Anciens signalements (modele Signalement)
       const signalements = await prisma.signalement.findMany({
         where: { userId: session.user.id },
         include: { files: true },
@@ -133,12 +134,50 @@ export async function GET(request: NextRequest) {
         }))
       );
 
+      // Nouveaux signalements (demarche Process SIGNALEMENT_MAIRIE)
+      const processSignalements = await prisma.process.findMany({
+        where: { userId: session.user.id, type: 'SIGNALEMENT_MAIRIE' },
+        include: { files: { where: { deleted: false } } },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      });
+
+      // Convertir les Process en format Signalement pour l'affichage unifie
+      const processAsSignalements = processSignalements.map((p) => {
+        const d = p.data as Record<string, unknown>;
+        return {
+          id: p.id,
+          category: (d.categoryLabel as string) || (d.category as string) || 'Signalement',
+          description: (d.description as string) || '',
+          adresse: (d.adresse as string) || null,
+          mairieName: (d.city as string) || null,
+          sentToMairie: p.status !== 'DRAFT' && p.status !== 'CANCELED',
+          files: p.files.map((f) => ({
+            id: f.id,
+            originalName: f.originalName,
+            mimeType: f.mimeType,
+            size: f.size,
+            url: f.storageUrl || null,
+          })),
+          createdAt: p.createdAt.toISOString(),
+          reference: p.reference,
+          status: p.status,
+          _source: 'process' as const,
+        };
+      });
+
+      // Fusionner et trier par date decroissante
+      const allSignalements = [
+        ...withUrls.map((s) => ({ ...s, _source: 'signalement' as const })),
+        ...processAsSignalements,
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
       return NextResponse.json({
         mairieEmail: email,
         mairieName: nom,
         mairieFormulaire: formulaire,
         zipCode: user.zipCode,
-        signalements: withUrls,
+        signalements: allSignalements,
       });
     }
 

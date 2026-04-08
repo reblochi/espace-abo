@@ -23,6 +23,8 @@ export const processTypeSchema = z.enum([
   'CADASTRE',
   // Justice
   'CRIMINAL_RECORD',
+  // Vie locale
+  'SIGNALEMENT_MAIRIE',
 ]);
 
 // Statuts de demarches

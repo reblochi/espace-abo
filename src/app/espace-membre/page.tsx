@@ -117,7 +117,7 @@ export default function DashboardPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-gray-500 font-mono">{process.reference}</span>
-                          <ProcessStatusBadge status={process.status} />
+                          <ProcessStatusBadge status={process.status} isFree={process.amountCents === 0} />
                         </div>
                       </div>
                       <Link href={`/espace-membre/mes-demarches/${process.reference}`}>

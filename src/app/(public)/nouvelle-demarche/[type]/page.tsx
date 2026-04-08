@@ -19,6 +19,7 @@ import { BirthCertificateForm } from '@/components/processes/birth-certificate';
 import { IdentityCardForm } from '@/components/processes/identity-card';
 import { DeathCertificateForm } from '@/components/processes/death-certificate';
 import { MarriageCertificateForm } from '@/components/processes/marriage-certificate';
+import { SignalementMairieForm } from '@/components/processes/signalement-mairie';
 
 export default function FormulaireDemarchePage() {
   const routeParams = useParams<{ type: string }>();
@@ -117,7 +118,7 @@ export default function FormulaireDemarchePage() {
   // Pour les formulaires qui necessitent une session (carte grise, mariage, deces),
   // afficher un message de connexion si non authentifie
   // ================================================
-  const needsAuth = !['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD'].includes(typeCode);
+  const needsAuth = !['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD', 'SIGNALEMENT_MAIRIE'].includes(typeCode);
   if (needsAuth && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -409,6 +410,53 @@ export default function FormulaireDemarchePage() {
             }}
             onCheckout={(checkoutUrl) => {
               window.location.href = checkoutUrl;
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ================================================
+  // Formulaire signalement mairie (gratuit)
+  // ================================================
+  if (typeCode === 'SIGNALEMENT_MAIRIE') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <Logo size="md" />
+              {isAuthenticated ? (
+                <Link href="/espace-membre">
+                  <Button variant="outline">Mon espace</Button>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Link href="/login">
+                    <Button variant="ghost">Connexion</Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button variant="outline">Inscription</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <nav className="mb-6">
+            <ol className="flex items-center text-sm text-gray-500">
+              <li><Link href="/nouvelle-demarche" className="hover:text-blue-600">Demarches</Link></li>
+              <li className="mx-2">/</li>
+              <li className="font-medium text-gray-900">{processConfig.label}</li>
+            </ol>
+          </nav>
+        </div>
+        <main className="max-w-4xl mx-auto px-4 pb-12">
+          <SignalementMairieForm
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
             }}
           />
         </main>
