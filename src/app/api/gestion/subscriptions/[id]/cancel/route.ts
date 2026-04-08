@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdminOrAgent, logAdminAction } from '@/lib/admin-auth';
 import { adminCancelSubscriptionSchema } from '@/schemas/admin';
-import { getPSPAdapter } from '@/lib/psp';
+import { getPSPAdapter, type PSPProvider } from '@/lib/psp';
 
 export async function POST(
   request: NextRequest,
@@ -41,7 +41,7 @@ export async function POST(
   const isFakeId = subscription.pspSubscriptionId?.includes('fake');
   if (subscription.pspSubscriptionId && !isFakeId) {
     try {
-      const adapter = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
+      const adapter = getPSPAdapter(subscription.pspProvider as PSPProvider);
       await adapter.cancelSubscription(subscription.pspSubscriptionId, immediate);
     } catch (err) {
       console.error('[Admin] Erreur annulation PSP:', err);

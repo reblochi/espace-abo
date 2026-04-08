@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { getPSPAdapter } from '@/lib/psp';
+import { getPSPAdapter, type PSPProvider } from '@/lib/psp';
 
 // GET /api/subscriptions/change-card - Obtenir URL pour changer CB
 export async function GET() {
@@ -28,7 +28,7 @@ export async function GET() {
       );
     }
 
-    const psp = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
+    const psp = getPSPAdapter(subscription.pspProvider as PSPProvider);
     const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/espace-membre/mon-abonnement`;
 
     const result = await psp.updatePaymentMethod(subscription.pspCustomerId, returnUrl);
@@ -65,7 +65,7 @@ export async function POST() {
       );
     }
 
-    const psp = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
+    const psp = getPSPAdapter(subscription.pspProvider as PSPProvider);
     const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/espace-membre/mon-abonnement?card_updated=true`;
 
     const result = await psp.updatePaymentMethod(subscription.pspCustomerId, returnUrl);

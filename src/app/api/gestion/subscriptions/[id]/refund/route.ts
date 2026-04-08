@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdminOrAgent, logAdminAction } from '@/lib/admin-auth';
 import { adminRefundDeadlinesSchema } from '@/schemas/admin';
-import { getPSPAdapter } from '@/lib/psp';
+import { getPSPAdapter, type PSPProvider } from '@/lib/psp';
 import { createCreditNote } from '@/lib/invoice-creation';
 
 export async function POST(
@@ -48,7 +48,7 @@ export async function POST(
     return NextResponse.json({ error: 'Aucune echeance remboursable selectionnee' }, { status: 400 });
   }
 
-  const adapter = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
+  const adapter = getPSPAdapter(subscription.pspProvider as PSPProvider);
   const results: { deadlineId: string; success: boolean; creditNoteId?: string; error?: string }[] = [];
 
   // Calculer le montant total des échéances sélectionnées

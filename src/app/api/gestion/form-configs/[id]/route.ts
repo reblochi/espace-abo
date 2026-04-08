@@ -7,6 +7,7 @@ import { requireAdminOrAgent } from '@/lib/admin-auth';
 
 const updateSchema = z.object({
   pricingProfileId: z.string().min(1).optional(),
+  pspProvider: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
 });
 

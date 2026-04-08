@@ -234,6 +234,7 @@ export async function POST(request: NextRequest) {
           taxesCents,
           serviceFeesCents,
           isFromSubscription,
+          pspProvider: 'stripe',
           data,
           mandatoryFileTypes,
           partner,

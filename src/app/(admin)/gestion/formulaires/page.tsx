@@ -63,12 +63,18 @@ interface PricingProfile {
   isActive: boolean;
 }
 
+interface PSPOption {
+  value: string;
+  label: string;
+}
+
 interface FormConfigItem {
   id: string;
   formType: string;
   partner: string;
   pricingProfileId: string;
   pricingProfile: PricingProfile;
+  pspProvider: string;
   isActive: boolean;
   stats: {
     processCount: number;
@@ -77,6 +83,14 @@ interface FormConfigItem {
     conversionRate: number;
   };
 }
+
+const PSP_COLORS: Record<string, string> = {
+  stripe: 'bg-violet-100 text-violet-700',
+  fenige: 'bg-orange-100 text-orange-700',
+  hipay: 'bg-teal-100 text-teal-700',
+  payzen: 'bg-cyan-100 text-cyan-700',
+  mangopay: 'bg-rose-100 text-rose-700',
+};
 
 function formatPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',') + ' EUR';
@@ -411,6 +425,7 @@ export default function FormulairesPage() {
   const [newFormType, setNewFormType] = useState('');
   const [newPartner, setNewPartner] = useState('default');
   const [newPricingId, setNewPricingId] = useState('');
+  const [newPspProvider, setNewPspProvider] = useState('stripe');
 
   const { data: configs, isLoading } = useQuery<{ items: FormConfigItem[] }>({
     queryKey: ['admin', 'form-configs'],
@@ -430,8 +445,17 @@ export default function FormulairesPage() {
     },
   });
 
+  const { data: pspOptions } = useQuery<{ items: PSPOption[] }>({
+    queryKey: ['admin', 'psp-providers'],
+    queryFn: async () => {
+      const res = await fetch('/api/gestion/psp');
+      if (!res.ok) return { items: [{ value: 'stripe', label: 'Stripe' }] };
+      return res.json();
+    },
+  });
+
   const createMutation = useMutation({
-    mutationFn: async (data: { formType: string; partner: string; pricingProfileId: string }) => {
+    mutationFn: async (data: { formType: string; partner: string; pricingProfileId: string; pspProvider: string }) => {
       const res = await fetch('/api/gestion/form-configs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -449,11 +473,12 @@ export default function FormulairesPage() {
       setNewFormType('');
       setNewPartner('default');
       setNewPricingId('');
+      setNewPspProvider('stripe');
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { pricingProfileId?: string; isActive?: boolean } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { pricingProfileId?: string; pspProvider?: string; isActive?: boolean } }) => {
       const res = await fetch(`/api/gestion/form-configs/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -496,7 +521,7 @@ export default function FormulairesPage() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
             Nouvelle configuration
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de formulaire</label>
               <select
@@ -536,11 +561,23 @@ export default function FormulairesPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PSP (paiement)</label>
+              <select
+                value={newPspProvider}
+                onChange={(e) => setNewPspProvider(e.target.value)}
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2"
+              >
+                {(pspOptions?.items || [{ value: 'stripe', label: 'Stripe' }]).map((psp) => (
+                  <option key={psp.value} value={psp.value}>{psp.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <button
             onClick={() => {
               if (newFormType && newPricingId) {
-                createMutation.mutate({ formType: newFormType, partner: newPartner || 'default', pricingProfileId: newPricingId });
+                createMutation.mutate({ formType: newFormType, partner: newPartner || 'default', pricingProfileId: newPricingId, pspProvider: newPspProvider });
               }
             }}
             disabled={!newFormType || !newPricingId || createMutation.isPending}
@@ -579,6 +616,9 @@ export default function FormulairesPage() {
                         {config.partner}
                       </span>
                     )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PSP_COLORS[config.pspProvider] || 'bg-gray-100 text-gray-700'}`}>
+                      {(pspOptions?.items || []).find((p) => p.value === config.pspProvider)?.label || config.pspProvider}
+                    </span>
                     {!config.isActive && (
                       <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
                         Inactif
@@ -643,6 +683,19 @@ export default function FormulairesPage() {
                   >
                     {activeProfiles.map((p) => (
                       <option key={p.id} value={p.id}>{p.code}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={config.pspProvider}
+                    onChange={(e) => {
+                      updateMutation.mutate({ id: config.id, data: { pspProvider: e.target.value } });
+                    }}
+                    className="text-xs border border-gray-200 rounded px-2 py-1"
+                    title="Changer le PSP"
+                  >
+                    {(pspOptions?.items || [{ value: 'stripe', label: 'Stripe' }]).map((psp) => (
+                      <option key={psp.value} value={psp.value}>{psp.label}</option>
                     ))}
                   </select>
 

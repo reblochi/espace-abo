@@ -4,11 +4,13 @@ import type { PSPProvider, PSPConfig } from './types';
 import { BasePSPAdapter } from './base-adapter';
 import { StripeAdapter } from './stripe-adapter';
 import { HiPayAdapter } from './hipay-adapter';
+import { FenigeAdapter } from './fenige-adapter';
 
 export * from './types';
 export { BasePSPAdapter } from './base-adapter';
 export { StripeAdapter } from './stripe-adapter';
 export { HiPayAdapter } from './hipay-adapter';
+export { FenigeAdapter } from './fenige-adapter';
 
 // Registry des adaptateurs
 const adapters: Map<PSPProvider, BasePSPAdapter> = new Map();
@@ -57,6 +59,23 @@ const defaultConfigs: Record<PSPProvider, () => PSPConfig | null> = {
       },
     };
   },
+  fenige: () => {
+    if (!process.env.FENIGE_API_KEY) return null;
+    return {
+      provider: 'fenige',
+      apiKey: '', // Non utilise directement, auth via API-KEY header et Basic Auth
+      webhookSecret: process.env.FENIGE_WEBHOOK_SECRET || '',
+      publicKey: process.env.FENIGE_API_KEY,
+      sandbox: process.env.FENIGE_SANDBOX !== 'false',
+      extraConfig: {
+        merchantUuid: process.env.FENIGE_MERCHANT_UUID,
+        basicAuthUser: process.env.FENIGE_BASIC_AUTH_USER,
+        basicAuthPassword: process.env.FENIGE_BASIC_AUTH_PASSWORD,
+        productionApiUrl: process.env.FENIGE_PRODUCTION_API_URL,
+        productionPageUrl: process.env.FENIGE_PRODUCTION_PAGE_URL,
+      },
+    };
+  },
 };
 
 // Factory pour obtenir un adaptateur
@@ -92,6 +111,9 @@ export function getPSPAdapter(provider: PSPProvider): BasePSPAdapter {
     case 'mangopay':
       // TODO: Implementer MangopayAdapter
       throw new Error('Mangopay non encore implemente');
+    case 'fenige':
+      adapter = new FenigeAdapter(config);
+      break;
     default:
       throw new Error(`PSP non supporte: ${provider}`);
   }

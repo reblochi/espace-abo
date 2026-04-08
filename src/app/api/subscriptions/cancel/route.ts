@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { getPSPAdapter } from '@/lib/psp';
+import { getPSPAdapter, type PSPProvider } from '@/lib/psp';
 import { sendEmail } from '@/lib/email';
 import { formatDate } from '@/lib/utils';
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Annuler via PSP
     if (subscription.pspSubscriptionId) {
-      const psp = getPSPAdapter(subscription.pspProvider as 'stripe' | 'hipay');
+      const psp = getPSPAdapter(subscription.pspProvider as PSPProvider);
       await psp.cancelSubscription(subscription.pspSubscriptionId, immediate);
     }
 

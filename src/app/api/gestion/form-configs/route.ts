@@ -9,6 +9,7 @@ const formConfigSchema = z.object({
   formType: z.string().min(1),
   partner: z.string().min(1).max(100).default('default'),
   pricingProfileId: z.string().min(1),
+  pspProvider: z.string().min(1).default('stripe'),
   isActive: z.boolean().default(true),
 });
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Donnees invalides', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { formType, partner, pricingProfileId, isActive } = parsed.data;
+  const { formType, partner, pricingProfileId, pspProvider, isActive } = parsed.data;
 
   // Verifier que le pricing profile existe
   const profile = await prisma.pricingProfile.findUnique({ where: { id: pricingProfileId } });
@@ -104,10 +105,12 @@ export async function POST(request: NextRequest) {
       formType: formType as any,
       partner,
       pricingProfileId,
+      pspProvider,
       isActive,
     },
     update: {
       pricingProfileId,
+      pspProvider,
       isActive,
     },
     include: { pricingProfile: true },

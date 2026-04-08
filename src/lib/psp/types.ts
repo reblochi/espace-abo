@@ -1,6 +1,6 @@
 // Types pour l'architecture Multi-PSP
 
-export type PSPProvider = 'stripe' | 'hipay' | 'payzen' | 'mangopay';
+export type PSPProvider = 'stripe' | 'hipay' | 'payzen' | 'mangopay' | 'fenige';
 
 // Resultat creation client
 export interface CreateCustomerResult {

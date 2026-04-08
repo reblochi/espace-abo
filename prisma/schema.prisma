@@ -56,6 +56,7 @@ model User {
   consents        Consent[]
   courriers       Courrier[]
   familyMembers   FamilyMember[]
+  signalements    Signalement[]
 
   @@map("users")
   @@schema("espace_abo")
@@ -225,6 +226,7 @@ model Process {
 
   // Paiement
   paidAt              DateTime?
+  pspProvider         String?   // PSP utilise: stripe, fenige, hipay...
   pspPaymentId        String?
   stripePaymentIntent String?
 
@@ -621,6 +623,7 @@ model FormConfig {
   partner          String         @default("default") // Code partenaire ou "default"
   pricingProfileId String
   pricingProfile   PricingProfile @relation(fields: [pricingProfileId], references: [id])
+  pspProvider      String         @default("stripe") // PSP a utiliser: stripe, fenige, hipay...
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -663,6 +666,52 @@ enum FormEventType {
   FORM_COMPLETED
   FORM_ABANDONED
 
+  @@schema("espace_abo")
+}
+
+// ============================================
+// SIGNALEMENTS CITOYENS
+// ============================================
+
+model Signalement {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category    String // Voirie, Eclairage, Proprete...
+  description String
+  adresse     String?
+  zipCode     String
+  city        String?
+
+  // Destinataire
+  mairieName  String?
+  mairieEmail String?
+  sentToMairie Boolean @default(false)
+
+  // Pieces jointes
+  files SignalementFile[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("signalements")
+  @@schema("espace_abo")
+}
+
+model SignalementFile {
+  id             String @id @default(cuid())
+  signalementId  String
+  signalement    Signalement @relation(fields: [signalementId], references: [id], onDelete: Cascade)
+
+  originalName String
+  fileName     String // Cle stockage (uuid.ext)
+  mimeType     String
+  size         Int
+
+  createdAt DateTime @default(now())
+
+  @@map("signalement_files")
   @@schema("espace_abo")
 }
 

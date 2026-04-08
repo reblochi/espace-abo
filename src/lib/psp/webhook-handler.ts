@@ -25,6 +25,7 @@ export async function handlePSPWebhook(
   const signature = request.headers.get('stripe-signature') ||
                    request.headers.get('x-hipay-signature') ||
                    request.headers.get('x-payzen-signature') ||
+                   request.headers.get('x-secret-checksum') ||
                    '';
 
   // Verifier la signature
@@ -267,6 +268,7 @@ async function handlePaymentSucceeded(event: WebhookEvent): Promise<void> {
       data: {
         status: 'PAID',
         paidAt: new Date(),
+        pspProvider: event.provider,
         pspPaymentId: paymentId,
       },
     });
@@ -380,7 +382,7 @@ async function handleCheckoutCompleted(event: WebhookEvent): Promise<void> {
         status: 'ACTIVE',
         amountCents: 990,
         currency: 'EUR',
-        pspProvider: 'stripe',
+        pspProvider: event.provider,
         pspSubscriptionId: subscriptionId,
         pspCustomerId: customerId,
         startDate: now,
