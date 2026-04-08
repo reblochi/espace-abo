@@ -10,13 +10,22 @@ import {
   type RequestMotifValue,
 } from '@/types/identity-card';
 import type { IdentityCardInput } from '@/schemas/identity-card';
+import { useEffect } from 'react';
 
 const MOTIF_VALUES = Object.values(RequestMotif);
 
 export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
-  const { watch, setValue, formState: { errors } } = useFormContext<IdentityCardInput>();
+  const { watch, setValue, register, formState: { errors } } = useFormContext<IdentityCardInput>();
   const selectedMotif = watch('motif');
   const case2004 = watch('case2004');
+
+  // Reset champs identite numerique quand on change de motif
+  useEffect(() => {
+    if (selectedMotif !== RequestMotif.IDENTITE_NUMERIQUE) {
+      setValue('currentCardNumber', undefined);
+      setValue('currentCardExpirationDate', undefined);
+    }
+  }, [selectedMotif, setValue]);
 
   const handleSelect = (motif: RequestMotifValue) => {
     setValue('motif', motif, { shouldValidate: true });
@@ -26,7 +35,8 @@ export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
     }
     // Passer directement a l'etape suivante apres un court delai visuel
     // Sauf si motif expiration (16) car il faut cocher case2004
-    if (onSelect && motif !== CASE_2004_MOTIF) {
+    // Sauf si motif identite numerique (35) car il faut remplir les champs CNI
+    if (onSelect && motif !== CASE_2004_MOTIF && motif !== RequestMotif.IDENTITE_NUMERIQUE) {
       setTimeout(onSelect, 200);
     }
   };
@@ -91,6 +101,47 @@ export function StepRequestType({ onSelect }: { onSelect?: () => void } = {}) {
             <strong>Attention :</strong> En cas de vol ou de perte, un timbre fiscal de 25 EUR (12,50 EUR en Guyane) est obligatoire
             et sera ajoute au montant de votre demande.
           </p>
+        </div>
+      )}
+
+      {/* Champs CNI actuelle pour motif identite numerique (35) */}
+      {selectedMotif === RequestMotif.IDENTITE_NUMERIQUE && (
+        <div className="p-4 bg-blue-50 border-l-4 border-l-blue-500 space-y-4">
+          <p className="text-base text-blue-900">
+            <strong>Identite numerique :</strong> Veuillez renseigner les informations de votre carte d'identite actuelle.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="currentCardNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Numero de votre carte d'identite actuelle *
+              </label>
+              <input
+                type="text"
+                id="currentCardNumber"
+                {...register('currentCardNumber')}
+                maxLength={20}
+                placeholder="Ex: 1234567890"
+                className="form-gov-input"
+              />
+              {errors.currentCardNumber && (
+                <p className="form-gov-error-msg">{errors.currentCardNumber.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="currentCardExpirationDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Date d'expiration de votre carte actuelle *
+              </label>
+              <input
+                type="date"
+                id="currentCardExpirationDate"
+                {...register('currentCardExpirationDate')}
+                className="form-gov-input"
+              />
+              {errors.currentCardExpirationDate && (
+                <p className="form-gov-error-msg">{errors.currentCardExpirationDate.message}</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

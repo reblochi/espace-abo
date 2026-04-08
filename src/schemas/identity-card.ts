@@ -38,7 +38,7 @@ export const genderSchema = z.enum(['MALE', 'FEMALE'], {
 
 // Etape 1: Motif de la demande
 export const requestTypeStepSchema = z.object({
-  motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '21'], {
+  motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '35'], {
     required_error: 'Veuillez selectionner un motif',
   }),
   case2004: z.boolean().default(false),
@@ -129,9 +129,12 @@ export const consentsStepSchema = z.object({
 // Schema complet
 export const identityCardSchema = z.object({
   // Etape 1: Motif
-  motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '21']),
+  motif: z.enum(['13', '14', '15', '16', '17', '18', '19', '20', '35']),
   case2004: z.boolean().default(false),
   reception: z.enum(['Mail', 'Courrier']).default('Mail'),
+  // Champs conditionnels pour motif "Identite numerique" (35)
+  currentCardNumber: z.string().max(20).optional(),
+  currentCardExpirationDate: z.string().optional(),
   // Etape 2: Identite
   gender: genderSchema,
   nom: z.string().min(1, 'Nom requis').max(150).regex(NOM_REGEX, NOM_ERROR),
@@ -267,13 +270,33 @@ export const identityCardSchema = z.object({
 }, {
   message: 'Format invalide (exemple : 06 12 34 56 78)',
   path: ['telephone'],
+})
+// Numero CNI actuelle requis si motif identite numerique (35)
+.refine((data) => {
+  if (data.motif === '35') {
+    return !!data.currentCardNumber && data.currentCardNumber.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'Numero de votre carte d\'identite actuelle requis pour ce motif',
+  path: ['currentCardNumber'],
+})
+// Date expiration CNI actuelle requise si motif identite numerique (35)
+.refine((data) => {
+  if (data.motif === '35') {
+    return !!data.currentCardExpirationDate && data.currentCardExpirationDate.length >= 10;
+  }
+  return true;
+}, {
+  message: 'Date d\'expiration de votre carte actuelle requise pour ce motif',
+  path: ['currentCardExpirationDate'],
 });
 
 export type IdentityCardInput = z.infer<typeof identityCardSchema>;
 
 // Champs a valider par etape (utilise pour la navigation step-by-step)
 export const STEP_FIELDS: Record<string, (keyof IdentityCardInput)[]> = {
-  requestType: ['motif', 'case2004'],
+  requestType: ['motif', 'case2004', 'currentCardNumber', 'currentCardExpirationDate'],
   identity: ['gender', 'nom', 'prenom'],
   birth: ['birthDate', 'birthCountryId', 'birthCityName', 'taille', 'raisonFrancais'],
   parents: ['fatherUnknown', 'motherUnknown', 'fatherLastName', 'fatherFirstName', 'fatherBirthDate', 'fatherBirthCity', 'motherLastName', 'motherFirstName', 'motherBirthDate', 'motherBirthCity'],
@@ -334,5 +357,8 @@ export function mapIdentityCardToAdvercity(
     },
     // Livraison
     deliveryAddress: input.deliveryAddress,
+    // Champs identite numerique
+    currentCardNumber: input.currentCardNumber || null,
+    currentCardExpirationDate: input.currentCardExpirationDate || null,
   };
 }

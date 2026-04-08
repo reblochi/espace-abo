@@ -17,7 +17,7 @@ export const RequestMotif = {
   CHANGEMENT_ADRESSE: '18',
   RECTIFICATION: '19',
   DETERIORATION: '20',
-  IDENTITE_NUMERIQUE: '21',
+  IDENTITE_NUMERIQUE: '35',
 } as const;
 
 export type RequestMotifValue = typeof RequestMotif[keyof typeof RequestMotif];

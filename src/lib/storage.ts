@@ -1,26 +1,21 @@
-// Service de stockage fichiers (Cloudflare R2 / AWS S3 compatible)
+// Service de stockage fichiers (Supabase Storage)
 
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 
-// Client S3/R2
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co`;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'documents';
-const PUBLIC_URL = process.env.R2_PUBLIC_URL || `https://${BUCKET_NAME}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+function getStorageClient() {
+  if (!supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+  }
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  }).storage;
+}
+
+const BUCKET_NAME = process.env.STORAGE_BUCKET || 'documents';
 
 // Upload d'un fichier
 export async function uploadToStorage(
@@ -32,50 +27,42 @@ export async function uploadToStorage(
   const ext = originalName.split('.').pop() || 'bin';
   const fileName = `${folder}/${uuid()}.${ext}`;
 
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileName,
-    Body: fileBuffer,
-    ContentType: contentType,
-    Metadata: {
-      originalName,
-    },
+  const storage = getStorageClient();
+  const { error } = await storage.from(BUCKET_NAME).upload(fileName, fileBuffer, {
+    contentType,
+    upsert: false,
   });
 
-  await s3Client.send(command);
+  if (error) {
+    throw new Error(`Storage upload failed: ${error.message}`);
+  }
 
   return {
     fileName,
-    storageUrl: `${PUBLIC_URL}/${fileName}`,
+    storageUrl: `${supabaseUrl}/storage/v1/object/${BUCKET_NAME}/${fileName}`,
   };
 }
 
 // Recuperer un fichier
 export async function getFileFromStorage(fileName: string): Promise<Buffer> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileName,
-  });
+  const storage = getStorageClient();
+  const { data, error } = await storage.from(BUCKET_NAME).download(fileName);
 
-  const response = await s3Client.send(command);
-  const chunks: Uint8Array[] = [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for await (const chunk of response.Body as any) {
-    chunks.push(chunk);
+  if (error || !data) {
+    throw new Error(`Storage download failed: ${error?.message || 'No data'}`);
   }
 
-  return Buffer.concat(chunks);
+  return Buffer.from(await data.arrayBuffer());
 }
 
 // Supprimer un fichier
 export async function deleteFromStorage(fileName: string): Promise<void> {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileName,
-  });
+  const storage = getStorageClient();
+  const { error } = await storage.from(BUCKET_NAME).remove([fileName]);
 
-  await s3Client.send(command);
+  if (error) {
+    throw new Error(`Storage delete failed: ${error.message}`);
+  }
 }
 
 // Generer une URL signee temporaire (pour acces securise)
@@ -83,39 +70,36 @@ export async function getSignedDownloadUrl(
   fileName: string,
   expiresIn: number = 3600 // 1 heure par defaut
 ): Promise<string> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileName,
-  });
+  const storage = getStorageClient();
+  const { data, error } = await storage.from(BUCKET_NAME).createSignedUrl(fileName, expiresIn);
 
-  return getSignedUrl(s3Client, command, { expiresIn });
+  if (error || !data?.signedUrl) {
+    throw new Error(`Signed URL failed: ${error?.message || 'No URL'}`);
+  }
+
+  return data.signedUrl;
 }
 
 // Generer une URL signee pour upload direct
 export async function getSignedUploadUrl(
   fileName: string,
-  contentType: string,
+  _contentType: string,
   expiresIn: number = 3600
 ): Promise<string> {
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: fileName,
-    ContentType: contentType,
-  });
+  const storage = getStorageClient();
+  const { data, error } = await storage.from(BUCKET_NAME).createSignedUploadUrl(fileName);
 
-  return getSignedUrl(s3Client, command, { expiresIn });
+  if (error || !data?.signedUrl) {
+    throw new Error(`Signed upload URL failed: ${error?.message || 'No URL'}`);
+  }
+
+  // Note: expiresIn is not configurable for upload URLs in Supabase (default 2h)
+  return data.signedUrl;
 }
 
 // Verifier si un fichier existe
 export async function fileExists(fileName: string): Promise<boolean> {
-  try {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: fileName,
-    });
-    await s3Client.send(command);
-    return true;
-  } catch {
-    return false;
-  }
+  const storage = getStorageClient();
+  const { data, error } = await storage.from(BUCKET_NAME).download(fileName);
+  return !error && !!data;
 }
