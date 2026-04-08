@@ -25,6 +25,7 @@ import { StepHolder } from './steps/StepHolder';
 import { StepVehicle } from './steps/StepVehicle';
 import { StepDocuments } from './steps/StepDocuments';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
+import { StepResetButton } from '@/components/processes/shared/StepResetButton';
 
 export interface RegistrationCertificateFormProps {
   isSubscriber?: boolean;
@@ -380,6 +381,9 @@ export function RegistrationCertificateForm({
               <Alert variant="destructive" className="mb-6">
                 {error}
               </Alert>
+            )}
+            {STEPS[currentStep].id !== 'summary' && (
+              <StepResetButton fields={STEPS[currentStep].fields} />
             )}
             {renderStepContent()}
           </CardContent>

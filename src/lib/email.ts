@@ -16,9 +16,10 @@ const FROM_NAME = process.env.FROM_NAME || 'France Guichet';
 
 interface EmailOptions {
   to: string;
-  subject: string;
+  subject?: string;
   template: EmailTemplate;
   data: Record<string, unknown>;
+  attachments?: { filename: string; content: Buffer }[];
 }
 
 type EmailTemplate =
@@ -30,7 +31,9 @@ type EmailTemplate =
   | 'invoice'
   | 'password-reset'
   | 'password-changed'
-  | 'unsubscribe-request';
+  | 'unsubscribe-request'
+  | 'signalement-mairie'
+  | 'signalement-confirmation';
 
 // Remplace les {{variable}} dans une chaine par les valeurs de data
 function interpolate(text: string, data: Record<string, unknown>): string {
@@ -140,10 +143,42 @@ const fallbackTemplates: Record<EmailTemplate, (data: Record<string, unknown>) =
       <p>Si vous n'avez pas fait cette demande, ignorez simplement cet email.</p>
     `,
   }),
+
+  'signalement-mairie': (data) => ({
+    subject: `[Signalement] ${data.category} - ${data.lieu}`,
+    html: `
+      <h2>Signalement citoyen</h2>
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;width:140px;">Categorie</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.category}</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Localisation</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.lieu}</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Description</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.description}</td></tr>
+        ${data.nbPiecesJointes ? `<tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Pieces jointes</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.nbPiecesJointes} fichier(s) en piece jointe</td></tr>` : ''}
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Signale par</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.userName} (${data.userEmail})</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Date</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.date}</td></tr>
+      </table>
+      <p style="color:#6b7280;font-size:12px;">Ce signalement a ete envoye via franceguichet.fr - Service d'Aide aux Formalites</p>
+    `,
+  }),
+
+  'signalement-confirmation': (data) => ({
+    subject: `Votre signalement : ${data.category}`,
+    html: `
+      <h2>Votre signalement a ete enregistre</h2>
+      <p>Bonjour ${data.userName},</p>
+      <p>Votre signalement a bien ete ${data.sentToMairie === 'true' ? `transmis a <strong>${data.mairieName}</strong>` : 'enregistre'}.</p>
+      ${data.sentToMairie !== 'true' && data.mairieFormulaire ? `<p>Nous n'avons pas pu joindre votre mairie par email. Vous pouvez aussi les contacter directement via leur <a href="${data.mairieFormulaire}">formulaire en ligne</a>.</p>` : ''}
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;width:140px;">Categorie</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.category}</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Localisation</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.lieu}</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Description</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.description}</td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Date</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.date}</td></tr>
+      </table>
+    `,
+  }),
 };
 
 // Envoyer un email - cherche d'abord en BDD, puis fallback sur templates hardcodes
-export async function sendEmail({ to, subject, template, data }: EmailOptions): Promise<void> {
+export async function sendEmail({ to, subject, template, data, attachments }: EmailOptions): Promise<void> {
   // Injecter siteUrl dans les data si pas present
   const enrichedData = {
     siteUrl: process.env.NEXTAUTH_URL || 'https://franceguichet.fr',
@@ -152,6 +187,8 @@ export async function sendEmail({ to, subject, template, data }: EmailOptions): 
 
   let finalSubject: string;
   let finalHtml: string;
+  let finalFromEmail = FROM_EMAIL;
+  let finalFromName = FROM_NAME;
 
   // Essayer de charger le template depuis la BDD
   try {
@@ -162,6 +199,8 @@ export async function sendEmail({ to, subject, template, data }: EmailOptions): 
     if (dbTemplate) {
       finalSubject = subject || interpolate(dbTemplate.subject, enrichedData);
       finalHtml = interpolate(dbTemplate.html, enrichedData);
+      if (dbTemplate.fromEmail) finalFromEmail = dbTemplate.fromEmail;
+      if (dbTemplate.fromName) finalFromName = dbTemplate.fromName;
     } else {
       // Fallback sur les templates hardcodes
       const fallbackFn = fallbackTemplates[template];
@@ -184,10 +223,11 @@ export async function sendEmail({ to, subject, template, data }: EmailOptions): 
   }
 
   await getResend().emails.send({
-    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    from: `${finalFromName} <${finalFromEmail}>`,
     to,
     subject: finalSubject,
     html: finalHtml,
+    ...(attachments?.length ? { attachments } : {}),
   });
 }
 
@@ -195,12 +235,14 @@ export async function sendEmail({ to, subject, template, data }: EmailOptions): 
 export async function sendRawEmail(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  attachments?: { filename: string; content: Buffer }[]
 ): Promise<void> {
   await getResend().emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to,
     subject,
     html,
+    ...(attachments?.length ? { attachments } : {}),
   });
 }

@@ -50,6 +50,8 @@ export async function PUT(
       html: body.html ?? existing.html,
       name: body.name ?? existing.name,
       description: body.description ?? existing.description,
+      fromEmail: body.fromEmail !== undefined ? (body.fromEmail || null) : existing.fromEmail,
+      fromName: body.fromName !== undefined ? (body.fromName || null) : existing.fromName,
       updatedBy: session.user.id,
     },
   });

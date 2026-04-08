@@ -15,7 +15,7 @@ const pricingProfileSchema = z.object({
     .string()
     .min(1, 'Le libelle est requis')
     .max(200, 'Le libelle ne peut pas depasser 200 caracteres'),
-  paymentMode: z.enum(['both', 'subscription', 'one_time'], {
+  paymentMode: z.enum(['both', 'subscription', 'one_time', 'free'], {
     errorMap: () => ({ message: 'Mode de paiement invalide' }),
   }),
   subscriptionMonthlyPrice: z

@@ -26,6 +26,7 @@ import { StepParents } from './steps/StepParents';
 import { StepSpouse } from './steps/StepSpouse';
 import { StepSpouseParents } from './steps/StepSpouseParents';
 import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
+import { StepResetButton } from '@/components/processes/shared/StepResetButton';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface MarriageCertificateFormProps {
@@ -34,6 +35,7 @@ export interface MarriageCertificateFormProps {
   embedPartner?: string; // Si defini, mode embed sans auth
   pricingCode?: string; // Code profil pricing (AB testing)
   canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
+  gclid?: string; // Google Click ID pour le suivi conversions
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -68,6 +70,7 @@ export function MarriageCertificateForm({
   embedPartner,
   pricingCode,
   canceledRef,
+  gclid,
   onComplete,
   onCheckout,
 }: MarriageCertificateFormProps) {
@@ -367,6 +370,7 @@ export function MarriageCertificateForm({
             source: isEmbed ? (embedPartner === 'direct' ? 'direct' : 'embed') : 'direct',
             paymentMode: paymentModeRef.current,
             subscriptionConsent: subscriptionConsentRef.current,
+            gclid: gclid || undefined,
             data,
           }),
         });
@@ -388,7 +392,8 @@ export function MarriageCertificateForm({
         return;
       }
 
-      const effectiveSubscriber = isSubscriber || detectedSubscriber;
+      const isFreeProfile = pricing.paymentMode === 'free';
+      const effectiveSubscriber = isSubscriber || detectedSubscriber || isFreeProfile;
 
       if (!effectiveSubscriber && paymentModeRef.current === 'subscription' && !subscriptionConsentRef.current) {
         setError('Veuillez accepter les conditions de l\'abonnement pour continuer.');
@@ -402,7 +407,8 @@ export function MarriageCertificateForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'CIVIL_STATUS_MARRIAGE',
-            isFromSubscription: true,
+            isFromSubscription: !isFreeProfile,
+            isFreeProfile,
             pricingCode,
             source: 'direct',
             data,
@@ -542,6 +548,9 @@ export function MarriageCertificateForm({
                 {error}
               </Alert>
             )}
+            {STEPS[currentStep].id !== 'summary' && (
+              <StepResetButton fields={stepFieldsMap[STEPS[currentStep].id] || []} />
+            )}
             {renderStepContent()}
           </CardContent>
         </Card>
@@ -597,14 +606,15 @@ export function MarriageCertificateForm({
               ) : (() => {
                 const consents = methods.getValues('consents');
                 const anyChecked = consents.acceptTerms || consents.acceptDataProcessing || consents.certifyAccuracy || consents.retractationExecution || consents.retractationRenonciation;
+                const isFree = pricing.paymentMode === 'free';
                 if (!anyChecked) {
-                  return isSubscriber || detectedSubscriber
+                  return isSubscriber || detectedSubscriber || isFree
                     ? 'Tout accepter et valider'
                     : paymentMode === 'subscription'
                     ? 'Tout accepter et souscrire'
                     : 'Tout accepter et payer';
                 }
-                return isSubscriber || detectedSubscriber
+                return isSubscriber || detectedSubscriber || isFree
                   ? 'Valider ma demande'
                   : paymentMode === 'subscription'
                   ? 'Souscrire et valider'

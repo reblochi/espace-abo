@@ -16,7 +16,7 @@ import type { ProcessType, FileType } from '@/types';
 // codes via UTM, partenaire, ou aleatoire cote widget/site.
 // ============================================================
 
-export type PaymentModeOption = 'subscription' | 'one_time' | 'both';
+export type PaymentModeOption = 'subscription' | 'one_time' | 'both' | 'free';
 
 export interface PricingProfile {
   /** Identifiant du profil (passe en ?pricing=...) */

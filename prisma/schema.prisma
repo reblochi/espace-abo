@@ -237,6 +237,7 @@ model Process {
   partner     String? // Code partenaire (fridefont, direct, etc.)
   pricingCode String? // Profil pricing (A, B, C, default)
   source      String? // Point d'entree: "direct", "embed", "widget"
+  gclid       String? // Google Click ID pour le suivi des conversions Google Ads
 
   // Donnees specifiques (JSON)
   data Json
@@ -727,6 +728,8 @@ model EmailTemplate {
   subject     String // Sujet de l'email (peut contenir des {{variables}})
   html        String // Contenu HTML du template
   variables   String[] @default([]) // Liste des variables disponibles: firstName, reference, amount...
+  fromEmail   String? // Adresse email expediteur (si null, utilise FROM_EMAIL par defaut)
+  fromName    String? // Nom expediteur (si null, utilise FROM_NAME par defaut)
 
   updatedBy String? // ID admin qui a modifie
   createdAt DateTime @default(now())

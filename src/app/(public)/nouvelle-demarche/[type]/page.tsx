@@ -192,14 +192,20 @@ export default function FormulaireDemarchePage() {
         <main className="max-w-4xl mx-auto px-4 pb-12">
           <RegistrationCertificateForm
             isSubscriber={hasActiveSubscription}
+            pricingCode={pricingCode}
             canceledRef={canceledRef || undefined}
             onSubmit={async (data, paymentMode) => {
+              const { getPricingProfile } = await import('@/lib/process-types');
+              const pricing = getPricingProfile(pricingCode);
+              const isFreeProfile = pricing.paymentMode === 'free';
               const response = await fetch('/api/processes/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   type: 'REGISTRATION_CERT',
-                  paymentMode,
+                  paymentMode: isFreeProfile ? 'one_time' : paymentMode,
+                  isFreeProfile,
+                  pricingCode,
                   data,
                 }),
               });

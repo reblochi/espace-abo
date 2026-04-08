@@ -273,6 +273,75 @@ const DEFAULT_TEMPLATES = [
 </table>
 </body></html>`,
   },
+  {
+    slug: 'signalement-mairie',
+    name: 'Signalement - Email mairie',
+    description: 'Email envoye a la mairie lors d\'un signalement citoyen',
+    subject: '[Signalement] {{category}} - {{lieu}}',
+    variables: ['category', 'lieu', 'description', 'userName', 'userEmail', 'date', 'nbPiecesJointes'],
+    html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+  <tr><td style="background:#1e40af;padding:32px 40px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">Signalement citoyen</h1>
+  </td></tr>
+  <tr><td style="padding:40px;">
+    <table width="100%" style="border-collapse:collapse;margin:0 0 24px;" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;width:140px;color:#475569;">Categorie</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{category}}</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Localisation</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{lieu}}</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Description</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{description}}</td></tr>
+      {{#nbPiecesJointes}}<tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Pieces jointes</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{nbPiecesJointes}} fichier(s) en piece jointe</td></tr>{{/nbPiecesJointes}}
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Signale par</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{userName}} ({{userEmail}})</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Date</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{date}}</td></tr>
+    </table>
+  </td></tr>
+  <tr><td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+    <p style="color:#94a3b8;font-size:13px;margin:0;">Ce signalement a ete envoye via franceguichet.fr - Service d'Aide aux Formalites</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  },
+  {
+    slug: 'signalement-confirmation',
+    name: 'Signalement - Confirmation citoyen',
+    description: 'Email de confirmation envoye au citoyen apres un signalement',
+    subject: 'Votre signalement : {{category}}',
+    variables: ['category', 'lieu', 'description', 'userName', 'date', 'sentToMairie', 'mairieName', 'mairieFormulaire'],
+    html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+  <tr><td style="background:#1e40af;padding:32px 40px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">France Guichet</h1>
+  </td></tr>
+  <tr><td style="padding:40px;">
+    <h2 style="color:#1e293b;margin:0 0 16px;font-size:20px;">Votre signalement a ete enregistre</h2>
+    <p style="color:#475569;line-height:1.6;margin:0 0 16px;">Bonjour {{userName}},</p>
+    {{#sentToMairie}}<p style="color:#475569;line-height:1.6;margin:0 0 16px;">Votre signalement a bien ete transmis a <strong>{{mairieName}}</strong>.</p>{{/sentToMairie}}
+    {{#mairieFormulaire}}<p style="color:#475569;line-height:1.6;margin:0 0 16px;">Nous n'avons pas pu joindre votre mairie par email. Vous pouvez aussi les contacter directement via leur <a href="{{mairieFormulaire}}" style="color:#1e40af;">formulaire en ligne</a>.</p>{{/mairieFormulaire}}
+    <table width="100%" style="border-collapse:collapse;margin:0 0 24px;" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;width:140px;color:#475569;">Categorie</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{category}}</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Localisation</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{lieu}}</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Description</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{description}}</td></tr>
+      <tr><td style="padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc;color:#475569;">Date</td><td style="padding:10px 14px;border:1px solid #e2e8f0;color:#1e293b;">{{date}}</td></tr>
+    </table>
+    <a href="{{siteUrl}}/espace-membre/signalements" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:500;">Voir mes signalements</a>
+  </td></tr>
+  <tr><td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+    <p style="color:#94a3b8;font-size:13px;margin:0;">France Guichet - Service d'Aide aux Formalites</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  },
 ];
 
 export async function POST() {

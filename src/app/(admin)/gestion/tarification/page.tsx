@@ -14,6 +14,7 @@ const paymentModeConfig: Record<string, { label: string; variant: 'default' | 's
   both: { label: 'Les deux', variant: 'default' },
   subscription: { label: 'Abo seul', variant: 'success' },
   one_time: { label: 'Acte seul', variant: 'secondary' },
+  free: { label: 'Gratuit', variant: 'success' },
 };
 
 export default function AdminPricingProfilesPage() {

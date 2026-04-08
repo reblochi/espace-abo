@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false, partner = null, pricingCode = null, source = null } = body;
+    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false, isFreeProfile = false, partner = null, pricingCode = null, source = null } = body;
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -171,8 +171,8 @@ export async function POST(request: NextRequest) {
         amountCents += stampTaxCents;
       }
 
-      // Si abonne, seul le timbre fiscal est a payer (frais de service inclus)
-      if (isFromSubscription) {
+      // Si abonne ou profil gratuit, seul le timbre fiscal est a payer (frais de service inclus)
+      if (isFromSubscription || isFreeProfile) {
         serviceFeesCents = 0;
         amountCents = stampTaxCents; // Seulement le timbre
 
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           amountCents,
           taxesCents,
           serviceFeesCents,
-          isFromSubscription,
+          isFromSubscription: isFromSubscription || isFreeProfile,
           pspProvider: 'stripe',
           data,
           mandatoryFileTypes,
@@ -277,6 +277,31 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+    }
+
+    // Si rien a payer (profil gratuit sans taxes), marquer directement comme paye
+    if (amountCents === 0 && lineItems.length === 0) {
+      await prisma.process.update({
+        where: { id: newProcess.id },
+        data: { status: 'PAID', paidAt: new Date() },
+      });
+      await prisma.processStatusHistory.create({
+        data: {
+          processId: newProcess.id,
+          fromStatus: 'PENDING_PAYMENT',
+          toStatus: 'PAID',
+          reason: 'Profil gratuit - aucun paiement requis',
+          createdBy: session.user.id,
+        },
+      });
+
+      return NextResponse.json({
+        processReference: reference,
+        amount: 0,
+        taxes: 0,
+        serviceFee: 0,
+        process: { reference },
+      });
     }
 
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';

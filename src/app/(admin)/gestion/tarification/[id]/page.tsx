@@ -88,7 +88,7 @@ export default function AdminPricingProfileEditPage() {
       ? Math.round(parseFloat(basePriceEur) * 100)
       : null;
 
-    if (isNaN(subscriptionPriceCents) || subscriptionPriceCents <= 0) {
+    if (paymentMode !== 'free' && (isNaN(subscriptionPriceCents) || subscriptionPriceCents <= 0)) {
       setSaveError('Le prix abonnement doit etre un nombre positif.');
       return;
     }
@@ -174,6 +174,7 @@ export default function AdminPricingProfileEditPage() {
               <option value="both">Les deux (both)</option>
               <option value="subscription">Abonnement seul (subscription)</option>
               <option value="one_time">Paiement a l&apos;acte seul (one_time)</option>
+              <option value="free">Gratuit (free)</option>
             </select>
           </div>
 

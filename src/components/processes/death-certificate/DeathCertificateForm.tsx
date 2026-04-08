@@ -24,6 +24,7 @@ import { StepActType } from './steps/StepActType';
 import { StepBeneficiary } from './steps/StepBeneficiary';
 import { StepClaimer } from './steps/StepClaimer';
 import { SharedStepRequester } from '@/components/processes/shared/StepRequester';
+import { StepResetButton } from '@/components/processes/shared/StepResetButton';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
 
 export interface DeathCertificateFormProps {
@@ -32,6 +33,7 @@ export interface DeathCertificateFormProps {
   embedPartner?: string; // Si defini, mode embed sans auth
   pricingCode?: string; // Code profil pricing (AB testing)
   canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
+  gclid?: string; // Google Click ID pour le suivi conversions
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -77,6 +79,7 @@ export function DeathCertificateForm({
   embedPartner,
   pricingCode,
   canceledRef,
+  gclid,
   onComplete,
   onCheckout,
 }: DeathCertificateFormProps) {
@@ -312,6 +315,7 @@ export function DeathCertificateForm({
             source: isEmbed ? (embedPartner === 'direct' ? 'direct' : 'embed') : 'direct',
             paymentMode: paymentModeRef.current,
             subscriptionConsent: subscriptionConsentRef.current,
+            gclid: gclid || undefined,
             data,
           }),
         });
@@ -334,7 +338,8 @@ export function DeathCertificateForm({
       }
 
       // Mode connecte standard
-      const effectiveSubscriber = isSubscriber || detectedSubscriber;
+      const isFreeProfile = pricing.paymentMode === 'free';
+      const effectiveSubscriber = isSubscriber || detectedSubscriber || isFreeProfile;
 
       // Validation du consentement abonnement si mode subscription
       if (!effectiveSubscriber && paymentModeRef.current === 'subscription' && !subscriptionConsentRef.current) {
@@ -344,13 +349,14 @@ export function DeathCertificateForm({
       }
 
       if (effectiveSubscriber) {
-        // Creer directement la demarche (deja abonne)
+        // Creer directement la demarche (abonne ou profil gratuit)
         const response = await fetch('/api/processes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'CIVIL_STATUS_DEATH',
-            isFromSubscription: true,
+            isFromSubscription: !isFreeProfile,
+            isFreeProfile,
             pricingCode,
             source: 'direct',
             data,
@@ -487,6 +493,9 @@ export function DeathCertificateForm({
                 {error}
               </Alert>
             )}
+            {STEPS[currentStep].id !== 'summary' && (
+              <StepResetButton fields={stepFieldsMap[STEPS[currentStep].id] || []} />
+            )}
             {renderStepContent()}
           </CardContent>
         </Card>
@@ -542,14 +551,15 @@ export function DeathCertificateForm({
               ) : (() => {
                 const consents = methods.getValues('consents');
                 const anyChecked = consents.acceptTerms || consents.acceptDataProcessing || consents.certifyAccuracy || consents.retractationExecution || consents.retractationRenonciation;
+                const isFree = pricing.paymentMode === 'free';
                 if (!anyChecked) {
-                  return isSubscriber || detectedSubscriber
+                  return isSubscriber || detectedSubscriber || isFree
                     ? 'Tout accepter et valider'
                     : paymentMode === 'subscription'
                     ? 'Tout accepter et souscrire'
                     : 'Tout accepter et payer';
                 }
-                return isSubscriber || detectedSubscriber
+                return isSubscriber || detectedSubscriber || isFree
                   ? 'Valider ma demande'
                   : paymentMode === 'subscription'
                   ? 'Souscrire et valider'

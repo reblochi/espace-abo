@@ -24,6 +24,7 @@ import { StepParents } from './steps/StepParents';
 import { StepRequester } from './steps/StepRequester';
 import { StepContact } from './steps/StepContact';
 import { StepSummary, type PaymentMode } from './steps/StepSummary';
+import { StepResetButton } from '@/components/processes/shared/StepResetButton';
 
 export interface IdentityCardFormProps {
   isSubscriber?: boolean;
@@ -31,6 +32,7 @@ export interface IdentityCardFormProps {
   embedPartner?: string; // Si defini, mode embed sans auth
   pricingCode?: string; // Code profil pricing (AB testing)
   canceledRef?: string; // Reference d'une demarche dont le paiement a ete annule
+  gclid?: string; // Google Click ID pour le suivi conversions
   onComplete: (reference: string) => void;
   onCheckout: (checkoutUrl: string) => void;
 }
@@ -87,6 +89,7 @@ export function IdentityCardForm({
   embedPartner,
   pricingCode,
   canceledRef,
+  gclid,
   onComplete,
   onCheckout,
 }: IdentityCardFormProps) {
@@ -478,6 +481,7 @@ export function IdentityCardForm({
             pricingCode,
             paymentMode: paymentModeRef.current,
             subscriptionConsent: subscriptionConsentRef.current,
+            gclid: gclid || undefined,
             data: submitData,
           }),
         });
@@ -501,15 +505,17 @@ export function IdentityCardForm({
 
       // Mode connecte standard
 
-      const effectiveSubscriber = isSubscriber || detectedSubscriber;
+      const isFreeProfile = pricing.paymentMode === 'free';
+      const effectiveSubscriber = isSubscriber || detectedSubscriber || isFreeProfile;
       if (effectiveSubscriber && stampTax === 0) {
-        // Abonne sans timbre fiscal : creation directe
+        // Abonne/gratuit sans timbre fiscal : creation directe
         const response = await fetch('/api/processes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'IDENTITY_CARD',
-            isFromSubscription: true,
+            isFromSubscription: !isFreeProfile,
+            isFreeProfile,
             stampTaxCents: 0,
             pricingCode,
             source: 'direct',
@@ -527,14 +533,15 @@ export function IdentityCardForm({
         tracking.trackFormCompleted();
         onComplete(result.process.reference);
       } else if (effectiveSubscriber && stampTax > 0) {
-        // Abonne avec timbre fiscal : passer par checkout pour payer le timbre
+        // Abonne/gratuit avec timbre fiscal : passer par checkout pour payer le timbre
         const response = await fetch('/api/processes/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'IDENTITY_CARD',
             paymentMode: 'one_time',
-            isFromSubscription: true,
+            isFromSubscription: !isFreeProfile,
+            isFreeProfile,
             stampTaxCents: stampTax,
             pricingCode,
             source: 'direct',
@@ -664,6 +671,9 @@ export function IdentityCardForm({
               </div>
             )}
 
+            {STEPS[currentStep].id !== 'summary' && (
+              <StepResetButton fields={STEP_FIELDS[STEPS[currentStep].id] || []} />
+            )}
             {renderStepContent()}
 
             {/* Navigation */}
@@ -732,7 +742,7 @@ export function IdentityCardForm({
                   ) : (() => {
                     const c = methods.watch('consents');
                     const anyChecked = c?.acceptTerms || c?.acceptDataProcessing || c?.retractationExecution;
-                    const effectiveSub = isSubscriber || detectedSubscriber;
+                    const effectiveSub = isSubscriber || detectedSubscriber || pricing.paymentMode === 'free';
                     if (!anyChecked) {
                       return <>Tout accepter et {effectiveSub ? 'valider' : paymentMode === 'subscription' ? 'souscrire' : 'payer'}</>;
                     }

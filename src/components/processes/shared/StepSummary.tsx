@@ -106,7 +106,7 @@ export function SharedStepSummary({
         </div>
 
         {/* Souscription — avant-derniere position */}
-        {!isSubscriber && pricing.paymentMode !== 'one_time' && (
+        {!isSubscriber && pricing.paymentMode !== 'one_time' && pricing.paymentMode !== 'free' && (
           <div className={`form-gov-checkbox-group ${paymentMode === 'subscription' ? 'checked' : ''}`}>
             <input
               type="checkbox"

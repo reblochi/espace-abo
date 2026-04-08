@@ -17,6 +17,8 @@ interface EmailTemplate {
   subject: string;
   html: string;
   variables: string[];
+  fromEmail: string | null;
+  fromName: string | null;
   updatedAt: string;
 }
 
@@ -27,6 +29,8 @@ export default function EditEmailTemplatePage() {
   const [mode, setMode] = useState<EditorMode>('design');
   const [subject, setSubject] = useState('');
   const [html, setHtml] = useState('');
+  const [fromEmail, setFromEmail] = useState('');
+  const [fromName, setFromName] = useState('');
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -48,6 +52,8 @@ export default function EditEmailTemplatePage() {
     if (template && !initialized) {
       setSubject(template.subject);
       setHtml(template.html);
+      setFromEmail(template.fromEmail || '');
+      setFromName(template.fromName || '');
       setInitialized(true);
     }
   }, [template, initialized]);
@@ -57,7 +63,7 @@ export default function EditEmailTemplatePage() {
       const res = await fetch(`/api/gestion/email-templates/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, html }),
+        body: JSON.stringify({ subject, html, fromEmail, fromName }),
       });
       if (!res.ok) throw new Error('Erreur sauvegarde');
       return res.json();
@@ -202,6 +208,41 @@ export default function EditEmailTemplatePage() {
             {saveMutation.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>
         </div>
+      </div>
+
+      {/* Expediteur */}
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;expediteur</label>
+            <input
+              type="text"
+              value={fromName}
+              onChange={(e) => {
+                setFromName(e.target.value);
+                setDirty(true);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="France Guichet (par defaut)"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email de l&apos;expediteur</label>
+            <input
+              type="email"
+              value={fromEmail}
+              onChange={(e) => {
+                setFromEmail(e.target.value);
+                setDirty(true);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="noreply@franceguichet.fr (par defaut)"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-400">
+          Laissez vide pour utiliser l&apos;expediteur par defaut.
+        </p>
       </div>
 
       {/* Subject */}
@@ -362,9 +403,15 @@ export default function EditEmailTemplatePage() {
           {mode === 'preview' && (
             <div className="p-6 bg-gray-100 min-h-[500px]">
               <div className="max-w-[640px] mx-auto">
-                <div className="mb-3 text-xs text-gray-500">
-                  <strong>Sujet:</strong>{' '}
-                  {subject.replace(/\{\{(\w+)\}\}/g, (_, v) => getPreviewValue(v))}
+                <div className="mb-3 text-xs text-gray-500 space-y-1">
+                  <div>
+                    <strong>De:</strong>{' '}
+                    {fromName || 'France Guichet'} &lt;{fromEmail || 'noreply@franceguichet.fr'}&gt;
+                  </div>
+                  <div>
+                    <strong>Sujet:</strong>{' '}
+                    {subject.replace(/\{\{(\w+)\}\}/g, (_, v) => getPreviewValue(v))}
+                  </div>
                 </div>
                 <div className="bg-white rounded shadow-sm overflow-hidden">
                   <iframe
@@ -433,6 +480,16 @@ function getPreviewValue(variable: string): string {
     number: 'FAC-2026-000001',
     type: 'Acte de naissance',
     isFromSubscription: 'true',
+    category: 'Voirie - Nid de poule',
+    lieu: '12 rue de la Mairie, 75001 Paris',
+    description: 'Nid de poule dangereux sur la chaussee, risque pour les cyclistes.',
+    userName: 'Jean Dupont',
+    userEmail: 'jean.dupont@email.fr',
+    date: '08/04/2026 14:30',
+    nbPiecesJointes: '2',
+    sentToMairie: 'true',
+    mairieName: 'Mairie du 1er arrondissement',
+    mairieFormulaire: '#',
   };
   return samples[variable] ?? `[${variable}]`;
 }

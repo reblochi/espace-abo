@@ -81,6 +81,7 @@ const createProcessRequestSchema = z.object({
   type: z.string(),
   data: z.record(z.unknown()),
   isFromSubscription: z.boolean().default(false),
+  isFreeProfile: z.boolean().default(false), // Profil gratuit (pas de frais de service)
   asDraft: z.boolean().default(false), // Permet de creer un brouillon
   stampTaxCents: z.number().int().min(0).default(0), // Timbre fiscal (vol/perte CNI)
   partner: z.string().optional(),
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, data, isFromSubscription, asDraft, stampTaxCents, partner, pricingCode, source } = result.data;
+    const { type, data, isFromSubscription, isFreeProfile, asDraft, stampTaxCents, partner, pricingCode, source } = result.data;
 
     // Verifier que le type existe
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
@@ -185,8 +186,8 @@ export async function POST(request: NextRequest) {
       amountCents += stampTaxCents;
     }
 
-    // Si abonnement, frais de service = 0
-    if (isFromSubscription) {
+    // Si abonnement ou profil gratuit, frais de service = 0
+    if (isFromSubscription || isFreeProfile) {
       serviceFeesCents = 0;
       amountCents = taxesCents; // Seulement les taxes obligatoires (inclut timbre fiscal)
     }
@@ -202,7 +203,7 @@ export async function POST(request: NextRequest) {
     if (!asDraft) {
       if (mandatoryFileTypes.length > 0) {
         initialStatus = 'PENDING_DOCUMENTS';
-      } else if (isFromSubscription) {
+      } else if (isFromSubscription || isFreeProfile) {
         initialStatus = 'PAID';
       } else {
         initialStatus = 'PENDING_PAYMENT';
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest) {
         amountCents,
         taxesCents,
         serviceFeesCents,
-        isFromSubscription,
+        isFromSubscription: isFromSubscription || isFreeProfile,
         data,
         mandatoryFileTypes,
         partner: partner ?? null,
@@ -239,15 +240,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Si deja paye (abonnement sans documents requis), envoyer a Advercity
-    if (initialStatus === 'PAID' && isFromSubscription) {
-      // Consommer un usage
-      const { consumeSubscriptionProcess } = await import('@/lib/subscription/process-eligibility');
-      await consumeSubscriptionProcess(
-        eligibility!.subscriptionId!,
-        newProcess.id,
-        type as ProcessType
-      );
+    // Si deja paye (abonnement ou gratuit sans documents requis), envoyer a Advercity
+    if (initialStatus === 'PAID' && (isFromSubscription || isFreeProfile)) {
+      // Consommer un usage abonnement si applicable
+      if (isFromSubscription && eligibility?.subscriptionId) {
+        const { consumeSubscriptionProcess } = await import('@/lib/subscription/process-eligibility');
+        await consumeSubscriptionProcess(
+          eligibility.subscriptionId,
+          newProcess.id,
+          type as ProcessType
+        );
+      }
 
       try {
         const advercityResponse = await createAdvercityProcess({
