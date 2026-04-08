@@ -256,6 +256,7 @@ body {
 .btn-gov-secondary {
   background: #f8f8f8;
   color: #0b0c0c;
+  border: 1px solid #505a5f;
   box-shadow: 0 2px 0 #505a5f;
 }
 
