@@ -16,9 +16,9 @@ import { z } from 'zod';
 const taxCalculationSchema = z.object({
   vehicle: z.object({
     fiscalPower: z.number().int().min(1).max(100),
-    co2: z.number().int().min(0).max(500).optional(),
+    co2: z.number().int().min(0).max(500).optional().nullable().transform(v => v ?? undefined),
     energyId: z.number().int().min(1).max(10),
-    state: z.number().int().min(1).max(2), // 1 = neuf, 2 = occasion
+    state: z.number().int().min(0).max(2), // 0 = occasion, 1 = neuf
     registrationDate: z.string().optional(),
   }),
   departmentCode: z.string().min(2).max(3),

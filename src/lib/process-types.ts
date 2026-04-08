@@ -144,68 +144,8 @@ export interface DocumentRequirement {
 }
 
 // Documents requis pour certificat d'immatriculation
-export const REGISTRATION_CERTIFICATE_DOCUMENTS: DocumentRequirement[] = [
-  {
-    id: 'CNI',
-    label: 'Piece d\'identite',
-    description: 'Carte d\'identite ou passeport en cours de validite',
-    required: true,
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'JUSTIFICATIF_DOMICILE',
-    label: 'Justificatif de domicile',
-    description: 'De moins de 6 mois (facture EDF, telephone, avis d\'imposition...)',
-    required: true,
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'CARTE_GRISE',
-    label: 'Ancienne carte grise',
-    description: 'Recto et verso, barree avec mention "Vendu le" et signature',
-    required: true,
-    conditionalOn: { 'operation.typeId': ['1'] }, // CHANGEMENT_TITULAIRE
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'CERTIFICAT_CESSION',
-    label: 'Certificat de cession',
-    description: 'Formulaire Cerfa 15776*01 signe par vendeur et acheteur',
-    required: true,
-    conditionalOn: { 'operation.typeId': ['1'] },
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'CERTIFICAT_NON_GAGE',
-    label: 'Certificat de non-gage',
-    description: 'Certificat de situation administrative du vehicule',
-    required: true,
-    conditionalOn: { 'operation.typeId': ['1'] },
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'CONTROLE_TECHNIQUE',
-    label: 'Controle technique',
-    description: 'De moins de 6 mois pour vehicules de plus de 4 ans',
-    required: false,
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-  {
-    id: 'DECLARATION_PERTE',
-    label: 'Declaration de perte/vol',
-    description: 'Declaration de perte ou depot de plainte',
-    required: true,
-    conditionalOn: { 'operation.typeId': ['3'] }, // DUPLICATA
-    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-    maxSizeMb: 10,
-  },
-];
+// Les documents sont geres post-creation par l'admin Advercity (workflow ProcessDocument)
+export const REGISTRATION_CERTIFICATE_DOCUMENTS: DocumentRequirement[] = [];
 
 // ============================================================
 // CONFIGURATION COMPLETE DES DEMARCHES
@@ -314,16 +254,7 @@ export const PROCESS_TYPES_CONFIG: Record<ProcessType, ProcessTypeConfig> = {
     estimatedDelay: '3-5 jours ouvres',
     includedInSubscription: true,
     subscriberPrice: 0,
-    requiredDocuments: [
-      {
-        id: 'CNI',
-        label: 'Piece d\'identite',
-        description: 'Carte d\'identite ou passeport',
-        required: true,
-        acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-        maxSizeMb: 10,
-      },
-    ],
+    requiredDocuments: [],
     subtypes: ACT_TYPES.map(t => ({ code: t.code, label: t.label })),
   },
 
@@ -339,16 +270,7 @@ export const PROCESS_TYPES_CONFIG: Record<ProcessType, ProcessTypeConfig> = {
     estimatedDelay: '3-5 jours ouvres',
     includedInSubscription: true,
     subscriberPrice: 0,
-    requiredDocuments: [
-      {
-        id: 'CNI',
-        label: 'Piece d\'identite',
-        description: 'Carte d\'identite ou passeport',
-        required: true,
-        acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-        maxSizeMb: 10,
-      },
-    ],
+    requiredDocuments: [],
     subtypes: ACT_TYPES.map(t => ({ code: t.code, label: t.label })),
   },
 
@@ -364,16 +286,7 @@ export const PROCESS_TYPES_CONFIG: Record<ProcessType, ProcessTypeConfig> = {
     estimatedDelay: '3-5 jours ouvres',
     includedInSubscription: true,
     subscriberPrice: 0,
-    requiredDocuments: [
-      {
-        id: 'CNI',
-        label: 'Piece d\'identite',
-        description: 'Carte d\'identite ou passeport',
-        required: true,
-        acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
-        maxSizeMb: 10,
-      },
-    ],
+    requiredDocuments: [],
     subtypes: ACT_TYPES.filter(t => t.code !== 'EXTRACT_WITH_FILIATION').map(t => ({ code: t.code, label: t.label })),
   },
 

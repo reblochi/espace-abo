@@ -1,6 +1,11 @@
 // Calcul des taxes pour le certificat d'immatriculation (carte grise)
 
-import type { VehicleData } from '@/types/registration-certificate';
+interface VehicleDataForTax {
+  fiscalPower: number;
+  energyId: number;
+  co2?: number;
+  state: number;
+}
 
 // Taux de taxe regionale par region (EUR/CV) - 2026
 // Source: https://www.service-public.fr/particuliers/vosdroits/F19211
@@ -159,7 +164,7 @@ export interface RegistrationCertificateTaxes {
 }
 
 export interface TaxCalculationInput {
-  vehicle: VehicleData;
+  vehicle: VehicleDataForTax;
   departmentCode: string;
 }
 

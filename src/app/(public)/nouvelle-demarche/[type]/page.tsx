@@ -118,7 +118,7 @@ export default function FormulaireDemarchePage() {
   // Pour les formulaires qui necessitent une session (carte grise, mariage, deces),
   // afficher un message de connexion si non authentifie
   // ================================================
-  const needsAuth = !['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD', 'SIGNALEMENT_MAIRIE'].includes(typeCode);
+  const needsAuth = !['CIVIL_STATUS_BIRTH', 'IDENTITY_CARD', 'SIGNALEMENT_MAIRIE', 'REGISTRATION_CERT'].includes(typeCode);
   if (needsAuth && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -189,34 +189,19 @@ export default function FormulaireDemarchePage() {
           </nav>
         </div>
 
-        {/* Formulaire carte grise avance */}
+        {/* Formulaire carte grise */}
         <main className="max-w-4xl mx-auto px-4 pb-12">
           <RegistrationCertificateForm
             isSubscriber={hasActiveSubscription}
+            basePrice={processConfig.basePrice}
+            embedPartner={!isAuthenticated ? 'direct' : undefined}
             pricingCode={pricingCode}
             canceledRef={canceledRef || undefined}
-            onSubmit={async (data, paymentMode) => {
-              const { getPricingProfile } = await import('@/lib/process-types');
-              const pricing = getPricingProfile(pricingCode);
-              const isFreeProfile = pricing.paymentMode === 'free';
-              const response = await fetch('/api/processes/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'REGISTRATION_CERT',
-                  paymentMode: isFreeProfile ? 'one_time' : paymentMode,
-                  isFreeProfile,
-                  pricingCode,
-                  data,
-                }),
-              });
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.error || 'Erreur');
-              if (result.url) {
-                window.location.href = result.url;
-              } else if (result.process?.reference) {
-                router.push(`/nouvelle-demarche/confirmation?ref=${result.process.reference}`);
-              }
+            onComplete={(reference) => {
+              router.push(`/nouvelle-demarche/confirmation?ref=${reference}`);
+            }}
+            onCheckout={(checkoutUrl) => {
+              window.location.href = checkoutUrl;
             }}
           />
         </main>

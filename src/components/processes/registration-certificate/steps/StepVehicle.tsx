@@ -1,13 +1,11 @@
-// Etape 4: Informations du vehicule
+// Etape 3: Informations du vehicule
 
 'use client';
 
 import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { VehicleState } from '@/types/registration-certificate';
+import { VehicleState, OperationType } from '@/types/registration-certificate';
 import type { RegistrationCertificateInput } from '@/schemas/registration-certificate';
 import type { RegistrationCertificateTaxes } from '@/lib/taxes/registration-certificate';
 
@@ -40,198 +38,125 @@ function formatPrice(cents: number): string {
 }
 
 export function StepVehicle({ taxes, isCalculating }: StepVehicleProps) {
-  const {
-    register,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useFormContext<RegistrationCertificateInput>();
+  const { register, watch, setValue, formState: { errors } } = useFormContext<RegistrationCertificateInput>();
 
   const vehicleState = watch('vehicle.state');
   const energyId = watch('vehicle.energyId');
+  const operationType = watch('operation.typeId');
 
   const isCleanVehicle = ENERGY_TYPES.find(e => e.value === energyId)?.isClean ?? false;
+  const vehicleErrors = errors.vehicle as Record<string, { message?: string }> | undefined;
 
   return (
     <div className="space-y-6">
-      {/* Etat du vehicule */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-        <span className="text-sm font-medium text-gray-700">
-          Etat du vehicule :
-        </span>
-        <div className="flex gap-3">
-          <label className={cn(
-            'px-4 py-2 rounded-lg border cursor-pointer transition-colors',
-            vehicleState === VehicleState.NEUF
-              ? 'border-blue-600 bg-blue-50 text-blue-700'
-              : 'border-gray-200 hover:border-gray-300'
-          )}>
-            <input
-              type="radio"
-              checked={vehicleState === VehicleState.NEUF}
-              onChange={() => setValue('vehicle.state', VehicleState.NEUF)}
-              className="sr-only"
-            />
-            Neuf
-          </label>
-          <label className={cn(
-            'px-4 py-2 rounded-lg border cursor-pointer transition-colors',
-            vehicleState === VehicleState.OCCASION
-              ? 'border-blue-600 bg-blue-50 text-blue-700'
-              : 'border-gray-200 hover:border-gray-300'
-          )}>
-            <input
-              type="radio"
-              checked={vehicleState === VehicleState.OCCASION}
-              onChange={() => setValue('vehicle.state', VehicleState.OCCASION)}
-              className="sr-only"
-            />
-            Occasion
-          </label>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Informations du vehicule</h2>
+        <p className="form-gov-hint">Ces informations se trouvent sur votre carte grise actuelle.</p>
+      </div>
+
+      {/* Etat du vehicule (seulement changement titulaire) */}
+      {operationType === OperationType.CHANGEMENT_TITULAIRE && (
+        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+          <span className="text-sm font-medium text-gray-700">Etat du vehicule :</span>
+          <div className="flex gap-3">
+            <label className={cn(
+              'px-4 py-2 rounded-lg border cursor-pointer transition-colors',
+              vehicleState === VehicleState.OCCASION
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300'
+            )}>
+              <input type="radio" checked={vehicleState === VehicleState.OCCASION} onChange={() => setValue('vehicle.state', VehicleState.OCCASION)} className="sr-only" />
+              Occasion
+            </label>
+            <label className={cn(
+              'px-4 py-2 rounded-lg border cursor-pointer transition-colors',
+              vehicleState === VehicleState.NEUF
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300'
+            )}>
+              <input type="radio" checked={vehicleState === VehicleState.NEUF} onChange={() => setValue('vehicle.state', VehicleState.NEUF)} className="sr-only" />
+              Neuf
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Immatriculation + date */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="form-gov-label">Immatriculation <span className="text-red-600">*</span></label>
+          <input type="text" {...register('vehicle.registrationNumber')} className={`form-gov-input uppercase ${vehicleErrors?.registrationNumber ? 'form-gov-error' : ''}`} placeholder="AA-123-BB" />
+          <p className="form-gov-hint">Case A de la carte grise</p>
+          {vehicleErrors?.registrationNumber && <p className="form-gov-error-msg">{vehicleErrors.registrationNumber.message}</p>}
+        </div>
+        <div>
+          <label className="form-gov-label">Date de 1ere immatriculation <span className="text-red-600">*</span></label>
+          <input type="date" {...register('vehicle.registrationDate')} className={`form-gov-input ${vehicleErrors?.registrationDate ? 'form-gov-error' : ''}`} />
+          <p className="form-gov-hint">Case B de la carte grise</p>
+          {vehicleErrors?.registrationDate && <p className="form-gov-error-msg">{vehicleErrors.registrationDate.message}</p>}
         </div>
       </div>
 
-      {/* Informations du vehicule */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Type + Energie */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Immatriculation *
-          </label>
-          <Input
-            {...register('vehicle.registrationNumber')}
-            error={errors.vehicle?.registrationNumber?.message}
-            placeholder="AA-123-BB"
-            className="uppercase"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date de 1ere immatriculation *
-          </label>
-          <Input
-            type="date"
-            {...register('vehicle.registrationDate')}
-            error={errors.vehicle?.registrationDate?.message}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Marque *
-          </label>
-          <Input
-            {...register('vehicle.make')}
-            error={errors.vehicle?.make?.message}
-            placeholder="Renault, Peugeot..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Modele *
-          </label>
-          <Input
-            {...register('vehicle.model')}
-            error={errors.vehicle?.model?.message}
-            placeholder="Clio, 208..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Type de vehicule *
-          </label>
-          <Select
-            {...register('vehicle.typeId', { valueAsNumber: true })}
-            error={errors.vehicle?.typeId?.message}
-          >
+          <label className="form-gov-label">Type de vehicule <span className="text-red-600">*</span></label>
+          <select {...register('vehicle.vehicleTypeId', { valueAsNumber: true })} className={`form-gov-input ${vehicleErrors?.vehicleTypeId ? 'form-gov-error' : ''}`}>
             <option value="">Selectionnez</option>
             {VEHICLE_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
+              <option key={t.value} value={t.value}>{t.label}</option>
             ))}
-          </Select>
+          </select>
+          <p className="form-gov-hint">Case J.1 de la carte grise</p>
+          {vehicleErrors?.vehicleTypeId && <p className="form-gov-error-msg">{vehicleErrors.vehicleTypeId.message}</p>}
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Energie *
-          </label>
-          <Select
-            {...register('vehicle.energyId', { valueAsNumber: true })}
-            error={errors.vehicle?.energyId?.message}
-          >
+          <label className="form-gov-label">Energie <span className="text-red-600">*</span></label>
+          <select {...register('vehicle.energyId', { valueAsNumber: true })} className={`form-gov-input ${vehicleErrors?.energyId ? 'form-gov-error' : ''}`}>
             <option value="">Selectionnez</option>
             {ENERGY_TYPES.map((e) => (
-              <option key={e.value} value={e.value}>
-                {e.label} {e.isClean && '(Exonere de taxe regionale)'}
-              </option>
+              <option key={e.value} value={e.value}>{e.label} {e.isClean && '(Exonere de taxe)'}</option>
             ))}
-          </Select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Puissance fiscale (CV) *
-          </label>
-          <Input
-            type="number"
-            {...register('vehicle.fiscalPower', { valueAsNumber: true })}
-            error={errors.vehicle?.fiscalPower?.message}
-            placeholder="5"
-            min={1}
-            max={100}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Case P.6 de la carte grise
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Emissions CO2 (g/km)
-            {vehicleState === VehicleState.NEUF && ' *'}
-          </label>
-          <Input
-            type="number"
-            {...register('vehicle.co2', { valueAsNumber: true })}
-            error={errors.vehicle?.co2?.message}
-            placeholder="120"
-            min={0}
-            max={500}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Case V.7 de la carte grise (si indique)
-          </p>
+          </select>
+          <p className="form-gov-hint">Case P.3 de la carte grise</p>
+          {vehicleErrors?.energyId && <p className="form-gov-error-msg">{vehicleErrors.energyId.message}</p>}
         </div>
       </div>
 
-      {/* Info vehicule propre */}
+      {/* Puissance + CO2 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="form-gov-label">Puissance fiscale (CV) <span className="text-red-600">*</span></label>
+          <input type="number" {...register('vehicle.fiscalPower', { valueAsNumber: true })} className={`form-gov-input ${vehicleErrors?.fiscalPower ? 'form-gov-error' : ''}`} placeholder="5" min={1} max={100} />
+          <p className="form-gov-hint">Case P.6 de la carte grise</p>
+          {vehicleErrors?.fiscalPower && <p className="form-gov-error-msg">{vehicleErrors.fiscalPower.message}</p>}
+        </div>
+        <div>
+          <label className="form-gov-label">Emissions CO2 (g/km){vehicleState === VehicleState.NEUF && ' *'}</label>
+          <input type="number" {...register('vehicle.co2', { valueAsNumber: true })} className={`form-gov-input ${vehicleErrors?.co2 ? 'form-gov-error' : ''}`} placeholder="120" min={0} max={500} />
+          <p className="form-gov-hint">Case V.7 de la carte grise (si indique)</p>
+          {vehicleErrors?.co2 && <p className="form-gov-error-msg">{vehicleErrors.co2.message}</p>}
+        </div>
+      </div>
+
+      {/* Controle technique */}
+      <div>
+        <label className="form-gov-label">Date du controle technique</label>
+        <input type="date" {...register('vehicle.technicalControlDate')} className="form-gov-input" />
+        <p className="form-gov-hint">Obligatoire pour les vehicules de plus de 4 ans</p>
+      </div>
+
+      {/* Vehicule propre */}
       {isCleanVehicle && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-green-600 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <h4 className="font-medium text-green-800">Vehicule propre</h4>
-              <p className="text-sm text-green-700 mt-1">
-                Les vehicules electriques et hydrogene sont exoneres de taxe regionale.
-              </p>
-            </div>
-          </div>
+        <div className="p-4 bg-green-50 border-l-4 border-l-green-500">
+          <p className="text-sm text-green-800 font-medium">Vehicule propre — exonere de taxe regionale</p>
         </div>
       )}
 
       {/* Estimation des taxes */}
       {taxes && (
         <div className="p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-900 mb-4 flex items-center">
-            <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
+          <h4 className="font-medium text-gray-900 mb-3 flex items-center">
             Estimation du cout
             {isCalculating && (
               <svg className="w-4 h-4 ml-2 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
@@ -240,42 +165,33 @@ export function StepVehicle({ taxes, isCalculating }: StepVehicleProps) {
               </svg>
             )}
           </h4>
-
-          <div className="space-y-2">
+          <div className="space-y-1.5 text-sm">
             {taxes.taxeRegionale > 0 && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Taxe regionale</span>
                 <span className="font-medium">{formatPrice(taxes.taxeRegionale)}</span>
               </div>
             )}
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-gray-600">Taxe de gestion</span>
               <span className="font-medium">{formatPrice(taxes.taxeGestion)}</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-gray-600">Redevance d'acheminement</span>
               <span className="font-medium">{formatPrice(taxes.taxeAcheminement)}</span>
             </div>
             {taxes.malus > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
+              <div className="flex justify-between text-red-600">
                 <span>Malus ecologique</span>
                 <span className="font-medium">{formatPrice(taxes.malus)}</span>
               </div>
             )}
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Frais de service</span>
-              <span className="font-medium">{formatPrice(taxes.serviceFee)}</span>
-            </div>
             <div className="border-t pt-2 mt-2 flex justify-between font-medium">
-              <span>Total estime</span>
-              <span className="text-lg text-blue-600">{formatPrice(taxes.total)}</span>
+              <span>Total taxes</span>
+              <span className="text-blue-600">{formatPrice(taxes.taxeRegionale + taxes.taxeGestion + taxes.taxeAcheminement + taxes.malus)}</span>
             </div>
           </div>
-
-          <p className="text-xs text-gray-500 mt-4">
-            * Ce montant est une estimation. Le montant final peut varier en fonction des informations
-            fournies lors de la validation de votre dossier.
-          </p>
+          <p className="text-xs text-gray-500 mt-3">* Estimation indicative. Le montant final sera confirme au recapitulatif.</p>
         </div>
       )}
     </div>

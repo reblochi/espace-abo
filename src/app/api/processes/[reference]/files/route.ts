@@ -126,6 +126,7 @@ export async function POST(
         mimeType: file.type,
         size: file.size,
         fileType: fileType as 'CNI' | 'PASSEPORT' | 'PERMIS' | 'JUSTIFICATIF_DOMICILE' | 'PHOTO_IDENTITE' | 'ACTE_NAISSANCE' | 'LIVRET_FAMILLE' | 'AUTRE',
+        storageKey: fileName,
         storageUrl,
       },
     });
