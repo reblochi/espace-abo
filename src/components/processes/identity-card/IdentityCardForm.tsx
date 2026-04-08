@@ -144,7 +144,7 @@ export function IdentityCardForm({
       birthCountryId: FRANCE_COUNTRY_ID,
       birthCityId: undefined,
       birthCityName: '',
-      taille: undefined as unknown as number,
+      taille: 175,
       raisonFrancais: '',
       fatherUnknown: false,
       fatherLastName: '',

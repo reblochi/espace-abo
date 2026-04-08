@@ -67,7 +67,7 @@ export function StepSummary({
             Ne(e) le {formatDate(formData.birthDate)} a {formData.birthCityName}
             {formData.birthCountryId === FRANCE_COUNTRY_ID ? '' : ' (etranger)'}
           </p>
-          <p className="form-gov-hint">Taille : {formData.taille} cm</p>
+          <p className="form-gov-hint">Taille : {Math.floor(formData.taille / 100)}m{String(formData.taille % 100).padStart(2, '0')}</p>
         </SummaryCard>
 
         <SummaryCard title="Nationalite">

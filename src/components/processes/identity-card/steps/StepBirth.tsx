@@ -138,21 +138,42 @@ export function StepBirth() {
         </div>
         <div className="mb-6">
           <label className="form-gov-label">
-            Taille (en cm) <span className="text-red-600">*</span>
+            Taille <span className="text-red-600">*</span>
           </label>
-          <select
-            value={watch('taille') || ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              setValue('taille', val ? parseInt(val, 10) : (undefined as unknown as number), { shouldValidate: true });
-            }}
-            className={`form-gov-select ${errors.taille ? 'form-gov-error' : ''}`}
-          >
-            <option value="">Selectionnez...</option>
-            {Array.from({ length: 261 }, (_, i) => i + 20).map((cm) => (
-              <option key={cm} value={cm}>{cm} cm</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <select
+                value={Math.floor((watch('taille') || 175) / 100)}
+                onChange={(e) => {
+                  const m = parseInt(e.target.value, 10);
+                  const currentCm = (watch('taille') || 175) % 100;
+                  setValue('taille', m * 100 + currentCm, { shouldValidate: true });
+                }}
+                className={`form-gov-select w-20 ${errors.taille ? 'form-gov-error' : ''}`}
+              >
+                {[0, 1, 2].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-600 font-medium">m</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={(watch('taille') || 175) % 100}
+                onChange={(e) => {
+                  const cm = parseInt(e.target.value, 10);
+                  const currentM = Math.floor((watch('taille') || 175) / 100);
+                  setValue('taille', currentM * 100 + cm, { shouldValidate: true });
+                }}
+                className={`form-gov-select w-24 ${errors.taille ? 'form-gov-error' : ''}`}
+              >
+                {Array.from({ length: 100 }, (_, i) => i).map((cm) => (
+                  <option key={cm} value={cm}>{String(cm).padStart(2, '0')}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-600 font-medium">cm</span>
+            </div>
+          </div>
           {errors.taille && (
             <p className="form-gov-error-msg">{errors.taille.message}</p>
           )}
