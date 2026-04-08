@@ -26,6 +26,16 @@
   var PARTNER = userConfig.partner || 'default';
   var PRICING = userConfig.pricing || '';
 
+  // Capturer le gclid depuis l'URL du site partenaire (Google Ads click ID)
+  function getGclid() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      return params.get('gclid') || params.get('gbraid') || params.get('wbraid') || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   // Types de demarches supportees
   var FORM_TYPES = {
     'acte-naissance': {
@@ -196,8 +206,10 @@
 
     var partner = options.partner || PARTNER;
     var pricing = options.pricing || PRICING;
+    var gclid = options.gclid || getGclid();
     var url = BASE_URL + config.path + '?partner=' + encodeURIComponent(partner);
     if (pricing) url += '&pricing=' + encodeURIComponent(pricing);
+    if (gclid) url += '&gclid=' + encodeURIComponent(gclid);
 
     // Creer l'overlay
     var overlay = document.createElement('div');

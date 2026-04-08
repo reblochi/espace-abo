@@ -15,6 +15,7 @@ const embedSubmitSchema = z.object({
   paymentMode: z.enum(['subscription', 'one_time']),
   subscriptionConsent: z.boolean().optional(),
   pricingCode: z.string().optional(),
+  gclid: z.string().optional(),
   data: marriageCertificateSchema,
 });
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { partner, paymentMode, pricingCode, data } = parsed.data;
+    const { partner, paymentMode, pricingCode, gclid, data } = parsed.data;
 
     // Les coordonnees sont obligatoires en mode embed
     if (!data.email) {
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
           partner,
           pricingCode: pricingCode ?? null,
           source: 'embed',
+          gclid: gclid ?? null,
           updatedAt: new Date(),
         },
       });
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
         partner,
         pricingCode: pricingCode ?? null,
         source: 'embed',
+        gclid: gclid ?? null,
         updatedAt: new Date(),
       },
     });

@@ -11,6 +11,7 @@ import {
   mapProcessTypeToAdvercity,
   mapProcessDataToAdvercity,
 } from '../advercity';
+import { sendConversion } from '../google-ads';
 import type { ProcessType } from '@prisma/client';
 
 // Handler principal
@@ -300,6 +301,18 @@ async function handlePaymentSucceeded(event: WebhookEvent): Promise<void> {
       console.error('[Webhook] Erreur creation facture demarche:', err);
     }
 
+    // Google Ads conversion tracking (non-bloquant)
+    if (process.gclid) {
+      sendConversion({
+        gclid: process.gclid,
+        conversionDateTime: new Date(),
+        conversionValue: (amountCents || process.amountCents) / 100,
+        orderId: process.reference,
+        email: process.user.email,
+        phone: process.user.phone || undefined,
+      }).catch((err) => console.error('[Webhook] Erreur Google Ads conversion:', err));
+    }
+
     // Email de confirmation
     await sendEmail({
       to: process.user.email,
@@ -459,6 +472,19 @@ async function handleCheckoutCompleted(event: WebhookEvent): Promise<void> {
 
     // Envoyer a Advercity
     await sendProcessToAdvercity(existingProcess.id);
+
+    // Google Ads conversion tracking (non-bloquant)
+    const gclid = metadata?.gclid || existingProcess.gclid;
+    if (gclid) {
+      sendConversion({
+        gclid,
+        conversionDateTime: now,
+        conversionValue: 9.90, // Montant abonnement
+        orderId: subReference,
+        email: existingProcess.user.email,
+        phone: existingProcess.user.phone || undefined,
+      }).catch((err) => console.error('[Webhook] Erreur Google Ads conversion:', err));
+    }
 
     // Email de confirmation (non-bloquant)
     sendEmail({

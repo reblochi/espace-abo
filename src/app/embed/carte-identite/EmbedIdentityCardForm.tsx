@@ -19,6 +19,7 @@ export function EmbedIdentityCardForm() {
   const searchParams = useSearchParams();
   const partner = searchParams.get('partner') || 'default';
   const pricingCode = searchParams.get('pricing') || undefined;
+  const gclid = searchParams.get('gclid') || undefined;
 
   const processConfig = getProcessTypeConfig('IDENTITY_CARD');
 
@@ -71,6 +72,7 @@ export function EmbedIdentityCardForm() {
         isSubscriber={false}
         basePrice={processConfig?.basePrice ?? 3990}
         embedPartner={partner}
+        gclid={gclid}
         pricingCode={pricingCode}
         onComplete={(reference) => {
           postToParent('complete', { reference });

@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       processReference: processRecord.reference,
       processType: processRecord.type,
       partner: partner || '',
+      gclid: processRecord.gclid || '',
     };
 
     let checkoutSession: Stripe.Checkout.Session;

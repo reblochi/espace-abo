@@ -18,6 +18,7 @@ function postToParent(type: string, data?: Record<string, unknown>) {
 export function EmbedBirthForm() {
   const searchParams = useSearchParams();
   const partner = searchParams.get('partner') || 'default';
+  const gclid = searchParams.get('gclid') || undefined;
 
   const processConfig = getProcessTypeConfig('CIVIL_STATUS_BIRTH');
 
@@ -64,6 +65,7 @@ export function EmbedBirthForm() {
         isSubscriber={false}
         basePrice={processConfig?.basePrice ?? 1490}
         embedPartner={partner}
+        gclid={gclid}
         onComplete={(reference) => {
           postToParent('complete', { reference });
         }}
