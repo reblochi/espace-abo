@@ -13,7 +13,7 @@ const SECRET = process.env.NEXTAUTH_SECRET!;
 export function generateAutoLoginToken(userId: string): string {
   const payload = JSON.stringify({
     uid: userId,
-    exp: Date.now() + 5 * 60 * 1000, // 5 minutes
+    exp: Date.now() + 72 * 60 * 60 * 1000, // 72 heures
     nonce: crypto.randomBytes(8).toString('hex'),
   });
 
