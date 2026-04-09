@@ -144,8 +144,97 @@ export interface DocumentRequirement {
 }
 
 // Documents requis pour certificat d'immatriculation
-// Les documents sont geres post-creation par l'admin Advercity (workflow ProcessDocument)
-export const REGISTRATION_CERTIFICATE_DOCUMENTS: DocumentRequirement[] = [];
+// Alignes sur les ProcessDocument configures dans Advercity
+export const REGISTRATION_CERTIFICATE_DOCUMENTS: DocumentRequirement[] = [
+  // === Documents communs (tous types) ===
+  {
+    id: 'MANDAT',
+    label: 'Mandat signe',
+    description: 'Mandat nous autorisant a realiser la demarche aupres de l\'administration',
+    required: true,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'CNI',
+    label: 'Piece d\'identite',
+    description: 'Copie recto/verso d\'une piece d\'identite valide (carte d\'identite ou passeport)',
+    required: true,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'JUSTIFICATIF_DOMICILE',
+    label: 'Justificatif de domicile',
+    description: 'De moins de 6 mois (facture EDF, telephone, avis d\'imposition, quittance de loyer...)',
+    required: true,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'AUTRE',
+    label: 'Attestation d\'assurance',
+    description: 'Certificat d\'assurance en cours de validite',
+    required: true,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'PERMIS',
+    label: 'Permis de conduire',
+    description: 'Copie du permis de conduire de la categorie correspondante',
+    required: true,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'CONTROLE_TECHNIQUE',
+    label: 'Controle technique',
+    description: 'De moins de 6 mois pour vehicules de plus de 4 ans',
+    required: false,
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  // === Documents specifiques changement titulaire ===
+  {
+    id: 'CARTE_GRISE',
+    label: 'Carte grise barree',
+    description: 'Carte grise originale barree avec mention "Vendu le" + date et signature du vendeur',
+    required: true,
+    conditionalOn: { 'operation.typeId': ['1'] },
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  {
+    id: 'CERTIFICAT_CESSION',
+    label: 'Declaration de cession',
+    description: 'Formulaire Cerfa n° 15776 original, signe par vendeur et acheteur',
+    required: true,
+    conditionalOn: { 'operation.typeId': ['1'] },
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  // === Documents specifiques changement adresse ===
+  {
+    id: 'CARTE_GRISE',
+    label: 'Carte grise',
+    description: 'Copie de la carte grise (ou originale si 3+ changements d\'adresse ou format SIV)',
+    required: true,
+    conditionalOn: { 'operation.typeId': ['2'] },
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+  // === Documents specifiques duplicata ===
+  {
+    id: 'DECLARATION_PERTE',
+    label: 'Declaration de perte ou vol',
+    description: 'Declaration de perte ou depot de plainte pour vol, ou carte grise deterioree',
+    required: true,
+    conditionalOn: { 'operation.typeId': ['3'] },
+    acceptedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMb: 10,
+  },
+];
 
 // ============================================================
 // CONFIGURATION COMPLETE DES DEMARCHES

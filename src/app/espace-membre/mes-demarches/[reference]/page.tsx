@@ -14,7 +14,7 @@ import { getRequiredDocuments } from '@/lib/process-types';
 import { Card, CardHeader, CardTitle, CardContent, Button, Alert, Badge } from '@/components/ui';
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
-import { getProcessTypeConfig, formatPrice } from '@/lib/process-types';
+import { getProcessTypeConfig, getProcessTypeSlug, formatPrice } from '@/lib/process-types';
 import type { ProcessType } from '@/types';
 
 export default function ProcessDetailPage() {
@@ -173,32 +173,39 @@ export default function ProcessDetailPage() {
                   <div>
                     <dt className="text-sm text-gray-500">Beneficiaire</dt>
                     <dd className="mt-1 font-medium text-gray-900">
-                      {processDataContent.beneficiaryFirstName as string} {processDataContent.beneficiaryLastName as string}
+                      {(processDataContent.firstName || processDataContent.beneficiaryFirstName) as string}{' '}
+                      {(processDataContent.lastName || processDataContent.beneficiaryLastName) as string}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Date de naissance</dt>
                     <dd className="mt-1 font-medium text-gray-900">
-                      {processDataContent.beneficiaryBirthDate as string}
+                      {(processDataContent.birthDate || processDataContent.beneficiaryBirthDate) as string}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Commune</dt>
                     <dd className="mt-1 font-medium text-gray-900">
-                      {processDataContent.eventCityName as string}
+                      {(processDataContent.birthCityName || processDataContent.eventCityName) as string}
                     </dd>
                   </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Date de l'evenement</dt>
-                    <dd className="mt-1 font-medium text-gray-900">
-                      {processDataContent.eventDate as string}
-                    </dd>
-                  </div>
-                  {processItem.type === 'CIVIL_STATUS_MARRIAGE' && processDataContent.spouseFirstName && (
+                  {(processDataContent.eventDate || processDataContent.deathDate) && (
+                    <div>
+                      <dt className="text-sm text-gray-500">
+                        {processItem.type === 'CIVIL_STATUS_DEATH' ? 'Date du deces' :
+                         processItem.type === 'CIVIL_STATUS_MARRIAGE' ? 'Date du mariage' : 'Date de l\'evenement'}
+                      </dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {(processDataContent.eventDate || processDataContent.deathDate) as string}
+                      </dd>
+                    </div>
+                  )}
+                  {processItem.type === 'CIVIL_STATUS_MARRIAGE' && (processDataContent.spouseFirstName || processDataContent.spouse1FirstName) && (
                     <div className="sm:col-span-2">
                       <dt className="text-sm text-gray-500">Conjoint</dt>
                       <dd className="mt-1 font-medium text-gray-900">
-                        {processDataContent.spouseFirstName as string} {processDataContent.spouseLastName as string}
+                        {(processDataContent.spouseFirstName || processDataContent.spouse1FirstName) as string}{' '}
+                        {(processDataContent.spouseLastName || processDataContent.spouse1LastName) as string}
                       </dd>
                     </div>
                   )}
@@ -278,7 +285,7 @@ export default function ProcessDetailPage() {
                         <div>
                           <dt className="text-sm text-gray-500">Nom complet</dt>
                           <dd className="mt-1 font-medium text-gray-900">
-                            {(processDataContent.holder as Record<string, unknown>)?.civility === 1 ? 'M.' : 'Mme'}{' '}
+                            {(() => { const c = (processDataContent.holder as Record<string, unknown>)?.civility; return c === 'M' || c === 1 ? 'M.' : 'Mme'; })()}{' '}
                             {(processDataContent.holder as Record<string, unknown>)?.firstName as string}{' '}
                             {(processDataContent.holder as Record<string, unknown>)?.lastName as string}
                           </dd>
@@ -295,7 +302,7 @@ export default function ProcessDetailPage() {
                       <dt className="text-sm text-gray-500">Adresse</dt>
                       <dd className="mt-1 font-medium text-gray-900">
                         {(processDataContent.holder as Record<string, unknown>)?.address as string}<br />
-                        {(processDataContent.holder as Record<string, unknown>)?.postalCode as string}{' '}
+                        {((processDataContent.holder as Record<string, unknown>)?.zipCode || (processDataContent.holder as Record<string, unknown>)?.postalCode) as string}{' '}
                         {(processDataContent.holder as Record<string, unknown>)?.city as string}
                       </dd>
                     </div>
@@ -305,7 +312,6 @@ export default function ProcessDetailPage() {
                     <div className="mt-4 pt-4 border-t">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Co-titulaire</h4>
                       <p className="font-medium text-gray-900">
-                        {(processDataContent.coOwner as Record<string, unknown>)?.civility === 1 ? 'M.' : 'Mme'}{' '}
                         {(processDataContent.coOwner as Record<string, unknown>)?.firstName as string}{' '}
                         {(processDataContent.coOwner as Record<string, unknown>)?.lastName as string}
                       </p>
@@ -467,16 +473,20 @@ export default function ProcessDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          {processItem.status === 'PENDING_PAYMENT' && (
+          {/* Actions : payer ou valider */}
+          {(processItem.status === 'PENDING_PAYMENT' || processItem.status === 'DRAFT') && (
             <Card>
               <CardHeader>
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button className="w-full">
-                  Payer ma demarche
-                </Button>
+                <Link href={`/nouvelle-demarche/${getProcessTypeSlug(processItem.type as ProcessType)}?canceled=true&ref=${processItem.reference}`}>
+                  <Button className="w-full">
+                    {processItem.amountCents && processItem.amountCents > 0
+                      ? `Payer ma demarche (${formatPrice(processItem.amountCents)})`
+                      : 'Valider ma demarche'}
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           )}

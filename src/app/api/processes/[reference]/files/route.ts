@@ -125,7 +125,7 @@ export async function POST(
         fileName,
         mimeType: file.type,
         size: file.size,
-        fileType: fileType as 'CNI' | 'PASSEPORT' | 'PERMIS' | 'JUSTIFICATIF_DOMICILE' | 'PHOTO_IDENTITE' | 'ACTE_NAISSANCE' | 'LIVRET_FAMILLE' | 'AUTRE',
+        fileType: fileType as 'CNI' | 'PASSEPORT' | 'PERMIS' | 'JUSTIFICATIF_DOMICILE' | 'PHOTO_IDENTITE' | 'ACTE_NAISSANCE' | 'LIVRET_FAMILLE' | 'CARTE_GRISE' | 'CERTIFICAT_CESSION' | 'CERTIFICAT_NON_GAGE' | 'CONTROLE_TECHNIQUE' | 'MANDAT' | 'DECLARATION_PERTE' | 'AUTRE',
         storageKey: fileName,
         storageUrl,
       },
