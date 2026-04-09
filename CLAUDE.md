@@ -294,10 +294,32 @@ Documentation complete dans [`docs/ADMIN.md`](docs/ADMIN.md). **Penser a actuali
 
 Resume : back-office integre sous `/gestion`, auth par role (`UserRole` sur User), gestion des abonnements (cancel/refund), comptabilite (factures/avoirs), litiges/chargebacks (webhooks Stripe + auto-avoir quand perdu), detection cartes expirantes, dashboard stats.
 
+## Migrations Prisma
+
+Le projet utilise **Prisma Migrate** avec une baseline `0_init` qui capture l'integralite du schema.
+
+### Workflow migrations
+
+```bash
+# 1. Modifier prisma/schema.prisma
+
+# 2. Dev local : creer + appliquer la migration
+npx prisma migrate dev --name description-courte
+
+# 3. Prod : appliquer les migrations pendantes (connexion directe port 5432, PAS pgbouncer 6543)
+DATABASE_URL="postgresql://postgres.znlzxlafmtqbwaicjfjg:<pwd>@aws-1-eu-west-3.pooler.supabase.com:5432/postgres?schema=espace_abo" npx prisma migrate deploy
+```
+
+### Regles
+
+- **Ne jamais utiliser `prisma db push` en prod** — uniquement `prisma migrate deploy`
+- **Port 5432** obligatoire pour les migrations (pas pgbouncer 6543 qui ne supporte pas les transactions DDL)
+- Les fichiers de migration sont dans `prisma/migrations/` et doivent etre commites
+- Les anciens fichiers `supabase/migrations/` sont obsoletes (tout est dans la baseline `0_init`)
+
 ## Notes importantes
 
 - Le schema Prisma utilise un schema PostgreSQL dedie: `espace_abo`
-- Les migrations Prisma ne doivent jamais etre appliquees directement - fournir le SQL a executer manuellement
 - Les fichiers sont stockes sur Cloudflare R2 avec URLs pre-signees pour le telechargement
 - Les references sont generees automatiquement: `SUB-YYYY-XXXXXX`, `DEM-YYYY-XXXXXX`, `FAC-YYYY-XXXXXX`
 - Supabase free-tier : connexion directe en IPv6 uniquement (fonctionne depuis Vercel, pas forcement en local). Pour les operations DB manuelles, utiliser le SQL Editor de Supabase ou l'API management

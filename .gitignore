@@ -33,8 +33,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Prisma
-/prisma/migrations/
+# Prisma - migrations are tracked (Prisma Migrate baseline since 2026-04-09)
 
 # IDE
 .idea/
