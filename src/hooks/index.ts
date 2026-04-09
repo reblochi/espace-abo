@@ -16,3 +16,4 @@ export {
 export { useServicesPublics } from './useServicesPublics';
 export { useCarburants } from './useCarburants';
 export { useLaPoste } from './useLaPoste';
+export { useMessages, useReplyToMessage } from './useMessages';

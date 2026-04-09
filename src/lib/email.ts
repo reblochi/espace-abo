@@ -33,7 +33,9 @@ type EmailTemplate =
   | 'password-changed'
   | 'unsubscribe-request'
   | 'signalement-mairie'
-  | 'signalement-confirmation';
+  | 'signalement-confirmation'
+  | 'contact-confirmation'
+  | 'contact-admin-reply';
 
 // Remplace les {{variable}} dans une chaine par les valeurs de data
 function interpolate(text: string, data: Record<string, unknown>): string {
@@ -157,6 +159,26 @@ const fallbackTemplates: Record<EmailTemplate, (data: Record<string, unknown>) =
         <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;background:#f9fafb;">Date</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${data.date}</td></tr>
       </table>
       <p style="color:#6b7280;font-size:12px;">Ce signalement a ete envoye via franceguichet.fr - Service d'Aide aux Formalites</p>
+    `,
+  }),
+
+  'contact-confirmation': (data) => ({
+    subject: `Votre demande a bien été reçue (${data.reference})`,
+    html: `
+      <h2>Merci de nous avoir contactés</h2>
+      <p>Bonjour ${data.firstName},</p>
+      <p>Nous avons bien reçu votre message (réf. <strong>${data.reference}</strong>).</p>
+      <p>Notre équipe vous répondra sous 48 heures ouvrées.</p>
+      <p>Cordialement,<br/>L'équipe FranceGuichet</p>
+    `,
+  }),
+
+  'contact-admin-reply': (data) => ({
+    subject: `Re: [${data.reference}] Votre demande`,
+    html: `
+      <p>Bonjour ${data.firstName},</p>
+      <p>${data.message}</p>
+      <p>--<br/>L'équipe FranceGuichet<br/><em>Réf: ${data.reference}</em></p>
     `,
   }),
 

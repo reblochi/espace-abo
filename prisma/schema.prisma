@@ -720,6 +720,88 @@ model SignalementFile {
 }
 
 // ============================================
+// MESSAGERIE / CONTACT
+// ============================================
+
+model ContactSubmission {
+  id        String @id @default(cuid())
+  reference String @unique // CTT-2026-000001
+
+  firstName String
+  lastName  String
+  email     String
+
+  subject          ContactSubject
+  processReference String?
+  message          String
+
+  status     ContactStatus @default(NEW)
+  assignedTo String?
+  repliedAt  DateTime?
+
+  ipAddress String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  replies ContactReply[]
+  files   ContactFile[]
+
+  @@index([email])
+  @@index([status])
+  @@map("contact_submissions")
+  @@schema("espace_abo")
+}
+
+model ContactReply {
+  id        String @id @default(cuid())
+  contactId String
+  contact   ContactSubmission @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  sender    String // "admin" | "customer"
+  senderName String?
+  message   String
+  sentAt    DateTime @default(now())
+
+  @@map("contact_replies")
+  @@schema("espace_abo")
+}
+
+model ContactFile {
+  id        String @id @default(cuid())
+  contactId String
+  contact   ContactSubmission @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileKey   String // Supabase Storage path
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  @@map("contact_files")
+  @@schema("espace_abo")
+}
+
+enum ContactSubject {
+  DEMARCHE
+  ABONNEMENT
+  TECHNIQUE
+  SIGNALEMENT
+  RETRACTATION
+  DONNEES
+  AUTRE
+
+  @@schema("espace_abo")
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+
+  @@schema("espace_abo")
+}
+
+// ============================================
 // TEMPLATES EMAIL
 // ============================================
 

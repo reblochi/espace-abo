@@ -1,7 +1,83 @@
+// Page Contact publique (sans auth requise)
+
+'use client';
+
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { contactSubjectValues, contactSubjectLabels } from '@/schemas/contact';
+
+interface FilePreview {
+  file: File;
+  preview?: string;
+}
 
 export default function ContactPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [files, setFiles] = useState<FilePreview[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: session } = useSession();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(e.target.files || []);
+    const validFiles = newFiles.filter(
+      (f) => f.size <= 5 * 1024 * 1024 && ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(f.type)
+    );
+
+    setFiles((prev) => {
+      const combined = [...prev, ...validFiles.map((f) => ({ file: f }))].slice(0, 3);
+      return combined;
+    });
+
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    const form = e.currentTarget;
+    const formData = new FormData();
+
+    formData.set('firstName', (form.elements.namedItem('firstName') as HTMLInputElement).value);
+    formData.set('lastName', (form.elements.namedItem('lastName') as HTMLInputElement).value);
+    formData.set('email', (form.elements.namedItem('email') as HTMLInputElement).value);
+    formData.set('subject', (form.elements.namedItem('subject') as HTMLSelectElement).value);
+    formData.set('processReference', (form.elements.namedItem('reference') as HTMLInputElement).value || '');
+    formData.set('message', (form.elements.namedItem('message') as HTMLTextAreaElement).value);
+
+    for (const { file } of files) {
+      formData.append('files', file);
+    }
+
+    try {
+      const res = await fetch('/api/contact', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'envoi');
+      }
+
+      setSuccess(`Votre message a bien été envoyé ! Référence : ${data.reference}. Nous vous répondrons sous 48 heures.`);
+      form.reset();
+      setFiles([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'envoi');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -12,12 +88,20 @@ export default function ContactPage() {
               <span className="text-xl font-bold text-[#1a2e5a]">FranceGuichet</span>
             </Link>
             <div className="flex items-center gap-3">
-              <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">
-                Connexion
-              </Link>
-              <Link href="/register" className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors">
-                Créer un compte
-              </Link>
+              {session?.user ? (
+                <Link href="/espace-membre" className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors">
+                  Mon espace
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm">
+                    Connexion
+                  </Link>
+                  <Link href="/register" className="bg-[#1a2e5a] text-white px-5 py-2 rounded-lg hover:bg-[#243d73] font-medium text-sm transition-colors">
+                    Créer un compte
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -27,7 +111,19 @@ export default function ContactPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Contactez-nous</h1>
         <p className="text-gray-500 mb-10">Une question, un problème avec une démarche ou une suggestion ? Écrivez-nous.</p>
 
-        <form className="space-y-6">
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+            <p className="text-green-800 text-sm">{success}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid sm:grid-cols-2 gap-6">
             <div>
               <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
@@ -38,6 +134,7 @@ export default function ContactPage() {
                 required
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a2e5a] focus:border-transparent"
                 placeholder="Dupont"
+                defaultValue={session?.user?.name?.split(' ').slice(1).join(' ') || ''}
               />
             </div>
             <div>
@@ -49,6 +146,7 @@ export default function ContactPage() {
                 required
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a2e5a] focus:border-transparent"
                 placeholder="Marie"
+                defaultValue={session?.user?.name?.split(' ')[0] || ''}
               />
             </div>
           </div>
@@ -62,6 +160,7 @@ export default function ContactPage() {
               required
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a2e5a] focus:border-transparent"
               placeholder="marie.dupont@email.com"
+              defaultValue={session?.user?.email || ''}
             />
           </div>
 
@@ -74,13 +173,11 @@ export default function ContactPage() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a2e5a] focus:border-transparent text-gray-900"
             >
               <option value="">Sélectionnez un sujet</option>
-              <option value="demarche">Question sur une démarche</option>
-              <option value="abonnement">Abonnement / Facturation</option>
-              <option value="technique">Problème technique</option>
-              <option value="signalement">Signalement citoyen</option>
-              <option value="retractation">Droit de rétractation</option>
-              <option value="donnees">Mes données personnelles</option>
-              <option value="autre">Autre</option>
+              {contactSubjectValues.map((value) => (
+                <option key={value} value={value}>
+                  {contactSubjectLabels[value]}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -104,16 +201,62 @@ export default function ContactPage() {
               name="message"
               rows={6}
               required
+              minLength={10}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a2e5a] focus:border-transparent resize-none"
               placeholder="Décrivez votre demande..."
             />
           </div>
 
+          {/* Upload fichiers */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Pièces jointes <span className="text-gray-400 font-normal">(max 3 fichiers, 5 Mo chacun)</span>
+            </label>
+            <div className="space-y-2">
+              {files.map((fp, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  <span className="text-sm text-gray-700 truncate flex-1">{fp.file.name}</span>
+                  <span className="text-xs text-gray-400">{(fp.file.size / 1024).toFixed(0)} Ko</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {files.length < 3 && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full p-3 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  + Ajouter un fichier (JPEG, PNG, PDF)
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+          </div>
+
           <button
             type="submit"
-            className="w-full sm:w-auto bg-[#1a2e5a] text-white px-8 py-3 rounded-xl hover:bg-[#243d73] font-medium text-sm transition-colors"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto bg-[#1a2e5a] text-white px-8 py-3 rounded-xl hover:bg-[#243d73] font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Envoyer le message
+            {isSubmitting ? 'Envoi en cours...' : 'Envoyer le message'}
           </button>
         </form>
 
