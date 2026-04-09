@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { email: true, firstName: true, lastName: true, zipCode: true, city: true },
+      select: { id: true, email: true, firstName: true, lastName: true, zipCode: true, city: true },
     });
 
     if (!user) {
@@ -345,6 +345,7 @@ export async function POST(request: NextRequest) {
           mairieName: escapeHtml(mairieName || 'votre mairie'),
           mairieFormulaire: !actuallySent && mairieFormulaire ? escapeHtml(mairieFormulaire) : '',
         },
+        userId: user.id,
       });
     } catch (e) {
       console.error('Erreur envoi copie user:', e);

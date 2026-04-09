@@ -40,11 +40,20 @@ export function useReplyToMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { type: 'process' | 'contact'; id: string; message: string }) => {
+    mutationFn: async (data: { type: 'process' | 'contact'; id: string; message: string; files?: File[] }) => {
+      const formData = new FormData();
+      formData.set('type', data.type);
+      formData.set('id', data.id);
+      formData.set('message', data.message);
+      if (data.files) {
+        for (const file of data.files) {
+          formData.append('files', file);
+        }
+      }
+
       const res = await fetch('/api/messages/reply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: formData,
       });
       if (!res.ok) {
         const error = await res.json();

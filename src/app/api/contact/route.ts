@@ -72,8 +72,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Email confirmation au client
+    // Email confirmation au client (avec auto-login si user existe)
     try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.email.toLowerCase() },
+        select: { id: true },
+      });
       await sendEmail({
         to: data.email,
         template: 'contact-confirmation',
@@ -81,6 +85,7 @@ export async function POST(request: NextRequest) {
           firstName: data.firstName,
           reference,
         },
+        userId: existingUser?.id,
       });
     } catch {
       // Non-bloquant

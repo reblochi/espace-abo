@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Envoyer email de bienvenue
+    // Envoyer email de bienvenue (avec auto-login)
     await sendEmail({
       to: email,
       subject: 'Bienvenue !',
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       data: {
         firstName,
       },
+      userId: user.id,
     });
 
     return NextResponse.json(

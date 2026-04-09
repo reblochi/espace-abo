@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
           type,
           isFromSubscription: true,
         },
+        userId: user.id,
       }).catch((err) => console.error('Erreur envoi email confirmation:', err));
 
       // Email de bienvenue si nouveau compte
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
           subject: 'Bienvenue sur France Guichet !',
           template: 'welcome',
           data: { firstName: user.firstName },
+          userId: user.id,
         }).catch((err) => console.error('Erreur envoi email bienvenue:', err));
       }
     }

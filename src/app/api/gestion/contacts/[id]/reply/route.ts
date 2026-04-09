@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdminOrAgent } from '@/lib/admin-auth';
-import { sendRawEmail } from '@/lib/email';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(
   request: NextRequest,
@@ -47,29 +47,27 @@ export async function POST(
     },
   });
 
-  // Envoyer l'email au client
+  // Envoyer l'email au client via le template contact-admin-reply (avec auto-login si user existe)
   try {
-    await sendRawEmail(
-      contact.email,
-      `Re: [${contact.reference}] Votre demande`,
-      `<p>Bonjour ${escapeHtml(contact.firstName)},</p>
-       <p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>
-       <p>--<br/>
-       L'équipe FranceGuichet<br/>
-       <em>Réf: ${contact.reference}</em></p>`,
-    );
+    const existingUser = await prisma.user.findUnique({
+      where: { email: contact.email.toLowerCase() },
+      select: { id: true },
+    });
+    await sendEmail({
+      to: contact.email,
+      template: 'contact-admin-reply',
+      data: {
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        reference: contact.reference,
+        message: message.replace(/\n/g, '<br/>'),
+      },
+      userId: existingUser?.id,
+    });
   } catch (err) {
     console.error('Failed to send reply email:', err);
     // On retourne quand meme la reponse creee
   }
 
   return NextResponse.json(reply);
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

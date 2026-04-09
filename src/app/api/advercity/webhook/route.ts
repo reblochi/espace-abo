@@ -233,6 +233,7 @@ export async function POST(request: NextRequest) {
             trackingNumber: (body as ProcessCompletedWebhook).tracking_number,
             requiredDocuments: (body as ProcessAwaitingInfoWebhook).required_documents,
           },
+          userId: demarche.userId,
         });
       } catch (emailError) {
         console.error('[Advercity Webhook] Erreur envoi email:', emailError);

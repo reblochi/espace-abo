@@ -342,6 +342,66 @@ const DEFAULT_TEMPLATES = [
 </table>
 </body></html>`,
   },
+  {
+    slug: 'contact-confirmation',
+    name: 'Contact - Confirmation',
+    description: 'Email envoye au client apres soumission du formulaire de contact',
+    subject: 'Votre demande a bien ete recue ({{reference}})',
+    variables: ['firstName', 'reference'],
+    html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+  <tr><td style="background:#1e40af;padding:32px 40px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">France Guichet</h1>
+  </td></tr>
+  <tr><td style="padding:40px;">
+    <h2 style="color:#1e293b;margin:0 0 16px;font-size:20px;">Merci de nous avoir contactes</h2>
+    <p style="color:#475569;line-height:1.6;margin:0 0 16px;">Bonjour {{firstName}},</p>
+    <p style="color:#475569;line-height:1.6;margin:0 0 16px;">Nous avons bien recu votre message (ref. <strong>{{reference}}</strong>).</p>
+    <p style="color:#475569;line-height:1.6;margin:0 0 24px;">Notre equipe vous repondra sous 48 heures ouvrees.</p>
+    <a href="{{siteUrl}}/espace-membre/messagerie" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:500;">Voir ma messagerie</a>
+  </td></tr>
+  <tr><td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+    <p style="color:#94a3b8;font-size:13px;margin:0;">France Guichet - Service d'Aide aux Formalites</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  },
+  {
+    slug: 'contact-admin-reply',
+    name: 'Contact - Reponse agent',
+    description: 'Email envoye au client quand un agent repond a sa demande de contact',
+    subject: 'Re: [{{reference}}] Votre demande',
+    variables: ['firstName', 'lastName', 'reference', 'message'],
+    html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+  <tr><td style="background:#1e40af;padding:32px 40px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">France Guichet</h1>
+  </td></tr>
+  <tr><td style="padding:40px;">
+    <p style="color:#475569;line-height:1.6;margin:0 0 16px;">Bonjour {{firstName}},</p>
+    <div style="color:#1e293b;line-height:1.6;margin:0 0 24px;padding:16px;background:#f8fafc;border-radius:6px;border-left:4px solid #1e40af;">{{message}}</div>
+    <p style="color:#475569;line-height:1.6;margin:0 0 24px;">Vous pouvez repondre directement depuis votre espace membre :</p>
+    <a href="{{siteUrl}}/espace-membre/messagerie" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:500;">Voir la conversation</a>
+    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:16px 0 0;">Ref : {{reference}}</p>
+  </td></tr>
+  <tr><td style="background:#f8fafc;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+    <p style="color:#94a3b8;font-size:13px;margin:0;">France Guichet - Service d'Aide aux Formalites</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  },
 ];
 
 export async function POST() {

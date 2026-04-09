@@ -20,6 +20,7 @@ interface EmailOptions {
   template: EmailTemplate;
   data: Record<string, unknown>;
   attachments?: { filename: string; content: Buffer }[];
+  userId?: string; // Si fourni, les liens espace-membre utilisent l'auto-login
 }
 
 type EmailTemplate =
@@ -200,10 +201,12 @@ const fallbackTemplates: Record<EmailTemplate, (data: Record<string, unknown>) =
 };
 
 // Envoyer un email - cherche d'abord en BDD, puis fallback sur templates hardcodes
-export async function sendEmail({ to, subject, template, data, attachments }: EmailOptions): Promise<void> {
+export async function sendEmail({ to, subject, template, data, attachments, userId }: EmailOptions): Promise<void> {
+  const siteUrl = process.env.NEXTAUTH_URL || 'https://franceguichet.fr';
+
   // Injecter siteUrl dans les data si pas present
   const enrichedData = {
-    siteUrl: process.env.NEXTAUTH_URL || 'https://franceguichet.fr',
+    siteUrl,
     ...data,
   };
 
@@ -242,6 +245,24 @@ export async function sendEmail({ to, subject, template, data, attachments }: Em
     const result = fallbackFn(enrichedData);
     finalSubject = subject || result.subject;
     finalHtml = result.html;
+  }
+
+  // Si userId fourni, remplacer les liens espace-membre par des liens auto-login
+  if (userId) {
+    try {
+      const { generateAutoLoginToken } = await import('@/lib/auto-login');
+      const token = generateAutoLoginToken(userId);
+      // Remplacer href="{{siteUrl}}/espace-membre/..." par auto-login avec callbackUrl
+      finalHtml = finalHtml.replace(
+        /href="([^"]*\/espace-membre[^"]*)"/g,
+        (_, url) => {
+          const path = url.replace(siteUrl, '');
+          return `href="${siteUrl}/api/auth/auto-login?token=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent(path)}"`;
+        },
+      );
+    } catch {
+      // Si auto-login non disponible, laisser les liens directs
+    }
   }
 
   await getResend().emails.send({

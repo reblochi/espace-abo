@@ -13,8 +13,10 @@ export default function MessageriePage() {
   const replyMutation = useReplyToMessage();
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [showChatbot, setShowChatbot] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conversations = data?.conversations || [];
   const selectedConv = conversations.find((c) => c.id === selectedConvId) || conversations[0] || null;
@@ -39,8 +41,14 @@ export default function MessageriePage() {
     }
 
     try {
-      await replyMutation.mutateAsync({ type: convType, id, message: replyText.trim() });
+      await replyMutation.mutateAsync({
+        type: convType,
+        id,
+        message: replyText.trim(),
+        files: replyFiles.length > 0 ? replyFiles : undefined,
+      });
       setReplyText('');
+      setReplyFiles([]);
     } catch {
       // Erreur affichee par le mutation state
     }
@@ -216,7 +224,53 @@ export default function MessageriePage() {
                           {replyMutation.error.message}
                         </p>
                       )}
+                      {/* Fichiers joints */}
+                      {replyFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {replyFiles.map((f, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 bg-gray-100 rounded-full px-2.5 py-1 text-xs text-gray-700">
+                              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                              </svg>
+                              {f.name}
+                              <button
+                                type="button"
+                                onClick={() => setReplyFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                                className="text-gray-400 hover:text-red-500 ml-0.5"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          title="Joindre un fichier"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files || []).filter(
+                              (f) => f.size <= 10 * 1024 * 1024 && ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(f.type),
+                            );
+                            setReplyFiles((prev) => [...prev, ...newFiles].slice(0, 5));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                        />
                         <input
                           type="text"
                           placeholder="Votre message..."
