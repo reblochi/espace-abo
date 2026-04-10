@@ -4,12 +4,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { identityCardSchema } from '@/schemas/identity-card';
 import { generateReference } from '@/lib/utils';
 import { generateClientReference } from '@/lib/client-reference';
-import { checkProcessEligibility, consumeSubscriptionProcess } from '@/lib/subscription/process-eligibility';
 import { calculateStampTax } from '@/types/identity-card';
 import { PROCESS_TYPES_CONFIG } from '@/lib/process-types';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 const embedSubmitSchema = z.object({
@@ -24,6 +25,16 @@ const embedSubmitSchema = z.object({
 // POST /api/embed/carte-identite
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(RATE_LIMITS.embed, ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Trop de requetes. Veuillez reessayer plus tard.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = embedSubmitSchema.safeParse(body);
 
@@ -55,8 +66,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      const tempPassword = Math.random().toString(36).slice(-12);
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      // Mot de passe temporaire crypto-safe
+      const tempPassword = crypto.randomBytes(24).toString('base64url');
+      const passwordHash = await bcrypt.hash(tempPassword, 12);
 
       const clientRef = await generateClientReference();
       user = await prisma.user.create({
@@ -72,8 +84,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Verifier si l'utilisateur a un abonnement actif
-    const eligibility = await checkProcessEligibility(user.id, 'IDENTITY_CARD');
+    // SECURITE : en mode embed (pas d'authentification), on ne consomme jamais
+    // les credits d'abonnement automatiquement. Un attaquant pourrait sinon
+    // drainer les credits d'un abonne en connaissant juste son email.
 
     // Generer la reference de la demarche
     const count = await prisma.process.count();
@@ -83,38 +96,7 @@ export async function POST(request: NextRequest) {
     const stampTax = calculateStampTax(data.motif, data.deliveryAddress?.zipCode);
     const totalPrice = basePrice + stampTax;
 
-    if (eligibility.eligible && eligibility.subscriptionId) {
-      // Abonne actif : creer la demarche directement en PAID
-      const process = await prisma.process.create({
-        data: {
-          reference,
-          userId: user.id,
-          type: 'IDENTITY_CARD',
-          status: 'PAID',
-          amountCents: stampTax, // Seul le timbre fiscal reste a payer pour les abonnes
-          isFromSubscription: true,
-          data: data as any,
-          partner,
-          pricingCode: pricingCode ?? null,
-          source: 'embed',
-          gclid: gclid ?? null,
-          updatedAt: new Date(),
-        },
-      });
-
-      await consumeSubscriptionProcess(
-        eligibility.subscriptionId,
-        process.id,
-        'IDENTITY_CARD'
-      );
-
-      return NextResponse.json({
-        reference: process.reference,
-        isSubscriber: true,
-      });
-    }
-
-    // Non abonne : creer la demarche en attente de paiement
+    // Creer la demarche en attente de paiement
     const process = await prisma.process.create({
       data: {
         reference,

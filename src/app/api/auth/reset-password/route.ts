@@ -108,9 +108,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Masquer l'email (ne pas exposer l'adresse complete)
+    const [local, domain] = user.email.split('@');
+    const maskedLocal = local.length > 2
+      ? local[0] + '***' + local[local.length - 1]
+      : '***';
+    const maskedEmail = `${maskedLocal}@${domain}`;
+
     return NextResponse.json({
       valid: true,
-      email: user.email,
+      email: maskedEmail,
     });
   } catch (error) {
     console.error('Erreur verification token:', error);

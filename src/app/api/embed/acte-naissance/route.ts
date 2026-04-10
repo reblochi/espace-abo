@@ -4,10 +4,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { birthCertificateSchema } from '@/schemas/birth-certificate';
 import { generateReference } from '@/lib/utils';
 import { generateClientReference } from '@/lib/client-reference';
-import { checkProcessEligibility, consumeSubscriptionProcess } from '@/lib/subscription/process-eligibility';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 const embedSubmitSchema = z.object({
@@ -22,6 +23,16 @@ const embedSubmitSchema = z.object({
 // POST /api/embed/acte-naissance
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(RATE_LIMITS.embed, ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Trop de requetes. Veuillez reessayer plus tard.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = embedSubmitSchema.safeParse(body);
 
@@ -51,9 +62,9 @@ export async function POST(request: NextRequest) {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // Creer un compte avec un mot de passe temporaire aleatoire
-      const tempPassword = Math.random().toString(36).slice(-12);
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      // Creer un compte avec un mot de passe temporaire aleatoire (crypto-safe)
+      const tempPassword = crypto.randomBytes(24).toString('base64url');
+      const passwordHash = await bcrypt.hash(tempPassword, 12);
 
       const clientRef = await generateClientReference();
       user = await prisma.user.create({
@@ -69,8 +80,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Verifier si l'utilisateur a un abonnement actif
-    const eligibility = await checkProcessEligibility(user.id, 'CIVIL_STATUS_BIRTH');
+    // SECURITE : en mode embed (pas d'authentification), on ne consomme jamais
+    // les credits d'abonnement automatiquement. Un attaquant pourrait sinon
+    // drainer les credits d'un abonne en connaissant juste son email.
+    // L'abonne devra passer par le checkout authentifie pour beneficier de son abo.
 
     // Generer la reference de la demarche
     const count = await prisma.process.count();
@@ -78,38 +91,7 @@ export async function POST(request: NextRequest) {
 
     const basePrice = 1490; // 14,90 EUR en centimes
 
-    if (eligibility.eligible && eligibility.subscriptionId) {
-      // Abonne actif : creer la demarche directement en PAID et consommer un credit
-      const process = await prisma.process.create({
-        data: {
-          reference,
-          userId: user.id,
-          type: 'CIVIL_STATUS_BIRTH',
-          status: 'PAID',
-          amountCents: 0, // Inclus dans l'abonnement
-          isFromSubscription: true,
-          data: data as any,
-          partner,
-          pricingCode: pricingCode ?? null,
-          source: 'embed',
-          gclid: gclid ?? null,
-          updatedAt: new Date(),
-        },
-      });
-
-      await consumeSubscriptionProcess(
-        eligibility.subscriptionId,
-        process.id,
-        'CIVIL_STATUS_BIRTH'
-      );
-
-      return NextResponse.json({
-        reference: process.reference,
-        isSubscriber: true,
-      });
-    }
-
-    // Non abonne : creer la demarche en attente de paiement
+    // Creer la demarche en attente de paiement
     const process = await prisma.process.create({
       data: {
         reference,

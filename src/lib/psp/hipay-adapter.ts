@@ -176,7 +176,10 @@ export class HiPayAdapter extends BasePSPAdapter {
       .createHmac('sha256', this.config.webhookSecret)
       .update(payload)
       .digest('hex');
-    return signature === expectedSignature;
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    if (sigBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
   }
 
   parseWebhookEvent(payload: string | Buffer, signature: string): WebhookEvent {

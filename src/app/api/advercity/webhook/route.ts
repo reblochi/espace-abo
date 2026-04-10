@@ -22,16 +22,21 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const signature = request.headers.get('X-Advercity-Signature') || request.headers.get('X-Webhook-Secret');
 
-    // Verifier signature (support deux methodes)
+    // Verifier signature webhook (obligatoire)
     const webhookSecret = process.env.ADVERCITY_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const isValidHmac = signature && verifyWebhookSignature(rawBody, signature, webhookSecret);
-      const isValidSimple = signature === webhookSecret;
+    if (!webhookSecret) {
+      console.error('[Advercity Webhook] ADVERCITY_WEBHOOK_SECRET non configure');
+      return NextResponse.json({ error: 'Configuration serveur invalide' }, { status: 500 });
+    }
 
-      if (!isValidHmac && !isValidSimple) {
-        console.error('[Advercity Webhook] Signature invalide');
-        return NextResponse.json({ error: 'Signature invalide' }, { status: 401 });
-      }
+    if (!signature) {
+      return NextResponse.json({ error: 'Signature manquante' }, { status: 401 });
+    }
+
+    const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+    if (!isValid) {
+      console.error('[Advercity Webhook] Signature invalide');
+      return NextResponse.json({ error: 'Signature invalide' }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody) as AdvercityWebhookEvent;

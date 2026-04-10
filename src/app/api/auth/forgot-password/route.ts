@@ -3,18 +3,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { forgotPasswordSchema } from '@/schemas/auth';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
-
-    if (!email) {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(RATE_LIMITS.forgotPassword, ip);
+    if (!rl.success) {
       return NextResponse.json(
-        { error: 'Email requis' },
-        { status: 400 }
+        { error: 'Trop de tentatives. Veuillez reessayer plus tard.' },
+        { status: 429 }
       );
     }
+
+    const body = await request.json();
+    const parsed = forgotPasswordSchema.safeParse(body);
+
+    if (!parsed.success) {
+      // Message generique (anti-enumeration)
+      return NextResponse.json({
+        message: 'Si un compte existe avec cet email, vous recevrez un lien de reinitialisation.',
+      });
+    }
+
+    const { email } = parsed.data;
 
     // Chercher l'utilisateur
     const user = await prisma.user.findUnique({

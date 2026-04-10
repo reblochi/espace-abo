@@ -36,7 +36,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': document.mimeType,
-        'Content-Disposition': `attachment; filename="${document.originalName}"`,
+        'Content-Disposition': `attachment; filename="${document.originalName.replace(/["\\\r\n]/g, '_')}"`,
         'Content-Length': String(document.size),
       },
     });

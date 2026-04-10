@@ -5,10 +5,20 @@ import { prisma } from '@/lib/db';
 import { registerSchema } from '@/schemas';
 import { sendEmail } from '@/lib/email';
 import { generateClientReference } from '@/lib/client-reference';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(RATE_LIMITS.register, ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Veuillez reessayer plus tard.' },
+        { status: 429 }
+      );
+    }
     const body = await request.json();
     const result = registerSchema.safeParse(body);
 
@@ -27,8 +37,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
+      // Message generique : ne pas reveler si le compte existe
       return NextResponse.json(
-        { error: 'Un compte avec cet email existe deja' },
+        { error: 'Impossible de creer le compte. Si vous avez deja un compte, utilisez "Mot de passe oublie" pour y acceder.' },
         { status: 400 }
       );
     }

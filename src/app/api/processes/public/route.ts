@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { generateReference } from '@/lib/utils';
 import { generateClientReference } from '@/lib/client-reference';
@@ -64,8 +65,8 @@ export async function POST(request: NextRequest) {
       let user = await prisma.user.findUnique({ where: { email } });
 
       if (!user) {
-        // Creer un compte avec un mot de passe temporaire
-        const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+        // Creer un compte avec un mot de passe temporaire (crypto-safe)
+        const tempPassword = crypto.randomBytes(24).toString('base64url');
         const passwordHash = await bcrypt.hash(tempPassword, 12);
 
         const clientRef = await generateClientReference();

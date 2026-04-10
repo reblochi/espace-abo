@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getPSPAdapter } from '@/lib/psp';
 import { sendEmail } from '@/lib/email';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import crypto from 'crypto';
 import type { PSPProvider } from '@/lib/psp/types';
 
 // GET: Valider le token et retourner les infos de l'abonnement
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
         canceledAt: new Date(),
         endDate: subscription.currentPeriodEnd,
         // Regenerer le token pour invalider l'ancien lien
-        unsubscribeToken: `unsub_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        unsubscribeToken: crypto.randomBytes(32).toString('hex'),
       },
     });
 

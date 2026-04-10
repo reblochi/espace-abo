@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Schema inscription
 export const registerSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caracteres'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caracteres'),
   confirmPassword: z.string(),
   firstName: z.string().min(1, 'Prenom requis'),
   lastName: z.string().min(1, 'Nom requis'),
@@ -28,7 +28,7 @@ export type LoginSchema = z.infer<typeof loginSchema>;
 // Schema changement mot de passe
 export const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caracteres'),
+  newPassword: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caracteres'),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: 'Les mots de passe ne correspondent pas',
@@ -47,7 +47,7 @@ export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
 // Schema reset mot de passe (confirmation)
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token requis'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caracteres'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caracteres'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Les mots de passe ne correspondent pas',

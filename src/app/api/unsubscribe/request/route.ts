@@ -3,9 +3,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(RATE_LIMITS.unsubscribe, ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Veuillez reessayer plus tard.' },
+        { status: 429 }
+      );
+    }
     const { email } = await request.json();
 
     if (!email || typeof email !== 'string') {
