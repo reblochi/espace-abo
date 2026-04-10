@@ -17,6 +17,10 @@ import type {
   RefundInput,
   WebhookEvent,
   WebhookEventType,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionResult,
+  CheckoutSessionDetails,
+  InvoiceAuthDetails,
 } from './types';
 
 export class HiPayAdapter extends BasePSPAdapter {
@@ -168,6 +172,19 @@ export class HiPayAdapter extends BasePSPAdapter {
       success: true,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/update-payment-method?customer=${customerId}&return=${encodeURIComponent(returnUrl)}`,
     };
+  }
+
+  // Checkout sessions (non implemente pour HiPay)
+  async createCheckoutSession(_input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult> {
+    throw new Error('HiPay: createCheckoutSession non implemente');
+  }
+
+  async retrieveCheckoutSession(_sessionId: string, _expandSubscription?: boolean): Promise<CheckoutSessionDetails> {
+    throw new Error('HiPay: retrieveCheckoutSession non implemente');
+  }
+
+  async getInvoiceAuthDetails(invoiceId: string): Promise<InvoiceAuthDetails> {
+    return { invoiceId };
   }
 
   // Webhooks

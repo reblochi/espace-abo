@@ -18,7 +18,7 @@ import {
   type ProcessTypeConfig,
 } from '@/lib/process-types';
 import { calculateRegistrationTaxes } from '@/lib/taxes/registration-certificate';
-import { checkProcessEligibility } from '@/lib/subscription/process-eligibility';
+import { checkProcessEligibility, checkAndConsumeSubscriptionProcess } from '@/lib/subscription/process-eligibility';
 import type { ProcessStatus, ProcessType } from '@prisma/client';
 import { z } from 'zod';
 
@@ -244,14 +244,27 @@ export async function POST(request: NextRequest) {
     // Exception: SIGNALEMENT_MAIRIE reste sur France Guichet (pas d'envoi Advercity)
     const skipAdvercity = type === 'SIGNALEMENT_MAIRIE';
     if (initialStatus === 'PAID' && (isFromSubscription || isFreeProfile)) {
-      // Consommer un usage abonnement si applicable
+      // Consommer un usage abonnement si applicable (atomique avec lock pour eviter les races)
       if (isFromSubscription && eligibility?.subscriptionId) {
-        const { consumeSubscriptionProcess } = await import('@/lib/subscription/process-eligibility');
-        await consumeSubscriptionProcess(
-          eligibility.subscriptionId,
+        const consumeResult = await checkAndConsumeSubscriptionProcess(
+          session.user.id,
           newProcess.id,
           type as ProcessType
         );
+
+        if (!consumeResult.consumed) {
+          // Race condition: le quota a ete atteint entre le check initial et maintenant
+          await prisma.process.update({
+            where: { id: newProcess.id },
+            data: { status: 'PENDING_PAYMENT', isFromSubscription: false },
+          });
+          return NextResponse.json({
+            ...newProcess,
+            status: 'PENDING_PAYMENT',
+            isFromSubscription: false,
+            warning: 'Quota abonnement atteint, paiement requis',
+          });
+        }
       }
 
       if (!skipAdvercity) {

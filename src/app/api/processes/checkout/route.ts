@@ -1,4 +1,4 @@
-// API Route - Creation session Stripe Checkout pour demarche unique
+// API Route - Creation session Checkout pour demarche unique
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -12,12 +12,12 @@ import {
   getRequiredDocuments,
 } from '@/lib/process-types';
 import { calculateRegistrationTaxes } from '@/lib/taxes/registration-certificate';
-import Stripe from 'stripe';
+import { calculateStampTax } from '@/types/identity-card';
+import { processCheckoutSchema } from '@/schemas/process';
+import { checkProcessEligibility } from '@/lib/subscription/process-eligibility';
+import { getDefaultPSPAdapter } from '@/lib/psp';
+import type { CheckoutLineItem } from '@/lib/psp/types';
 import type { ProcessType } from '@prisma/client';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
 
 // POST /api/processes/checkout - Creer une session Checkout pour paiement unique
 export async function POST(request: NextRequest) {
@@ -28,12 +28,39 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, data, processReference, paymentMode = 'one_time', stampTaxCents = 0, isFromSubscription = false, isFreeProfile = false, partner = null, pricingCode = null, source = null } = body;
+    const parsed = processCheckoutSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Donnees invalides', details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { type, data, processReference, paymentMode } = parsed.data;
+    let { isFromSubscription } = parsed.data;
+    const { isFreeProfile, partner, pricingCode, source } = parsed.data;
+
+    // Recalculer le timbre fiscal cote serveur (ne jamais faire confiance au client)
+    let stampTaxCents = 0;
+    if (type === 'IDENTITY_CARD' && data.motif) {
+      stampTaxCents = calculateStampTax(
+        data.motif as string,
+        (data.deliveryAddress as { zipCode?: string })?.zipCode
+      );
+    }
 
     // Verifier le type
     const processConfig = PROCESS_TYPES_CONFIG[type as ProcessType];
     if (!processConfig) {
       return NextResponse.json({ error: 'Type de demarche invalide' }, { status: 400 });
+    }
+
+    // Verification serveur : isFromSubscription doit correspondre a un abonnement actif reel
+    if (isFromSubscription) {
+      const eligibility = await checkProcessEligibility(session.user.id, type as ProcessType);
+      if (!eligibility.eligible) {
+        isFromSubscription = false;
+      }
     }
 
     // Recuperer l'utilisateur
@@ -74,7 +101,7 @@ export async function POST(request: NextRequest) {
     let amountCents = processConfig.basePrice;
     let taxesCents = 0;
     let serviceFeesCents = processConfig.basePrice;
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    const lineItems: CheckoutLineItem[] = [];
 
     // Pour la carte grise, calculer les taxes
     if (type === 'REGISTRATION_CERT' && data.vehicle && data.holder) {
@@ -103,65 +130,30 @@ export async function POST(request: NextRequest) {
       // Creer les lignes detaillees
       if (taxes.taxeRegionale > 0) {
         lineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Taxe regionale',
-              description: 'Taxe reversee a la region',
-            },
-            unit_amount: taxes.taxeRegionale,
-          },
+          priceData: { currency: 'eur', unitAmountCents: taxes.taxeRegionale, productName: 'Taxe regionale', productDescription: 'Taxe reversee a la region' },
           quantity: 1,
         });
       }
 
       lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Taxe de gestion',
-            description: 'Frais de gestion',
-          },
-          unit_amount: taxes.taxeGestion,
-        },
+        priceData: { currency: 'eur', unitAmountCents: taxes.taxeGestion, productName: 'Taxe de gestion', productDescription: 'Frais de gestion' },
         quantity: 1,
       });
 
       lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Redevance d\'acheminement',
-            description: 'Frais d\'envoi du certificat',
-          },
-          unit_amount: taxes.taxeAcheminement,
-        },
+        priceData: { currency: 'eur', unitAmountCents: taxes.taxeAcheminement, productName: 'Redevance d\'acheminement', productDescription: 'Frais d\'envoi du certificat' },
         quantity: 1,
       });
 
       if (taxes.malus > 0) {
         lineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Malus ecologique',
-              description: 'Taxe sur les emissions CO2',
-            },
-            unit_amount: taxes.malus,
-          },
+          priceData: { currency: 'eur', unitAmountCents: taxes.malus, productName: 'Malus ecologique', productDescription: 'Taxe sur les emissions CO2' },
           quantity: 1,
         });
       }
 
       lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Frais de service',
-            description: 'Traitement de votre demande',
-          },
-          unit_amount: taxes.serviceFee,
-        },
+        priceData: { currency: 'eur', unitAmountCents: taxes.serviceFee, productName: 'Frais de service', productDescription: 'Traitement de votre demande' },
         quantity: 1,
       });
     } else {
@@ -178,41 +170,20 @@ export async function POST(request: NextRequest) {
 
         if (stampTaxCents > 0) {
           lineItems.push({
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Timbre fiscal',
-                description: 'Obligatoire pour les demandes suite a un vol ou une perte',
-              },
-              unit_amount: stampTaxCents,
-            },
+            priceData: { currency: 'eur', unitAmountCents: stampTaxCents, productName: 'Timbre fiscal', productDescription: 'Obligatoire pour les demandes suite a un vol ou une perte' },
             quantity: 1,
           });
         }
       } else {
         // Non-abonne : ligne frais de service + timbre fiscal
         lineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: processConfig.label,
-              description: `Demarche ${reference}`,
-            },
-            unit_amount: processConfig.basePrice,
-          },
+          priceData: { currency: 'eur', unitAmountCents: processConfig.basePrice, productName: processConfig.label, productDescription: `Demarche ${reference}` },
           quantity: 1,
         });
 
         if (stampTaxCents > 0) {
           lineItems.push({
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Timbre fiscal',
-                description: 'Obligatoire pour les demandes suite a un vol ou une perte',
-              },
-              unit_amount: stampTaxCents,
-            },
+            priceData: { currency: 'eur', unitAmountCents: stampTaxCents, productName: 'Timbre fiscal', productDescription: 'Obligatoire pour les demandes suite a un vol ou une perte' },
             quantity: 1,
           });
         }
@@ -322,7 +293,8 @@ export async function POST(request: NextRequest) {
       metadata: { processId: newProcess.id, processReference: reference },
     });
 
-    let checkoutSession: Stripe.Checkout.Session;
+    const psp = getDefaultPSPAdapter();
+    let checkoutResult;
 
     if (paymentMode === 'subscription') {
       // Mode abonnement : prix recurrent + taxes en one-time si applicable
@@ -335,70 +307,53 @@ export async function POST(request: NextRequest) {
       }
 
       // Lignes pour le checkout subscription
-      const subLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-        { price: subscriptionPriceId, quantity: 1 },
+      const subLineItems: CheckoutLineItem[] = [
+        { priceId: subscriptionPriceId, quantity: 1 },
       ];
 
       // Si carte grise, ajouter les taxes en paiement unique
       if (type === 'REGISTRATION_CERT' && taxesCents > 0) {
-        // Regrouper toutes les taxes en une seule ligne one-time
         subLineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Taxes et redevances obligatoires',
-              description: 'Taxe regionale, gestion et acheminement',
-            },
-            unit_amount: taxesCents,
-          },
+          priceData: { currency: 'eur', unitAmountCents: taxesCents, productName: 'Taxes et redevances obligatoires', productDescription: 'Taxe regionale, gestion et acheminement' },
           quantity: 1,
         });
       }
 
-      checkoutSession = await stripe.checkout.sessions.create({
+      checkoutResult = await psp.createCheckoutSession({
         mode: 'subscription',
-        payment_method_types: ['card'],
-        customer_email: user.email,
-        line_items: subLineItems,
-        subscription_data: {
-          metadata: sessionMetadata,
-        },
-        success_url: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
+        customerEmail: user.email,
+        lineItems: subLineItems,
+        subscriptionMetadata: sessionMetadata,
+        successUrl: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
         metadata: sessionMetadata,
         locale: 'fr',
       });
     } else {
-      // Mode paiement unique (comportement existant)
-      checkoutSession = await stripe.checkout.sessions.create({
+      // Mode paiement unique
+      checkoutResult = await psp.createCheckoutSession({
         mode: 'payment',
-        payment_method_types: ['card'],
-        customer_email: user.email,
-        line_items: lineItems,
-        success_url: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
+        customerEmail: user.email,
+        lineItems,
+        successUrl: `${baseUrl}/nouvelle-demarche/confirmation?ref=${reference}&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${baseUrl}/nouvelle-demarche/${typeSlug}?ref=${reference}&canceled=true`,
         metadata: sessionMetadata,
-        payment_intent_data: {
-          metadata: {
-            ...sessionMetadata,
-            external_reference: reference,
-          },
-        },
+        paymentIntentMetadata: { ...sessionMetadata, external_reference: reference! },
         locale: 'fr',
       });
     }
 
-    // Stocker l'ID de session Stripe
+    // Stocker l'ID de session
     await prisma.process.update({
       where: { id: newProcess.id },
       data: {
-        stripePaymentIntent: checkoutSession.id,
+        stripePaymentIntent: checkoutResult.sessionId,
       },
     });
 
     return NextResponse.json({
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url,
+      sessionId: checkoutResult.sessionId,
+      url: checkoutResult.url,
       processReference: reference,
       amount: amountCents,
       taxes: taxesCents,
@@ -406,9 +361,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur creation session Checkout:', error);
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
     return NextResponse.json(
-      { error: 'Erreur lors de la creation de la session', details: message },
+      { error: 'Erreur lors de la creation de la session' },
       { status: 500 }
     );
   }

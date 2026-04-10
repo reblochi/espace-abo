@@ -16,6 +16,11 @@ import type {
   RefundInput,
   WebhookEvent,
   WebhookEventType,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionResult,
+  CheckoutSessionDetails,
+  CheckoutLineItem,
+  InvoiceAuthDetails,
 } from './types';
 
 export class StripeAdapter extends BasePSPAdapter {
@@ -230,6 +235,120 @@ export class StripeAdapter extends BasePSPAdapter {
       };
     } catch (error) {
       this.error('Erreur changement CB', error);
+    }
+  }
+
+  // Checkout sessions
+  async createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult> {
+    try {
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = input.lineItems.map(
+        (item: CheckoutLineItem) => {
+          if (item.priceId) {
+            return { price: item.priceId, quantity: item.quantity };
+          }
+          return {
+            price_data: {
+              currency: item.priceData!.currency,
+              unit_amount: item.priceData!.unitAmountCents,
+              product_data: {
+                name: item.priceData!.productName,
+                ...(item.priceData!.productDescription && { description: item.priceData!.productDescription }),
+              },
+            },
+            quantity: item.quantity,
+          };
+        }
+      );
+
+      const params: Stripe.Checkout.SessionCreateParams = {
+        mode: input.mode,
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
+        metadata: input.metadata,
+        locale: (input.locale as Stripe.Checkout.SessionCreateParams.Locale) || undefined,
+        ...(input.customerId && { customer: input.customerId }),
+        ...(input.customerEmail && !input.customerId && { customer_email: input.customerEmail }),
+        ...(input.subscriptionMetadata && input.mode === 'subscription' && {
+          subscription_data: { metadata: input.subscriptionMetadata },
+        }),
+        ...(input.paymentIntentMetadata && input.mode === 'payment' && {
+          payment_intent_data: { metadata: input.paymentIntentMetadata },
+        }),
+        ...(input.providerOptions || {}),
+      };
+
+      const session = await this.stripe.checkout.sessions.create(params);
+
+      return {
+        sessionId: session.id,
+        url: session.url,
+        provider: this.provider,
+      };
+    } catch (error) {
+      this.error('Erreur creation checkout session', error);
+    }
+  }
+
+  async retrieveCheckoutSession(sessionId: string, expandSubscription = false): Promise<CheckoutSessionDetails> {
+    try {
+      const expand = expandSubscription ? ['subscription', 'customer'] : [];
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId, {
+        ...(expand.length > 0 && { expand }),
+      });
+
+      let subscription: CheckoutSessionDetails['subscription'];
+      if (expandSubscription && session.subscription && typeof session.subscription !== 'string') {
+        const sub = session.subscription as Stripe.Subscription;
+        const latestInvoice = sub.latest_invoice;
+        subscription = {
+          id: sub.id,
+          currentPeriodStart: new Date(sub.current_period_start * 1000),
+          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          latestInvoiceId: typeof latestInvoice === 'string' ? latestInvoice : latestInvoice?.id,
+        };
+      }
+
+      return {
+        sessionId: session.id,
+        paymentStatus: session.payment_status as CheckoutSessionDetails['paymentStatus'],
+        mode: session.mode as CheckoutSessionDetails['mode'],
+        metadata: (session.metadata || {}) as Record<string, string>,
+        customerId: typeof session.customer === 'string'
+          ? session.customer
+          : (session.customer as Stripe.Customer)?.id,
+        subscriptionId: typeof session.subscription === 'string'
+          ? session.subscription
+          : (session.subscription as Stripe.Subscription)?.id,
+        paymentIntentId: typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : (session.payment_intent as Stripe.PaymentIntent)?.id,
+        subscription,
+        provider: this.provider,
+      };
+    } catch (error) {
+      this.error('Erreur recuperation checkout session', error);
+    }
+  }
+
+  async getInvoiceAuthDetails(invoiceId: string): Promise<InvoiceAuthDetails> {
+    try {
+      const invoice = await this.stripe.invoices.retrieve(invoiceId);
+      const result: InvoiceAuthDetails = { invoiceId };
+
+      if (invoice.payment_intent) {
+        const piId = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent.id;
+        result.paymentIntentId = piId;
+
+        const pi = await this.stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
+        const charge = pi.latest_charge as Stripe.Charge;
+        result.threeDsResult = charge?.payment_method_details?.card?.three_d_secure?.result || undefined;
+      }
+
+      return result;
+    } catch (error) {
+      this.error('Erreur recuperation auth details invoice', error);
     }
   }
 

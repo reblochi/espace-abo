@@ -1,15 +1,12 @@
-// API Route - Creation session Stripe Checkout pour abonnement
+// API Route - Creation session Checkout pour abonnement
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { recordConsent } from '@/lib/consent';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+import { subscriptionCheckoutSchema } from '@/schemas/process';
+import { getDefaultPSPAdapter } from '@/lib/psp';
 
 // POST /api/subscriptions/checkout - Creer une session Checkout
 export async function POST(request: NextRequest) {
@@ -20,10 +17,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { priceId } = body;
+    const parsed = subscriptionCheckoutSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Donnees invalides', details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { priceId } = parsed.data;
 
-    if (!priceId) {
-      return NextResponse.json({ error: 'Price ID requis' }, { status: 400 });
+    // Verifier que le priceId correspond au prix attendu (pas de prix arbitraire)
+    const expectedPriceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID;
+    if (!expectedPriceId || priceId !== expectedPriceId) {
+      return NextResponse.json({ error: 'Prix invalide' }, { status: 400 });
     }
 
     // Verifier si deja abonne
@@ -47,18 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouve' }, { status: 404 });
     }
 
-    // Creer ou recuperer le customer Stripe
+    const psp = getDefaultPSPAdapter();
+
+    // Creer ou recuperer le customer PSP
     let customerId = existingSubscription?.pspCustomerId;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        metadata: {
-          userId: user.id,
-        },
-      });
-      customerId = customer.id;
+      const customer = await psp.createCustomer(user.email, { userId: user.id });
+      customerId = customer.customerId;
     }
 
     // Enregistrer le consentement CGV
@@ -71,39 +73,25 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-    // Creer la session Checkout
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
+    // Creer la session Checkout via l'adapter PSP
+    const checkoutResult = await psp.createCheckoutSession({
       mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      success_url: `${baseUrl}/abonnement/succes?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/abonnement?canceled=true`,
-      metadata: {
-        userId: user.id,
-        consentId: consent.id,
-      },
-      subscription_data: {
-        metadata: {
-          userId: user.id,
-        },
-      },
-      customer_update: {
-        address: 'auto',
-        name: 'auto',
-      },
-      billing_address_collection: 'auto',
+      customerId,
+      lineItems: [{ priceId, quantity: 1 }],
+      successUrl: `${baseUrl}/abonnement/succes?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${baseUrl}/abonnement?canceled=true`,
+      metadata: { userId: user.id, consentId: consent.id },
+      subscriptionMetadata: { userId: user.id },
       locale: 'fr',
+      providerOptions: {
+        customer_update: { address: 'auto', name: 'auto' },
+        billing_address_collection: 'auto',
+      },
     });
 
     return NextResponse.json({
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url,
+      sessionId: checkoutResult.sessionId,
+      url: checkoutResult.url,
     });
   } catch (error) {
     console.error('Erreur creation session Checkout:', error);

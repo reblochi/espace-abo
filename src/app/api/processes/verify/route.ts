@@ -7,11 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { createAdvercityProcess, mapProcessTypeToAdvercity, mapProcessDataToAdvercity } from '@/lib/advercity';
 import { generateAutoLoginToken } from '@/lib/auto-login';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+import { getDefaultPSPAdapter } from '@/lib/psp';
 
 // GET /api/processes/verify - Verifier session Checkout et finaliser la demarche
 export async function GET(request: NextRequest) {
@@ -25,8 +21,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID requis' }, { status: 400 });
     }
 
-    // Recuperer la session Checkout
-    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+    // Recuperer la session Checkout via l'adapter PSP
+    const psp = getDefaultPSPAdapter();
+    const checkoutSession = await psp.retrieveCheckoutSession(sessionId);
 
     // Verifier l'identite : soit via session NextAuth, soit via metadata Stripe (embed/public)
     const stripeUserId = checkoutSession.metadata?.userId;
@@ -41,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verifier le statut du paiement
-    if (checkoutSession.payment_status !== 'paid') {
+    if (checkoutSession.paymentStatus !== 'paid') {
       return NextResponse.json({ error: 'Paiement non confirme' }, { status: 400 });
     }
 
@@ -67,8 +64,8 @@ export async function GET(request: NextRequest) {
 
     // Determiner si c'est un mode subscription
     const isSubscriptionMode = checkoutSession.mode === 'subscription';
-    const subscriptionId = checkoutSession.subscription as string | null;
-    const customerId = checkoutSession.customer as string | null;
+    const subscriptionId = checkoutSession.subscriptionId || null;
+    const customerId = checkoutSession.customerId || null;
 
     // Mettre a jour le statut du process
     const updatedProcess = await prisma.process.update({
@@ -76,7 +73,7 @@ export async function GET(request: NextRequest) {
       data: {
         status: 'PAID',
         paidAt: new Date(),
-        pspPaymentId: checkoutSession.payment_intent as string,
+        pspPaymentId: checkoutSession.paymentIntentId || '',
         isFromSubscription: isSubscriptionMode,
         ...(isSubscriptionMode ? { serviceFeesCents: 0, amountCents: demarche.taxesCents } : {}),
       },

@@ -133,6 +133,113 @@ export async function consumeSubscriptionProcess(
 }
 
 /**
+ * Verifie l'eligibilite ET consomme le credit en une seule transaction.
+ * Previent les race conditions (TOCTOU) lors de requetes concurrentes.
+ */
+export async function checkAndConsumeSubscriptionProcess(
+  userId: string,
+  processId: string,
+  processType: ProcessType
+): Promise<ProcessEligibility & { consumed: boolean }> {
+  return await prisma.$transaction(async (tx) => {
+    // Lock l'abonnement pour eviter les races concurrentes sur le quota
+    await tx.$queryRaw`SELECT id FROM "espace_abo"."subscriptions" WHERE "userId" = ${userId} FOR UPDATE`;
+
+    // Recuperer l'abonnement avec un lock implicite via la transaction
+    const subscription = await tx.subscription.findFirst({
+      where: {
+        userId,
+        OR: [
+          { status: 'ACTIVE' },
+          { status: 'CANCELED', endDate: { gte: new Date() } },
+        ],
+      },
+    });
+
+    if (!subscription) {
+      return { eligible: false, reason: 'NO_SUBSCRIPTION' as const, consumed: false };
+    }
+
+    if (subscription.status !== 'ACTIVE' && subscription.status !== 'CANCELED') {
+      return {
+        eligible: false,
+        reason: 'SUBSCRIPTION_INACTIVE' as const,
+        subscriptionStatus: subscription.status,
+        subscriptionId: subscription.id,
+        consumed: false,
+      };
+    }
+
+    if (!isProcessIncludedInSubscription(processType)) {
+      return {
+        eligible: false,
+        reason: 'PROCESS_NOT_INCLUDED' as const,
+        subscriptionStatus: subscription.status,
+        subscriptionId: subscription.id,
+        consumed: false,
+      };
+    }
+
+    // Verifier le quota dans la meme transaction
+    if (subscription.maxProcessPerMonth !== null) {
+      const usedThisPeriod = await tx.subscriptionProcessUsage.count({
+        where: {
+          subscriptionId: subscription.id,
+          periodStart: { lte: new Date() },
+          periodEnd: { gte: new Date() },
+        },
+      });
+
+      if (usedThisPeriod >= subscription.maxProcessPerMonth) {
+        return {
+          eligible: false,
+          reason: 'QUOTA_EXCEEDED' as const,
+          remainingQuota: 0,
+          subscriptionStatus: subscription.status,
+          subscriptionId: subscription.id,
+          consumed: false,
+        };
+      }
+    }
+
+    // Consommer le credit dans la meme transaction
+    await tx.subscriptionProcessUsage.create({
+      data: {
+        subscriptionId: subscription.id,
+        processId,
+        processType,
+        usedAt: new Date(),
+        periodStart: subscription.currentPeriodStart,
+        periodEnd: subscription.currentPeriodEnd,
+      },
+    });
+
+    await tx.subscription.update({
+      where: { id: subscription.id },
+      data: { includedProcessCount: { increment: 1 } },
+    });
+
+    const remaining = subscription.maxProcessPerMonth !== null
+      ? subscription.maxProcessPerMonth - (await tx.subscriptionProcessUsage.count({
+          where: {
+            subscriptionId: subscription.id,
+            periodStart: { lte: new Date() },
+            periodEnd: { gte: new Date() },
+          },
+        }))
+      : undefined;
+
+    return {
+      eligible: true,
+      consumed: true,
+      remainingQuota: remaining ?? undefined,
+      subscriptionStatus: subscription.status,
+      subscriptionId: subscription.id,
+    };
+  });
+}
+
+/**
  * Annule la consommation d'une demarche (en cas de remboursement)
  */
 export async function releaseSubscriptionProcess(processId: string): Promise<void> {

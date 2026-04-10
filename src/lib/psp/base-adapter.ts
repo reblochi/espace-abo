@@ -13,6 +13,10 @@ import type {
   RefundResult,
   RefundInput,
   WebhookEvent,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionResult,
+  CheckoutSessionDetails,
+  InvoiceAuthDetails,
 } from './types';
 
 export abstract class BasePSPAdapter {
@@ -40,6 +44,11 @@ export abstract class BasePSPAdapter {
 
   // Gestion des moyens de paiement
   abstract updatePaymentMethod(customerId: string, returnUrl: string): Promise<UpdatePaymentMethodResult>;
+
+  // Checkout sessions
+  abstract createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult>;
+  abstract retrieveCheckoutSession(sessionId: string, expandSubscription?: boolean): Promise<CheckoutSessionDetails>;
+  abstract getInvoiceAuthDetails(invoiceId: string): Promise<InvoiceAuthDetails>;
 
   // Webhooks
   abstract verifyWebhookSignature(payload: string | Buffer, signature: string): boolean;

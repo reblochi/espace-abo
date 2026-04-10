@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { getPSPAdapter, type PSPProvider } from '@/lib/psp';
 import { sendEmail } from '@/lib/email';
 import { formatDate } from '@/lib/utils';
+import { cancelSubscriptionSchema } from '@/schemas/process';
 
 // POST /api/subscriptions/cancel - Annuler l'abonnement
 export async function POST(request: NextRequest) {
@@ -17,7 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { reason, immediate = false } = body;
+    const parsed = cancelSubscriptionSchema.safeParse(body);
+    const { reason, immediate } = parsed.success ? parsed.data : { reason: undefined, immediate: false };
 
     // Recuperer l'abonnement
     const subscription = await prisma.subscription.findUnique({

@@ -120,6 +120,64 @@ export interface CreatePaymentInput {
   returnUrl?: string;  // Pour redirections
 }
 
+// --- Checkout Sessions ---
+
+export type CheckoutMode = 'payment' | 'subscription';
+
+export interface CheckoutLineItem {
+  priceId?: string;
+  priceData?: {
+    currency: string;
+    unitAmountCents: number;
+    productName: string;
+    productDescription?: string;
+  };
+  quantity: number;
+}
+
+export interface CreateCheckoutSessionInput {
+  mode: CheckoutMode;
+  lineItems: CheckoutLineItem[];
+  successUrl: string;
+  cancelUrl: string;
+  customerId?: string;
+  customerEmail?: string;
+  metadata?: Record<string, string>;
+  subscriptionMetadata?: Record<string, string>;
+  paymentIntentMetadata?: Record<string, string>;
+  locale?: string;
+  providerOptions?: Record<string, unknown>;
+}
+
+export interface CreateCheckoutSessionResult {
+  sessionId: string;
+  url: string | null;
+  provider: PSPProvider;
+}
+
+export interface CheckoutSessionDetails {
+  sessionId: string;
+  paymentStatus: 'paid' | 'unpaid' | 'no_payment_required';
+  mode: CheckoutMode;
+  metadata: Record<string, string>;
+  customerId?: string;
+  subscriptionId?: string;
+  paymentIntentId?: string;
+  subscription?: {
+    id: string;
+    currentPeriodStart: Date;
+    currentPeriodEnd: Date;
+    latestInvoiceId?: string;
+  };
+  provider: PSPProvider;
+}
+
+export interface InvoiceAuthDetails {
+  invoiceId: string;
+  paymentIntentId?: string;
+  threeDsResult?: string;
+}
+
 // Input remboursement
 export interface RefundInput {
   paymentId: string;

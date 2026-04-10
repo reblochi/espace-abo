@@ -7,11 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { generateReference } from '@/lib/utils';
 import { updateConsentStrongAuth } from '@/lib/consent';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+import { getDefaultPSPAdapter } from '@/lib/psp';
 
 // GET /api/subscriptions/verify - Verifier session Checkout
 export async function GET(request: NextRequest) {
@@ -28,10 +24,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID requis' }, { status: 400 });
     }
 
-    // Recuperer la session Checkout
-    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'customer'],
-    });
+    // Recuperer la session Checkout via l'adapter PSP
+    const psp = getDefaultPSPAdapter();
+    const checkoutSession = await psp.retrieveCheckoutSession(sessionId, true);
 
     // Verifier que c'est bien l'utilisateur
     if (checkoutSession.metadata?.userId !== session.user.id) {
@@ -39,33 +34,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Verifier le statut
-    if (checkoutSession.payment_status !== 'paid') {
+    if (checkoutSession.paymentStatus !== 'paid') {
       return NextResponse.json({ error: 'Paiement non confirme' }, { status: 400 });
     }
 
-    const stripeSubscription = checkoutSession.subscription as Stripe.Subscription;
-    const stripeCustomer = checkoutSession.customer as Stripe.Customer;
-
-    // Enrichir le consentement avec le résultat 3DS
+    // Enrichir le consentement avec le resultat 3DS
     const consentId = checkoutSession.metadata?.consentId;
-    if (consentId && stripeSubscription?.latest_invoice) {
+    if (consentId && checkoutSession.subscription?.latestInvoiceId) {
       try {
-        const invoiceId = typeof stripeSubscription.latest_invoice === 'string'
-          ? stripeSubscription.latest_invoice
-          : stripeSubscription.latest_invoice.id;
-        const invoice = await stripe.invoices.retrieve(invoiceId);
-        if (invoice.payment_intent) {
-          const piId = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent.id;
-          const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
-          const charge = pi.latest_charge as Stripe.Charge;
-          const threeDsResult = charge?.payment_method_details?.card?.three_d_secure?.result;
-          if (threeDsResult) {
-            await updateConsentStrongAuth(consentId, `3ds_${threeDsResult}`);
-          }
+        const authDetails = await psp.getInvoiceAuthDetails(checkoutSession.subscription.latestInvoiceId);
+        if (authDetails.threeDsResult) {
+          await updateConsentStrongAuth(consentId, `3ds_${authDetails.threeDsResult}`);
         }
       } catch (err) {
         console.error('[Verify] Erreur enrichissement 3DS consent:', err);
       }
+    }
+
+    // Verifier que les donnees de subscription sont presentes
+    if (!checkoutSession.subscription || !checkoutSession.customerId || !checkoutSession.subscriptionId) {
+      return NextResponse.json({ error: 'Donnees abonnement manquantes' }, { status: 400 });
     }
 
     // Verifier si l'abonnement existe deja
@@ -85,11 +73,11 @@ export async function GET(request: NextRequest) {
           reference,
           status: 'ACTIVE',
           amountCents: 990,
-          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-          pspProvider: 'stripe',
-          pspCustomerId: stripeCustomer.id,
-          pspSubscriptionId: stripeSubscription.id,
+          currentPeriodStart: checkoutSession.subscription.currentPeriodStart,
+          currentPeriodEnd: checkoutSession.subscription.currentPeriodEnd,
+          pspProvider: checkoutSession.provider,
+          pspCustomerId: checkoutSession.customerId,
+          pspSubscriptionId: checkoutSession.subscriptionId,
         },
       });
 
@@ -121,7 +109,7 @@ export async function GET(request: NextRequest) {
             firstName: user.firstName,
             reference: subscription.reference,
             amount: `${(subscription.amountCents / 100).toFixed(2).replace('.', ',')} EUR`,
-            nextBillingDate: new Date(stripeSubscription.current_period_end * 1000).toLocaleDateString('fr-FR'),
+            nextBillingDate: checkoutSession.subscription.currentPeriodEnd.toLocaleDateString('fr-FR'),
           },
         });
       }
@@ -131,10 +119,10 @@ export async function GET(request: NextRequest) {
         where: { id: subscription.id },
         data: {
           status: 'ACTIVE',
-          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-          pspSubscriptionId: stripeSubscription.id,
-          pspCustomerId: stripeCustomer.id,
+          currentPeriodStart: checkoutSession.subscription.currentPeriodStart,
+          currentPeriodEnd: checkoutSession.subscription.currentPeriodEnd,
+          pspSubscriptionId: checkoutSession.subscriptionId,
+          pspCustomerId: checkoutSession.customerId,
         },
       });
     }

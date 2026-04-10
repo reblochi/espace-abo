@@ -17,6 +17,10 @@ import type {
   RefundInput,
   WebhookEvent,
   WebhookEventType,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionResult,
+  CheckoutSessionDetails,
+  InvoiceAuthDetails,
 } from './types';
 
 // --- Types PayTool API ---
@@ -424,6 +428,19 @@ export class FenigeAdapter extends BasePSPAdapter {
         clearingAmount: amountCents,
       }
     );
+  }
+
+  // Checkout sessions (non implemente pour Fenige — utilise hosted payment page)
+  async createCheckoutSession(_input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult> {
+    throw new Error('Fenige: createCheckoutSession non implemente');
+  }
+
+  async retrieveCheckoutSession(_sessionId: string, _expandSubscription?: boolean): Promise<CheckoutSessionDetails> {
+    throw new Error('Fenige: retrieveCheckoutSession non implemente');
+  }
+
+  async getInvoiceAuthDetails(invoiceId: string): Promise<InvoiceAuthDetails> {
+    return { invoiceId };
   }
 
   // --- Webhooks ---

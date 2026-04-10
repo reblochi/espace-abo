@@ -120,3 +120,34 @@ export const uploadFileSchema = z.object({
 });
 
 export type UploadFileSchema = z.infer<typeof uploadFileSchema>;
+
+// Schema checkout demarche
+export const processCheckoutSchema = z.object({
+  type: processTypeSchema,
+  data: z.record(z.any()),
+  processReference: z.string().optional(),
+  paymentMode: z.enum(['one_time', 'subscription']).default('one_time'),
+  stampTaxCents: z.number().int().min(0).max(100000).default(0),
+  isFromSubscription: z.boolean().default(false),
+  isFreeProfile: z.boolean().default(false),
+  partner: z.string().nullable().default(null),
+  pricingCode: z.string().nullable().default(null),
+  source: z.string().nullable().default(null),
+});
+
+export type ProcessCheckoutSchema = z.infer<typeof processCheckoutSchema>;
+
+// Schema annulation abonnement
+export const cancelSubscriptionSchema = z.object({
+  reason: z.string().max(1000).optional(),
+  immediate: z.boolean().default(false),
+});
+
+export type CancelSubscriptionSchema = z.infer<typeof cancelSubscriptionSchema>;
+
+// Schema checkout abonnement
+export const subscriptionCheckoutSchema = z.object({
+  priceId: z.string().min(1, 'Price ID requis').regex(/^price_/, 'Price ID invalide'),
+});
+
+export type SubscriptionCheckoutSchema = z.infer<typeof subscriptionCheckoutSchema>;
