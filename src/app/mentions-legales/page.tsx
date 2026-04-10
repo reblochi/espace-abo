@@ -37,8 +37,10 @@ export default function MentionsLegalesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Éditeur du site</h2>
             <div className="bg-gray-50 rounded-xl p-6 space-y-2">
-              <p><span className="font-medium text-gray-900">Raison sociale :</span> FranceGuichet</p>
+              <p><span className="font-medium text-gray-900">Nom :</span> SAF Service B.V.</p>
+              <p><span className="font-medium text-gray-900">Nom commercial :</span> FranceGuichet</p>
               <p><span className="font-medium text-gray-900">Forme juridique :</span> Besloten Vennootschap (société à responsabilité limitée)</p>
+              <p><span className="font-medium text-gray-900">Numéro KVK :</span> 99957493</p>
               <p><span className="font-medium text-gray-900">Numéro d&apos;immatriculation (RSIN) :</span> 869203708</p>
               <p><span className="font-medium text-gray-900">Numéro d&apos;établissement :</span> 000064994767</p>
               <p><span className="font-medium text-gray-900">Siège social :</span> Amsterdam, Pays-Bas</p>
