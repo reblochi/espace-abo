@@ -26,7 +26,7 @@ export default function ConditionsGeneralesPage() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Conditions générales d&apos;utilisation et de vente</h1>
-        <p className="text-sm text-gray-400 mb-10">Dernière mise à jour : 3 mars 2026</p>
+        <p className="text-sm text-gray-400 mb-10">Dernière mise à jour : 2 avril 2026</p>
 
         <div className="space-y-10 text-sm text-gray-600 leading-relaxed">
 
@@ -40,13 +40,14 @@ export default function ConditionsGeneralesPage() {
             <p>
               Les présentes Conditions Générales d&apos;Utilisation et de Vente (ci-après « CGU/CGV »)
               ont pour objet de définir les modalités d&apos;accès et d&apos;utilisation du site
-              espace-abo.mesdemarchesapp.fr (ci-après « le Site ») et des services proposés
+              franceguichet.fr (ci-après « le Site ») et des services proposés
               par FranceGuichet (ci-après « FranceGuichet » ou « le Prestataire »).
             </p>
             <p className="mt-2">
-              FranceGuichet est une société de droit néerlandais (Besloten Vennootschap),
-              immatriculée sous le numéro RSIN 869203708, dont le siège social est situé
-              au Herengracht 449A, 1017 BR Amsterdam, Pays-Bas.
+              FranceGuichet est le nom commercial de SAF Service B.V., société de droit néerlandais
+              (Besloten Vennootschap), immatriculée au registre du commerce néerlandais (KVK) sous
+              le numéro 99957493, RSIN 869203708, dont le siège social est situé au
+              Herengracht 449A, 1017 BR Amsterdam, Pays-Bas.
             </p>
           </section>
 
@@ -189,8 +190,8 @@ export default function ConditionsGeneralesPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Article 10 — Paiement</h2>
             <p>
-              Le paiement s&apos;effectue en ligne par carte bancaire via notre prestataire de
-              paiement sécurisé (Stripe). FranceGuichet ne stocke aucune donnée bancaire.
+              Le paiement s&apos;effectue en ligne par carte bancaire via un prestataire de
+              paiement sécurisé. FranceGuichet ne stocke aucune donnée bancaire.
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li><span className="font-medium text-gray-900">À la carte :</span> le paiement est exigible au moment de la validation de la démarche</li>
@@ -370,7 +371,7 @@ export default function ConditionsGeneralesPage() {
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Via la page <Link href="/contact" className="text-[#1a2e5a] underline hover:no-underline">contact</Link> du Site</li>
-              <li>Par courrier : FranceGuichet, Herengracht 449A, 1017 BR Amsterdam, Pays-Bas</li>
+              <li>Par courrier : SAF Service B.V. (FranceGuichet), Herengracht 449A, 1017 BR Amsterdam, Pays-Bas</li>
             </ul>
           </section>
         </div>
