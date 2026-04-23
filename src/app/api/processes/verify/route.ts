@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         toStatus: 'PAID',
         reason: isSubscriptionMode
           ? 'Paiement valide via abonnement (verification)'
-          : 'Paiement valide via Stripe Checkout (verification)',
+          : `Paiement valide via ${psp.provider} (verification)`,
         createdBy: 'system',
       },
     });
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
             status: 'ACTIVE',
             amountCents: 990,
             currency: 'EUR',
-            pspProvider: 'stripe',
+            pspProvider: checkoutSession.provider,
             pspSubscriptionId: subscriptionId,
             pspCustomerId: customerId,
             startDate: now,

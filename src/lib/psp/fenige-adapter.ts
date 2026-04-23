@@ -3,6 +3,7 @@
 
 import crypto from 'crypto';
 import { BasePSPAdapter } from './base-adapter';
+import { prisma } from '@/lib/db';
 import type {
   PSPProvider,
   PSPConfig,
@@ -20,6 +21,7 @@ import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
   CheckoutSessionDetails,
+  CheckoutLineItem,
   InvoiceAuthDetails,
 } from './types';
 
@@ -430,17 +432,227 @@ export class FenigeAdapter extends BasePSPAdapter {
     );
   }
 
-  // Checkout sessions (non implemente pour Fenige — utilise hosted payment page)
-  async createCheckoutSession(_input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult> {
-    throw new Error('Fenige: createCheckoutSession non implemente');
+  // --- Checkout sessions ---
+  // PayTool n'a pas de "checkout session" native. On construit l'equivalent par-dessus
+  // pre-init + paymelink, et on persiste les metadata dans la table psp_sessions
+  // pour les retrouver au retour (verify).
+
+  async createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CreateCheckoutSessionResult> {
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || '';
+
+      const amountCents = input.lineItems.reduce((sum, item) => sum + this.lineItemAmountCents(item), 0);
+      if (amountCents <= 0) {
+        throw new Error('Fenige: montant total nul, impossible de creer la session');
+      }
+
+      const currency = this.inferCurrency(input.lineItems);
+      const description = this.buildDescription(input.lineItems);
+      const orderNumber = (input.metadata?.processReference || input.metadata?.reference || `ORD-${Date.now()}`).slice(0, 32);
+      const transactionRef = `ref_${Date.now()}`.slice(0, 20);
+
+      // PayTool ne retourne pas {CHECKOUT_SESSION_ID} comme Stripe — on cree d'abord
+      // le pre-init pour avoir le transactionId, puis on injecte dans successUrl.
+      const typeOfAuthorization = input.mode === 'subscription' ? 'COF' : 'PURCHASE';
+
+      const preInit = await this.requestWithApiKey<PayToolPreInitResponse>(
+        'POST',
+        '/transactions/pre-initialization',
+        {
+          currencyCode: currency.toUpperCase(),
+          amount: amountCents,
+          receiverAmount: amountCents,
+          transactionRef,
+          description,
+          orderNumber,
+          formLanguage: (input.locale || 'fr').slice(0, 2),
+          redirectUrl: this.buildRedirectUrls(input, null),
+          sender: {
+            firstName: input.metadata?.firstName || '',
+            lastName: input.metadata?.lastName || '',
+            email: input.customerEmail || '',
+            address: input.metadata?.address ? JSON.parse(input.metadata.address) : undefined,
+          },
+          autoClear: true,
+          typeOfAuthorization,
+          countryOfResidence: input.metadata?.countryCode || 'FR',
+          allowedPaymentMethods: ['CARD'],
+          merchantUuid: this.merchantUuid,
+        }
+      );
+
+      // Regenerer les URLs avec le vrai transactionId en remplacement du placeholder
+      const finalRedirect = this.buildRedirectUrls(input, preInit.transactionId);
+
+      const paymelink = await this.requestWithApiKey<PayToolPaymelinkResponse>(
+        'POST',
+        '/external-api/paymelink',
+        {
+          preInitData: {
+            transactionId: preInit.transactionId,
+            currencyCode: currency.toUpperCase(),
+            amount: amountCents,
+            receiverAmount: amountCents,
+            description,
+            orderNumber,
+            redirectUrl: finalRedirect,
+            formLanguage: (input.locale || 'fr').slice(0, 2),
+            sender: {
+              firstName: input.metadata?.firstName || '',
+              lastName: input.metadata?.lastName || '',
+              email: input.customerEmail || '',
+            },
+            autoClear: true,
+            merchantUuid: this.merchantUuid,
+            countryOfResidence: input.metadata?.countryCode || 'FR',
+            allowedPaymentMethods: ['CARD'],
+          },
+        }
+      );
+
+      // Persister la session localement — source de verite pour les metadata au retour
+      await prisma.pspSession.create({
+        data: {
+          pspProvider: 'fenige',
+          sessionId: preInit.transactionId,
+          mode: input.mode,
+          amountCents,
+          currency,
+          customerEmail: input.customerEmail,
+          customerId: input.customerId,
+          successUrl: input.successUrl,
+          cancelUrl: input.cancelUrl,
+          metadata: input.metadata || {},
+          subscriptionMetadata: input.subscriptionMetadata || {},
+          paymentIntentMetadata: input.paymentIntentMetadata || {},
+        },
+      });
+
+      return {
+        sessionId: preInit.transactionId,
+        url: paymelink.value,
+        provider: this.provider,
+      };
+    } catch (error) {
+      this.error('Erreur creation checkout session Fenige', error);
+    }
   }
 
-  async retrieveCheckoutSession(_sessionId: string, _expandSubscription?: boolean): Promise<CheckoutSessionDetails> {
-    throw new Error('Fenige: retrieveCheckoutSession non implemente');
+  async retrieveCheckoutSession(sessionId: string, expandSubscription = false): Promise<CheckoutSessionDetails> {
+    try {
+      const localSession = await prisma.pspSession.findUnique({
+        where: { sessionId },
+      });
+
+      if (!localSession) {
+        throw new Error(`Fenige: session ${sessionId} introuvable en local`);
+      }
+
+      const details = await this.getPayment(sessionId);
+      const paid = details.transactionStatus === 'SUCCESS' || details.transactionStatus === 'SUCCESS_WAITING_FOR_CLEARING';
+      const paymentStatus: CheckoutSessionDetails['paymentStatus'] = paid ? 'paid' : 'unpaid';
+
+      // Synchroniser l'etat local (idempotent)
+      if (
+        localSession.paymentStatus !== paymentStatus ||
+        localSession.cofInitialUuid !== (details.cofInitialUuid || null) ||
+        localSession.paymentIntentId !== sessionId
+      ) {
+        await prisma.pspSession.update({
+          where: { sessionId },
+          data: {
+            paymentStatus,
+            paymentIntentId: sessionId,
+            cofInitialUuid: details.cofInitialUuid || null,
+            subscriptionId: details.cofInitialUuid || null,
+          },
+        });
+      }
+
+      const result: CheckoutSessionDetails = {
+        sessionId,
+        paymentStatus,
+        mode: localSession.mode as CheckoutSessionDetails['mode'],
+        metadata: (localSession.metadata as Record<string, string>) || {},
+        customerId: localSession.customerId || undefined,
+        subscriptionId: details.cofInitialUuid || undefined,
+        paymentIntentId: sessionId,
+        provider: this.provider,
+      };
+
+      if (expandSubscription && localSession.mode === 'subscription' && details.cofInitialUuid) {
+        const periodStart = new Date();
+        const periodEnd = new Date(periodStart);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+        result.subscription = {
+          id: details.cofInitialUuid,
+          currentPeriodStart: periodStart,
+          currentPeriodEnd: periodEnd,
+          latestInvoiceId: sessionId, // on reutilise le transactionId comme invoiceId
+        };
+      }
+
+      return result;
+    } catch (error) {
+      this.error('Erreur recuperation checkout session Fenige', error);
+    }
   }
 
   async getInvoiceAuthDetails(invoiceId: string): Promise<InvoiceAuthDetails> {
-    return { invoiceId };
+    try {
+      // Chez Fenige, l'invoiceId est le transactionId lui-meme
+      const details = await this.getPayment(invoiceId);
+      return {
+        invoiceId,
+        paymentIntentId: details.transactionId,
+        // PayTool n'expose pas de champ 3DS standardise. On remonte responseCode
+        // prefixe pour tracabilite RGPD / consentement fort.
+        threeDsResult: details.responseCode ? `fenige_${details.responseCode}` : undefined,
+      };
+    } catch (error) {
+      // Ne pas bloquer la finalisation si la recup des details echoue
+      console.error('[PSP:fenige] getInvoiceAuthDetails error', error);
+      return { invoiceId };
+    }
+  }
+
+  // --- Helpers checkout ---
+
+  private lineItemAmountCents(item: CheckoutLineItem): number {
+    if (item.priceData) {
+      return item.priceData.unitAmountCents * item.quantity;
+    }
+    // priceId non supporte par Fenige (pas de catalogue cote PSP).
+    // Les callers doivent fournir priceData pour Fenige, ou passer par un mapping
+    // env var FENIGE_PRICE_* si necessaire plus tard.
+    throw new Error('Fenige: lineItem sans priceData non supporte (pas de catalogue PSP)');
+  }
+
+  private inferCurrency(lineItems: CheckoutLineItem[]): string {
+    const withCurrency = lineItems.find((i) => i.priceData?.currency);
+    return withCurrency?.priceData?.currency || 'eur';
+  }
+
+  private buildDescription(lineItems: CheckoutLineItem[]): string {
+    const names = lineItems
+      .map((i) => i.priceData?.productName)
+      .filter(Boolean);
+    const desc = names.join(' + ') || 'Paiement SAF SERVICE';
+    return desc.slice(0, 120); // limite PayTool courante
+  }
+
+  private buildRedirectUrls(input: CreateCheckoutSessionInput, transactionId: string | null) {
+    const substitute = (url: string) =>
+      transactionId
+        ? url.replace('{CHECKOUT_SESSION_ID}', transactionId)
+        : url.replace('{CHECKOUT_SESSION_ID}', 'PENDING');
+
+    return {
+      successUrl: substitute(input.successUrl),
+      failureUrl: substitute(input.cancelUrl),
+      cancelUrl: substitute(input.cancelUrl),
+    };
   }
 
   // --- Webhooks ---

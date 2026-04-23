@@ -823,3 +823,34 @@ model EmailTemplate {
   @@map("email_templates")
   @@schema("espace_abo")
 }
+
+// ============================================
+// SESSIONS PSP (cache metadata pour PSP sans metadata natif)
+// ============================================
+
+model PspSession {
+  id                    String   @id @default(cuid())
+  pspProvider           String   // stripe, fenige, hipay...
+  sessionId             String   @unique // ID de session cote PSP (transactionId Fenige, cs_xxx Stripe...)
+  mode                  String   // payment | subscription
+  amountCents           Int
+  currency              String   @default("eur")
+  customerEmail         String?
+  customerId            String?
+  successUrl            String
+  cancelUrl             String
+  metadata              Json     @default("{}")
+  subscriptionMetadata  Json     @default("{}")
+  paymentIntentMetadata Json     @default("{}")
+  // Champs renseignes au moment de la verification
+  paymentStatus         String   @default("unpaid") // paid | unpaid | no_payment_required
+  paymentIntentId       String?
+  subscriptionId        String?
+  cofInitialUuid        String?  // Fenige : UUID CoF pour debits recurrents
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([pspProvider, sessionId])
+  @@map("psp_sessions")
+  @@schema("espace_abo")
+}

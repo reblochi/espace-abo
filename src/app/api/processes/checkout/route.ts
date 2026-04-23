@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
     let serviceFeesCents = processConfig.basePrice;
     const lineItems: CheckoutLineItem[] = [];
 
+    const psp = getDefaultPSPAdapter();
+
     // Pour la carte grise, calculer les taxes
     if (type === 'REGISTRATION_CERT' && data.vehicle && data.holder) {
       const vehicleData = data.vehicle as {
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest) {
           taxesCents,
           serviceFeesCents,
           isFromSubscription: isFromSubscription || isFreeProfile,
-          pspProvider: 'stripe',
+          pspProvider: psp.provider,
           data,
           mandatoryFileTypes,
           partner,
@@ -293,7 +295,6 @@ export async function POST(request: NextRequest) {
       metadata: { processId: newProcess.id, processReference: reference },
     });
 
-    const psp = getDefaultPSPAdapter();
     let checkoutResult;
 
     if (paymentMode === 'subscription') {
