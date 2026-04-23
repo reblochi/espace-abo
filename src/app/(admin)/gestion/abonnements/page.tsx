@@ -22,14 +22,16 @@ export default function AdminSubscriptionsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'subscriptions', search, statusFilter, page],
+    queryKey: ['admin', 'subscriptions', search, statusFilter, needsReviewOnly, page],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
+      if (needsReviewOnly) params.set('needsReview', 'true');
       const res = await fetch(`/api/gestion/subscriptions?${params}`);
       if (!res.ok) throw new Error('Erreur chargement');
       return res.json();
@@ -97,6 +99,19 @@ export default function AdminSubscriptionsPage() {
       label: 'Debut',
       render: (item: Record<string, unknown>) => formatDate(item.startDate as string),
     },
+    {
+      key: 'review',
+      label: 'À revoir',
+      render: (item: Record<string, unknown>) => {
+        const count = Number(item.deadlinesNeedingReview || 0);
+        if (count === 0) return <span className="text-gray-300 text-xs">-</span>;
+        return (
+          <Badge variant="destructive">
+            {count} échéance{count > 1 ? 's' : ''}
+          </Badge>
+        );
+      },
+    },
   ];
 
   return (
@@ -118,6 +133,15 @@ export default function AdminSubscriptionsPage() {
           <option value="CANCELED">Annule</option>
           <option value="ENDED">Termine</option>
         </select>
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={needsReviewOnly}
+            onChange={(e) => { setNeedsReviewOnly(e.target.checked); setPage(1); }}
+            className="rounded border-gray-300"
+          />
+          À revoir uniquement
+        </label>
       </div>
 
       {isLoading ? (

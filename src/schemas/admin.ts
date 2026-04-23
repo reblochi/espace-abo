@@ -28,6 +28,7 @@ export const adminSubscriptionSearchSchema = z.object({
   search: z.string().optional(),
   status: z.enum(['PENDING', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'ENDED']).optional(),
   cardExpiring: z.coerce.boolean().optional(),
+  needsReview: z.coerce.boolean().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

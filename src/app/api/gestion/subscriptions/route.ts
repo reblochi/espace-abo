@@ -18,10 +18,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Parametres invalides', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { search, status, cardExpiring, page, limit } = parsed.data;
+  const { search, status, cardExpiring, needsReview, page, limit } = parsed.data;
   const skip = (page - 1) * limit;
 
   const where: Prisma.SubscriptionWhereInput = {};
+
+  if (needsReview) {
+    where.deadlines = { some: { refundNeedsReview: true } };
+  }
 
   if (search) {
     where.user = {
@@ -59,6 +63,9 @@ export async function GET(request: NextRequest) {
           orderBy: { deadlineNumber: 'desc' },
           take: 1,
         },
+        _count: {
+          select: { deadlines: { where: { refundNeedsReview: true } } },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -67,7 +74,7 @@ export async function GET(request: NextRequest) {
     prisma.subscription.count({ where }),
   ]);
 
-  // Ajouter le flag cardExpiringSoon
+  // Ajouter les flags derives (cardExpiringSoon, needsReview)
   const now = new Date();
   const twoMonthsFromNow = new Date(now.getFullYear(), now.getMonth() + 2, 1);
   const items = subscriptions.map((sub) => ({
@@ -76,6 +83,7 @@ export async function GET(request: NextRequest) {
       sub.cardExpYear && sub.cardExpMonth
         ? new Date(sub.cardExpYear, sub.cardExpMonth, 0) <= twoMonthsFromNow
         : false,
+    deadlinesNeedingReview: sub._count?.deadlines ?? 0,
   }));
 
   return NextResponse.json({

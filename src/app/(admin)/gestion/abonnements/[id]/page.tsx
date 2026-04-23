@@ -36,6 +36,8 @@ interface Deadline {
   paidAt: string | null;
   refundedAt: string | null;
   refundedAmount: number | null;
+  refundNeedsReview: boolean;
+  refundReviewReason: string | null;
   invoice: { id: string; number: string } | null;
 }
 
@@ -109,6 +111,7 @@ export default function AdminSubscriptionDetailPage() {
   const statusConf = subscriptionStatusConfig[sub.status] || { label: sub.status, variant: 'secondary' as const };
   const isActive = ['ACTIVE', 'PAST_DUE', 'PENDING'].includes(sub.status);
   const refundableDeadlines = (sub.deadlines as Deadline[]).filter((d) => d.paymentStatus === 'PAID');
+  const deadlinesToReview = (sub.deadlines as Deadline[]).filter((d) => d.refundNeedsReview);
 
   const toggleDeadline = (deadlineId: string) => {
     setSelectedDeadlines((prev) =>
@@ -129,7 +132,35 @@ export default function AdminSubscriptionDetailPage() {
       <div className="flex items-center gap-3 mb-6">
         <h1 className="text-xl font-semibold text-gray-900">{sub.reference}</h1>
         <Badge variant={statusConf.variant}>{statusConf.label}</Badge>
+        {deadlinesToReview.length > 0 && (
+          <Badge variant="destructive">
+            {deadlinesToReview.length} échéance{deadlinesToReview.length > 1 ? 's' : ''} à revoir
+          </Badge>
+        )}
       </div>
+
+      {deadlinesToReview.length > 0 && (
+        <div className="mb-6 p-4 border border-red-300 bg-red-50 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="text-sm text-red-900">
+              <p className="font-semibold mb-1">Remboursement PSP réussi mais avoir non créé — vérification comptable requise.</p>
+              <ul className="list-disc ml-5 space-y-1 mt-2">
+                {deadlinesToReview.map((d) => (
+                  <li key={d.id}>
+                    <span className="font-medium">Échéance #{d.deadlineNumber}</span>
+                    {d.refundedAmount ? ` (${formatCurrency(d.refundedAmount)})` : ''}
+                    {d.refundReviewReason && <span className="text-red-700"> — {d.refundReviewReason}</span>}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-red-700">Action : créer l'avoir manuellement depuis l'onglet Factures du client, puis résoudre ce flag via SQL.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Infos abonnement */}
@@ -316,7 +347,7 @@ export default function AdminSubscriptionDetailPage() {
                 const pConf = paymentStatusConfig[d.paymentStatus] || { label: d.paymentStatus, variant: 'secondary' as const };
                 const canRefund = d.paymentStatus === 'PAID';
                 return (
-                  <tr key={d.id} className="hover:bg-gray-50">
+                  <tr key={d.id} className={d.refundNeedsReview ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}>
                     <td className="px-3 py-2">
                       {canRefund && (
                         <input
@@ -330,12 +361,17 @@ export default function AdminSubscriptionDetailPage() {
                     <td className="px-3 py-2">{formatCurrency(d.amountCents)}</td>
                     <td className="px-3 py-2">{formatDate(d.dueDate)}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={pConf.variant}>{pConf.label}</Badge>
-                      {d.refundedAt && (
-                        <span className="text-xs text-gray-400 ml-1">
-                          ({formatDate(d.refundedAt)})
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant={pConf.variant}>{pConf.label}</Badge>
+                        {d.refundNeedsReview && (
+                          <Badge variant="destructive" title={d.refundReviewReason || ''}>À revoir</Badge>
+                        )}
+                        {d.refundedAt && (
+                          <span className="text-xs text-gray-400">
+                            ({formatDate(d.refundedAt)})
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2">{d.paidAt ? formatDate(d.paidAt) : '-'}</td>
                     <td className="px-3 py-2">
