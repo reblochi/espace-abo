@@ -176,6 +176,10 @@ model SubscriptionDeadline {
   refundedAt     DateTime?
   refundedAmount Int?
 
+  // Remboursement PSP reussi mais creation d'avoir echouee : flag pour revue manuelle
+  refundNeedsReview  Boolean @default(false)
+  refundReviewReason String?
+
   pspInvoiceId String?
 
   invoice Invoice?

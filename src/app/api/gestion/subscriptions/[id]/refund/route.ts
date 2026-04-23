@@ -49,7 +49,7 @@ export async function POST(
   }
 
   const adapter = getPSPAdapter(subscription.pspProvider as PSPProvider);
-  const results: { deadlineId: string; success: boolean; creditNoteId?: string; error?: string }[] = [];
+  const results: { deadlineId: string; success: boolean; creditNoteId?: string; error?: string; needsReview?: boolean }[] = [];
 
   // Calculer le montant total des échéances sélectionnées
   const totalEligibleCents = eligibleDeadlines.reduce((sum, d) => sum + d.amountCents, 0);
@@ -107,14 +107,34 @@ export async function POST(
         }
       }
 
-      // 3. Créer l'avoir
-      const creditNote = await createCreditNote({
-        userId: subscription.userId,
-        totalCents: amountForThis,
-        reason: reason || `Remboursement échéance #${deadline.deadlineNumber}${amountForThis < deadline.amountCents ? ' (partiel)' : ''}`,
-      });
+      // 3. Créer l'avoir — si ca echoue apres un remboursement PSP reussi,
+      // l'echeance est flagguee pour revue manuelle (on ne peut pas annuler
+      // le remboursement deja effectue cote banque).
+      try {
+        const creditNote = await createCreditNote({
+          userId: subscription.userId,
+          totalCents: amountForThis,
+          reason: reason || `Remboursement échéance #${deadline.deadlineNumber}${amountForThis < deadline.amountCents ? ' (partiel)' : ''}`,
+        });
 
-      results.push({ deadlineId: deadline.id, success: true, creditNoteId: creditNote.id });
+        results.push({ deadlineId: deadline.id, success: true, creditNoteId: creditNote.id });
+      } catch (creditErr) {
+        const errMsg = creditErr instanceof Error ? creditErr.message : 'erreur inconnue';
+        console.error(`[Admin] CRITIQUE — remboursement PSP OK mais avoir KO pour echeance ${deadline.id}:`, creditErr);
+        await prisma.subscriptionDeadline.update({
+          where: { id: deadline.id },
+          data: {
+            refundNeedsReview: true,
+            refundReviewReason: `Avoir non cree: ${errMsg.slice(0, 500)}`,
+          },
+        });
+        results.push({
+          deadlineId: deadline.id,
+          success: false,
+          needsReview: true,
+          error: `Remboursement PSP OK mais creation d'avoir echouee — revue manuelle requise`,
+        });
+      }
     } catch (err) {
       console.error(`[Admin] Erreur remboursement échéance ${deadline.id}:`, err);
       results.push({ deadlineId: deadline.id, success: false, error: 'Erreur remboursement' });
