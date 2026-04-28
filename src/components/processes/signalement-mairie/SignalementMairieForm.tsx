@@ -21,6 +21,11 @@ import { useFormTracking } from '@/hooks/useFormTracking';
 
 export interface SignalementMairieFormProps {
   onComplete: (reference: string) => void;
+  embedPartner?: string;
+  onEmbedComplete?: (reference: string) => void;
+  gclid?: string;
+  prefillZipCode?: string;
+  prefillCity?: string;
 }
 
 type Step = {
@@ -67,7 +72,9 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-export function SignalementMairieForm({ onComplete }: SignalementMairieFormProps) {
+export function SignalementMairieForm({ onComplete, embedPartner, onEmbedComplete, gclid, prefillZipCode, prefillCity }: SignalementMairieFormProps) {
+  void onComplete;
+  const isEmbed = !!embedPartner;
   const { data: session } = useSession();
   const { profile } = useProfile();
   const router = useRouter();
@@ -120,6 +127,13 @@ export function SignalementMairieForm({ onComplete }: SignalementMairieFormProps
     if (!current.zipCode && profile.zipCode) setValue('zipCode', profile.zipCode);
     if (!current.city && profile.city) setValue('city', profile.city);
   }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pre-remplir depuis les props (mode embed avec contexte commune)
+  React.useEffect(() => {
+    const current = methods.getValues();
+    if (prefillZipCode && !current.zipCode) setValue('zipCode', prefillZipCode);
+    if (prefillCity && !current.city) setValue('city', prefillCity);
+  }, [prefillZipCode, prefillCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track step changes + hash pour bouton retour
   React.useEffect(() => {
@@ -239,6 +253,37 @@ export function SignalementMairieForm({ onComplete }: SignalementMairieFormProps
     setError(null);
 
     try {
+      // Mode embed: une seule requete multipart vers /api/embed/signalement-mairie
+      if (isEmbed) {
+        const fd = new FormData();
+        fd.append('partner', embedPartner!);
+        if (gclid) fd.append('gclid', gclid);
+        fd.append('category', data.category);
+        fd.append('description', data.description);
+        fd.append('adresse', data.adresse || '');
+        fd.append('zipCode', data.zipCode);
+        fd.append('city', data.city);
+        fd.append('firstName', data.requesterFirstName);
+        fd.append('lastName', data.requesterLastName);
+        fd.append('email', data.email);
+        if (data.telephone) fd.append('telephone', data.telephone);
+        for (const file of selectedFiles) fd.append('files', file);
+
+        const response = await fetch('/api/embed/signalement-mairie', {
+          method: 'POST',
+          body: fd,
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          setError(result.error || 'Une erreur est survenue');
+          return;
+        }
+
+        tracking.trackFormCompleted(result.reference);
+        if (onEmbedComplete) onEmbedComplete(result.reference);
+        return;
+      }
+
       const processData = {
         category: data.category,
         categoryLabel: SIGNALEMENT_CATEGORIES.find(c => c.value === data.category)?.label || data.category,

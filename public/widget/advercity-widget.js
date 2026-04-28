@@ -42,10 +42,22 @@
       title: 'Demande d\u2019acte de naissance',
       path: '/embed/acte-naissance',
     },
-    // A venir:
-    // 'acte-mariage': { title: 'Demande d\'acte de mariage', path: '/embed/acte-mariage' },
-    // 'acte-deces': { title: 'Demande d\'acte de deces', path: '/embed/acte-deces' },
-    // 'carte-grise': { title: 'Carte grise', path: '/embed/carte-grise' },
+    'acte-mariage': {
+      title: 'Demande d\u2019acte de mariage',
+      path: '/embed/acte-mariage',
+    },
+    'acte-deces': {
+      title: 'Demande d\u2019acte de deces',
+      path: '/embed/acte-deces',
+    },
+    'carte-identite': {
+      title: 'Demande de carte d\u2019identite',
+      path: '/embed/carte-identite',
+    },
+    'signalement-mairie': {
+      title: 'Signaler un probleme a la mairie',
+      path: '/embed/signalement-mairie',
+    },
   };
 
   // --- Styles du widget (injectes une seule fois) ---
