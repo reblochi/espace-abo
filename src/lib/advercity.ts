@@ -92,12 +92,39 @@ async function graphqlQuery<T>(query: string, variables?: Record<string, unknown
 // ============================================================
 
 // Creer une demarche dans Advercity
+//
+// Securite :
+//  - Bearer token (Authorization)
+//  - Signature HMAC du body (X-Timestamp + X-Signature) — empeche replay et
+//    creation de demarche par un attaquant qui aurait le token mais pas le secret partage
+//  - Idempotency-Key (UUID) — evite les doublons sur retry reseau
 export async function createAdvercityProcess(
-  input: AdvercityProcessInput
+  input: AdvercityProcessInput,
+  options?: { idempotencyKey?: string }
 ): Promise<AdvercityProcessResponse> {
+  const crypto = await import('crypto');
+  const secret = process.env.ADVERCITY_API_TOKEN || '';
+  const body = JSON.stringify(input);
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}.${body}`)
+    .digest('hex');
+
+  const idempotencyKey =
+    options?.idempotencyKey || input.external_reference || crypto.randomUUID();
+
   const response = await advercityClient.post<AdvercityProcessResponse>(
     '/api/external/process',
-    input
+    body,
+    {
+      headers: {
+        'X-Timestamp': timestamp,
+        'X-Signature': `sha256=${signature}`,
+        'Idempotency-Key': idempotencyKey,
+      },
+      transformRequest: [(d) => d], // body deja stringify pour HMAC fige
+    }
   );
   return response.data;
 }

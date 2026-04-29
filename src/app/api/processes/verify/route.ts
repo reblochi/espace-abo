@@ -140,11 +140,38 @@ export async function GET(request: NextRequest) {
         }
       );
 
+      // Recuperer les pieces jointes uploadees pour cette demarche.
+      // On genere une URL signee temporaire (1h) que 014 va telecharger.
+      const processFiles = await prisma.processFile.findMany({
+        where: { processId, deleted: false },
+        select: { fileName: true, fileType: true, originalName: true, mimeType: true },
+      });
+
+      const documents: { type: string; url: string; original_name?: string; mime_type?: string }[] = [];
+      if (processFiles.length > 0) {
+        const { getSignedDownloadUrl } = await import('@/lib/storage');
+        for (const f of processFiles) {
+          try {
+            const url = await getSignedDownloadUrl(f.fileName, 3600);
+            documents.push({
+              type: f.fileType,
+              url,
+              original_name: f.originalName,
+              mime_type: f.mimeType,
+            });
+          } catch (err) {
+            console.error(`[verify] Erreur signed URL pour ${f.fileName}:`, err);
+            // continue — on envoie ce qu'on a
+          }
+        }
+      }
+
       const advercityResult = await createAdvercityProcess({
         type: mapProcessTypeToAdvercity(demarche.type),
         external_reference: demarche.reference,
         webhook_url: `${baseUrl}/api/advercity/webhook`,
         data: advercityData,
+        documents: documents.length > 0 ? documents : undefined,
       });
 
       await prisma.process.update({
