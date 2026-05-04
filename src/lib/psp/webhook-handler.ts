@@ -540,6 +540,13 @@ async function sendProcessToAdvercity(processId: string): Promise<void> {
       },
     });
 
+    if (advercityResponse.advercity_customer_id && !paidProcess.user.advercityCustomerId) {
+      await prisma.user.update({
+        where: { id: paidProcess.user.id },
+        data: { advercityCustomerId: advercityResponse.advercity_customer_id },
+      });
+    }
+
     await prisma.processStatusHistory.create({
       data: {
         processId,

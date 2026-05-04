@@ -43,6 +43,9 @@ model User {
   city         String?
   country      String  @default("FR")
 
+  // Reference Advercity (Customer.id cote Advercity, retourne par POST /api/external/process)
+  advercityCustomerId String? @unique
+
   // Tokens securises
   resetPasswordToken   String?   @unique
   resetPasswordExpires DateTime?

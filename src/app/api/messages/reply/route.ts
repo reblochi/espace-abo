@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { sendRawEmail } from '@/lib/email';
+import { advercityClient, signAdvercityCustomer } from '@/lib/advercity';
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleProcessReply(
-  user: { id: string; email: string; firstName: string; lastName: string },
+  user: { id: string; email: string; firstName: string; lastName: string; advercityCustomerId: string | null },
   advercityRef: string,
   message: string,
   attachments: { filename: string; content: Buffer }[],
@@ -74,25 +75,53 @@ async function handleProcessReply(
     return NextResponse.json({ error: 'Démarche non trouvée' }, { status: 404 });
   }
 
-  // Envoyer email via Resend -> pluckmail.fr
-  // L'import IMAP Advercity va recuperer le message + les PJ automatiquement
-  const pluckmailAddress = `${advercityRef.toLowerCase()}@pluckmail.fr`;
+  if (!user.advercityCustomerId) {
+    return NextResponse.json({ error: 'Compte non lié à Advercity' }, { status: 409 });
+  }
 
-  const pjNote = attachments.length > 0
-    ? `<p><em>${attachments.length} pièce(s) jointe(s)</em></p>`
-    : '';
+  // POST direct vers l'API Advercity (signature HMAC, idem GET /messages).
+  // Cree un ProcessMessage cote Advercity dans le thread de la demarche.
+  // Si pieces jointes : multipart/form-data, sinon JSON.
+  const sig = signAdvercityCustomer(user.advercityCustomerId);
 
-  await sendRawEmail(
-    pluckmailAddress,
-    `Re: Démarche ${advercityRef}`,
-    `<p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>
-     ${pjNote}
+  const fullMessage = `<p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>
      <p>--<br/>
      ${escapeHtml(user.firstName)} ${escapeHtml(user.lastName)}<br/>
      ${escapeHtml(user.email)}<br/>
-     <em>Envoyé depuis l'espace membre FranceGuichet</em></p>`,
-    attachments.length > 0 ? attachments : undefined,
-  );
+     <em>Envoyé depuis l'espace membre FranceGuichet</em></p>`;
+
+  try {
+    if (attachments.length > 0) {
+      const fd = new FormData();
+      fd.append('customer_id', sig.customer_id);
+      fd.append('expires', String(sig.expires));
+      fd.append('signature', sig.signature);
+      fd.append('advercity_ref', advercityRef);
+      fd.append('subject', `Re: Démarche ${advercityRef}`);
+      fd.append('message', fullMessage);
+      for (const att of attachments) {
+        fd.append('attachments[]', new Blob([att.content]), att.filename);
+      }
+      await advercityClient.post('/api/external/messages', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        maxBodyLength: 60 * 1024 * 1024,
+        maxContentLength: 60 * 1024 * 1024,
+      });
+    } else {
+      await advercityClient.post('/api/external/messages', {
+        customer_id: sig.customer_id,
+        expires: sig.expires,
+        signature: sig.signature,
+        advercity_ref: advercityRef,
+        subject: `Re: Démarche ${advercityRef}`,
+        message: fullMessage,
+      });
+    }
+  } catch (err: unknown) {
+    const e = err as { response?: { status?: number; data?: unknown } };
+    console.error('Erreur POST /api/external/messages:', e.response?.status, e.response?.data);
+    return NextResponse.json({ error: 'Envoi du message échoué' }, { status: 502 });
+  }
 
   return NextResponse.json({ success: true });
 }

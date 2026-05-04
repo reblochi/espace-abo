@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { advercityClient } from '@/lib/advercity';
+import { advercityClient, signAdvercityCustomer } from '@/lib/advercity';
 import type { Conversation, MessageItem } from '@/hooks/useMessages';
 
 interface AdvercityMessage {
@@ -40,7 +40,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const [advercityConversations, localConversations] = await Promise.all([
-      fetchAdvercityConversations(user.email),
+      user.advercityCustomerId
+        ? fetchAdvercityConversations(user.advercityCustomerId)
+        : Promise.resolve([]),
       fetchLocalConversations(user.email),
     ]);
 
@@ -56,10 +58,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function fetchAdvercityConversations(email: string): Promise<Conversation[]> {
+async function fetchAdvercityConversations(advercityCustomerId: string): Promise<Conversation[]> {
   try {
+    const sig = signAdvercityCustomer(advercityCustomerId);
     const response = await advercityClient.get<AdvercityMessage[]>('/api/external/messages', {
-      params: { email },
+      params: {
+        customer_id: sig.customer_id,
+        expires: sig.expires,
+        signature: sig.signature,
+      },
     });
 
     const messages = response.data;

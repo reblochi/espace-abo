@@ -185,6 +185,13 @@ export async function GET(request: NextRequest) {
         },
       });
 
+      if (advercityResult.advercity_customer_id && !demarche.user.advercityCustomerId) {
+        await prisma.user.update({
+          where: { id: demarche.user.id },
+          data: { advercityCustomerId: advercityResult.advercity_customer_id },
+        });
+      }
+
       await prisma.processStatusHistory.create({
         data: {
           processId,

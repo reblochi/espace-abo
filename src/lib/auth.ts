@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           role: user.role,
+          advercityCustomerId: user.advercityCustomerId ?? null,
         };
       },
     }),
@@ -53,11 +54,24 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.advercityCustomerId = user.advercityCustomerId ?? null;
       }
+
+      // Si le token existe deja mais que advercityCustomerId n'a pas encore ete
+      // renseigne (user qui s'est logge avant d'avoir cree un process), on relit
+      // depuis la DB pour ne pas attendre une reconnexion.
+      if (token.id && (token.advercityCustomerId === undefined || token.advercityCustomerId === null || trigger === 'update')) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { advercityCustomerId: true },
+        });
+        token.advercityCustomerId = dbUser?.advercityCustomerId ?? null;
+      }
+
       return token;
     },
 
@@ -65,6 +79,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.id) {
         session.user.id = token.id as string;
         session.user.role = (token.role as string) || 'USER';
+        session.user.advercityCustomerId = (token.advercityCustomerId as string | null) ?? null;
       }
       return session;
     },
@@ -90,6 +105,7 @@ declare module 'next-auth' {
       name?: string | null;
       image?: string | null;
       role: string;
+      advercityCustomerId?: string | null;
     };
   }
 
@@ -98,6 +114,7 @@ declare module 'next-auth' {
     email: string;
     name?: string | null;
     role: string;
+    advercityCustomerId?: string | null;
   }
 }
 
@@ -105,5 +122,6 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id?: string;
     role?: string;
+    advercityCustomerId?: string | null;
   }
 }

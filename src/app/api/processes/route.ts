@@ -306,6 +306,13 @@ export async function POST(request: NextRequest) {
               lastSyncAt: new Date(),
             },
           });
+
+          if (advercityResponse.advercity_customer_id && !user.advercityCustomerId) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { advercityCustomerId: advercityResponse.advercity_customer_id },
+            });
+          }
         } catch (advError) {
           console.error('Erreur envoi Advercity:', advError);
           // La demarche reste en PAID pour retry ulterieur

@@ -152,7 +152,7 @@ export default function ProcessDetailPage() {
                 </div>
                 {processItem.advercityRef && (
                   <div>
-                    <dt className="text-sm text-gray-500">Référence Advercity</dt>
+                    <dt className="text-sm text-gray-500">Référence démarche</dt>
                     <dd className="mt-1 font-medium text-gray-900 font-mono text-sm">
                       {processItem.advercityRef}
                     </dd>
@@ -514,7 +514,7 @@ export default function ProcessDetailPage() {
           <Card>
             <CardContent className="py-4">
               <p className="text-sm text-gray-500 mb-3">
-                Une question sur votre demarche ?
+                Une question sur votre démarche ?
               </p>
               <Button
                 variant="outline"
@@ -522,7 +522,7 @@ export default function ProcessDetailPage() {
                 size="sm"
                 onClick={() => setShowContactModal(true)}
               >
-                Contacter le support
+                Contacter le SAV
               </Button>
             </CardContent>
           </Card>
@@ -534,6 +534,7 @@ export default function ProcessDetailPage() {
         isOpen={showContactModal}
         onClose={() => setShowContactModal(false)}
         processRéférence={reference}
+        advercityRef={processItem.advercityRef}
       />
     </div>
   );

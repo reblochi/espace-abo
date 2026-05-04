@@ -1,6 +1,7 @@
 // Client API Advercity
 
 import axios, { type AxiosInstance } from 'axios';
+import { createHmac } from 'crypto';
 import type { ProcessStatus, ProcessType, RegistrationCertificateProcessData } from '@/types';
 import { PROCESS_TYPE_MAPPING, AdvercityStep } from './process-types';
 import { mapToAdvercityPayload, type RegistrationCertificateInput } from '@/schemas/registration-certificate';
@@ -26,8 +27,29 @@ export interface AdvercityProcessInput {
 
 export interface AdvercityProcessResponse {
   advercity_id: string;
+  advercity_customer_id?: string;
   advercity_reference: string;
   status: number;
+}
+
+export interface AdvercityCustomerSignature {
+  customer_id: string;
+  expires: number;
+  signature: string;
+}
+
+export function signAdvercityCustomer(
+  customerId: string | number,
+  ttlSeconds = 600,
+): AdvercityCustomerSignature {
+  const token = process.env.ADVERCITY_API_TOKEN;
+  if (!token) {
+    throw new Error('ADVERCITY_API_TOKEN manquant');
+  }
+  const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const payload = `${customerId}:${expires}`;
+  const signature = createHmac('sha256', token).update(payload).digest('hex');
+  return { customer_id: String(customerId), expires, signature };
 }
 
 export interface AdvercityCitySearchResult {
